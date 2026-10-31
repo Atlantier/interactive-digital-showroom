@@ -1,0 +1,57 @@
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import { Gauge, X } from 'lucide-react'
+import { useEffect } from 'react'
+import { useAppStore } from '../../store/useAppStore'
+
+export function PerformanceQualityNotice() {
+  const visible = useAppStore((state) => state.qualityNoticeVisible)
+  const dismiss = useAppStore((state) => state.dismissQualityNotice)
+  const reducedMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (!visible) return
+    const timeout = window.setTimeout(dismiss, 5_500)
+    return () => window.clearTimeout(timeout)
+  }, [dismiss, visible])
+
+  return (
+    <AnimatePresence>
+      {visible ? (
+        <motion.aside
+          data-performance-quality-notice
+          role="status"
+          aria-live="polite"
+          initial={reducedMotion ? false : { opacity: 0, x: 20 }}
+          animate={{ opacity: 1, x: 0 }}
+          exit={{ opacity: 0, x: 14 }}
+          transition={{ duration: 0.24, ease: [0.22, 1, 0.36, 1] }}
+          className="fixed right-3 top-[84px] z-[55] flex max-w-[360px] items-start gap-3 border border-amber/25 bg-[#080c11]/94 p-3.5 font-mono shadow-[0_20px_60px_rgba(0,0,0,0.52)] backdrop-blur-xl sm:right-5"
+        >
+          <span className="mt-0.5 grid size-8 shrink-0 place-items-center border border-amber/25 bg-amber/[0.08] text-amber">
+            <Gauge size={14} strokeWidth={1.6} />
+          </span>
+          <div className="min-w-0">
+            <p className="text-[9px] tracking-[0.15em] text-amber">
+              ADAPTIVE QUALITY
+            </p>
+            <p className="mt-1.5 text-[11px] leading-5 text-frost/85">
+              渲染负载持续低于 45 FPS，已切换至平衡画质。
+            </p>
+            <p className="mt-1 text-[8px] leading-4 text-mist/40">
+              DPR 1.0 / 4,000 PARTICLES / POST FX REDUCED
+            </p>
+          </div>
+          <button
+            type="button"
+            aria-label="关闭画质提示"
+            title="关闭画质提示"
+            onClick={dismiss}
+            className="ml-1 grid size-6 shrink-0 place-items-center text-mist/40 transition-colors hover:text-frost"
+          >
+            <X size={12} strokeWidth={1.7} />
+          </button>
+        </motion.aside>
+      ) : null}
+    </AnimatePresence>
+  )
+}

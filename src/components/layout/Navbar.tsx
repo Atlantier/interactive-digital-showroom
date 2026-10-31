@@ -1,0 +1,373 @@
+import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
+import {
+  Activity,
+  Aperture,
+  Gauge,
+  Menu,
+  Search,
+  Volume2,
+  VolumeX,
+  X,
+  type LucideIcon,
+} from 'lucide-react'
+import { useEffect, useState, type MouseEvent } from 'react'
+import { SHOWROOM_SECTIONS, type SectionId } from '../../data/sections'
+import { useInterfaceSound } from '../../hooks/useInterfaceSound'
+import { cn } from '../../lib/cn'
+import { useAppStore } from '../../store/useAppStore'
+import { ScrollProgressRing } from './ScrollProgressRing'
+import { SoundSpectrum } from './SoundSpectrum'
+import { useSmoothScroll } from './SmoothScroll'
+
+function NavItem({
+  id,
+  label,
+  active,
+  onNavigate,
+}: {
+  id: SectionId
+  label: string
+  active: boolean
+  onNavigate: (event: MouseEvent<HTMLAnchorElement>, id: SectionId) => void
+}) {
+  const playSound = useInterfaceSound()
+
+  return (
+    <a
+      href={`#${id}`}
+      aria-current={active ? 'location' : undefined}
+      onClick={(event) => onNavigate(event, id)}
+      onPointerEnter={() => playSound('hover')}
+      className={cn(
+        'relative flex h-9 items-center px-3 text-sm transition-colors duration-300',
+        active ? 'text-frost' : 'text-mist hover:text-frost',
+      )}
+    >
+      {active && (
+        <motion.span
+          layoutId="active-nav-indicator"
+          className="absolute inset-x-2 bottom-0 h-px bg-signal"
+          transition={{ type: 'spring', stiffness: 380, damping: 34 }}
+        />
+      )}
+      {label}
+    </a>
+  )
+}
+
+function FpsToggle() {
+  const enabled = useAppStore((state) => state.fpsMonitorEnabled)
+  const toggleMonitor = useAppStore((state) => state.toggleFpsMonitor)
+  const playSound = useInterfaceSound()
+
+  return (
+    <button
+      type="button"
+      title={enabled ? '关闭实时帧率' : '显示实时帧率'}
+      aria-label={enabled ? '关闭实时帧率监视器' : '开启实时帧率监视器'}
+      aria-pressed={enabled}
+      onClick={() => {
+        toggleMonitor()
+        playSound('toggle')
+      }}
+      className={cn(
+        'hidden size-9 place-items-center border transition-colors duration-300 sm:grid',
+        enabled
+          ? 'border-signal/45 bg-signal/10 text-signal'
+          : 'border-white/10 bg-white/[0.025] text-mist hover:border-white/25 hover:text-frost',
+      )}
+    >
+      <Activity size={15} strokeWidth={1.7} />
+    </button>
+  )
+}
+
+function CommandPaletteToggle() {
+  const open = useAppStore((state) => state.commandPaletteOpen)
+  const toggleCommandPalette = useAppStore(
+    (state) => state.toggleCommandPalette,
+  )
+  const playSound = useInterfaceSound()
+
+  return (
+    <button
+      type="button"
+      title={open ? '关闭命令面板' : '打开命令面板 (Ctrl/Cmd + K)'}
+      aria-label={open ? '关闭命令面板' : '打开命令面板'}
+      aria-pressed={open}
+      onClick={() => {
+        toggleCommandPalette()
+        playSound('toggle')
+      }}
+      className={cn(
+        'flex h-9 items-center gap-2 border px-2.5 transition-colors duration-300',
+        open
+          ? 'border-signal/45 bg-signal/10 text-signal'
+          : 'border-white/10 bg-white/[0.025] text-mist hover:border-white/25 hover:text-frost',
+      )}
+    >
+      <Search size={15} strokeWidth={1.7} />
+      <span className="hidden font-mono text-[9px] md:inline">K</span>
+    </button>
+  )
+}
+
+function TelemetryToggle() {
+  const open = useAppStore((state) => state.telemetryOpen)
+  const toggleTelemetry = useAppStore((state) => state.toggleTelemetry)
+  const playSound = useInterfaceSound()
+
+  return (
+    <button
+      type="button"
+      title={open ? '关闭性能遥测面板' : '打开性能遥测面板'}
+      aria-label={open ? '关闭性能遥测面板' : '打开性能遥测面板'}
+      aria-pressed={open}
+      onClick={() => {
+        toggleTelemetry()
+        playSound('toggle')
+      }}
+      className={cn(
+        'grid size-9 place-items-center border transition-colors duration-300',
+        open
+          ? 'border-signal/45 bg-signal/10 text-signal'
+          : 'border-white/10 bg-white/[0.025] text-mist hover:border-white/25 hover:text-frost',
+      )}
+    >
+      <Gauge size={15} strokeWidth={1.7} />
+    </button>
+  )
+}
+
+function SoundToggle() {
+  const enabled = useAppStore((state) => state.soundEnabled)
+  const setSoundEnabled = useAppStore((state) => state.setSoundEnabled)
+  const playSound = useInterfaceSound()
+  const Icon = enabled ? Volume2 : VolumeX
+
+  return (
+    <button
+      type="button"
+      title={enabled ? '关闭界面音效' : '开启界面音效'}
+      aria-label={enabled ? '关闭界面音效' : '开启界面音效'}
+      aria-pressed={enabled}
+      onClick={() => {
+        const nextState = !enabled
+        setSoundEnabled(nextState)
+        playSound('toggle', nextState)
+      }}
+      className={cn(
+        'grid size-9 place-items-center border transition-colors duration-300',
+        enabled
+          ? 'border-amber/45 bg-amber/10 text-amber'
+          : 'border-white/10 bg-white/[0.025] text-mist hover:border-white/25 hover:text-frost',
+      )}
+    >
+      <Icon size={16} strokeWidth={1.7} />
+    </button>
+  )
+}
+
+function FpsReadout() {
+  const enabled = useAppStore((state) => state.fpsMonitorEnabled)
+  const telemetryOpen = useAppStore((state) => state.telemetryOpen)
+  const fps = useAppStore((state) => state.fps)
+  const reducedMotion = useReducedMotion()
+  const statusColor =
+    fps >= 50 ? 'bg-signal' : fps >= 30 ? 'bg-amber' : 'bg-red-400'
+
+  return (
+    <AnimatePresence>
+      {enabled && !telemetryOpen && (
+        <motion.aside
+          initial={reducedMotion ? false : { opacity: 0, y: -6 }}
+          animate={{ opacity: 1, y: 0 }}
+          exit={{ opacity: 0, y: -4 }}
+          transition={{ duration: 0.2 }}
+          aria-label="实时帧率数据"
+          className="fixed right-4 top-[84px] z-40 flex items-center gap-3 border border-white/10 bg-void/75 px-3 py-2 font-mono text-[11px] text-mist shadow-2xl shadow-black/30 backdrop-blur-xl sm:right-6 md:right-8"
+        >
+          <span className="flex h-4 items-end gap-0.5" aria-hidden="true">
+            {[0.45, 0.7, 1].map((height, index) => (
+              <motion.span
+                key={height}
+                className={cn('w-0.5 origin-bottom', statusColor)}
+                style={{ height: 16 }}
+                animate={{
+                  scaleY:
+                    fps > index * 20 ? height : Math.max(0.1, fps / 180),
+                }}
+                transition={{ duration: 0.18 }}
+              />
+            ))}
+          </span>
+          <span className="text-frost">{fps || '--'}</span>
+          <span className="text-mist/70">fps</span>
+        </motion.aside>
+      )}
+    </AnimatePresence>
+  )
+}
+
+function BrandMark({
+  Icon,
+}: {
+  Icon: LucideIcon
+}) {
+  return (
+    <a
+      href="#home"
+      aria-label="NODE/01，返回首页"
+      className="group flex items-center gap-3"
+    >
+      <span className="relative grid size-8 place-items-center border border-white/15 bg-white/[0.025] transition-colors group-hover:border-signal/40">
+        <Icon
+          size={16}
+          strokeWidth={1.35}
+          className="text-signal transition-transform duration-500 group-hover:rotate-90"
+        />
+        <span className="absolute -right-px -top-px size-1 bg-signal" />
+      </span>
+      <span className="leading-none">
+        <span className="block font-mono text-[12px] font-medium text-frost">
+          NODE/01
+        </span>
+        <span className="mt-1.5 hidden text-[10px] text-mist/65 sm:block">
+          个人数字展厅
+        </span>
+      </span>
+    </a>
+  )
+}
+
+export function Navbar() {
+  const activeSection = useAppStore((state) => state.activeSection)
+  const setActiveSection = useAppStore((state) => state.setActiveSection)
+  const lenis = useSmoothScroll()
+  const playSound = useInterfaceSound()
+  const [menuOpen, setMenuOpen] = useState(false)
+  const reducedMotion = useReducedMotion()
+
+  useEffect(() => {
+    if (!menuOpen) return
+
+    const handleKeyDown = (event: KeyboardEvent) => {
+      if (event.key === 'Escape') setMenuOpen(false)
+    }
+
+    window.addEventListener('keydown', handleKeyDown)
+    return () => window.removeEventListener('keydown', handleKeyDown)
+  }, [menuOpen])
+
+  const handleNavigate = (
+    event: MouseEvent<HTMLAnchorElement>,
+    id: SectionId,
+  ) => {
+    event.preventDefault()
+    setMenuOpen(false)
+    setActiveSection(id)
+    playSound('navigate')
+
+    if (lenis) {
+      lenis.scrollTo(`#${id}`, { offset: -76, duration: 1.15 })
+      return
+    }
+
+    document.getElementById(id)?.scrollIntoView({
+      behavior: reducedMotion ? 'auto' : 'smooth',
+      block: 'start',
+    })
+  }
+
+  return (
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.08] bg-void/75 backdrop-blur-xl">
+      <div className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-px origin-left scale-x-[var(--scroll-progress)] bg-signal/35" />
+      <div className="mx-auto flex h-[72px] max-w-[1600px] items-center justify-between px-4 sm:px-6 md:px-8">
+        <BrandMark Icon={Aperture} />
+
+        <nav
+          aria-label="展厅主导航"
+          className="absolute left-1/2 hidden -translate-x-1/2 items-center lg:flex"
+        >
+          {SHOWROOM_SECTIONS.map((section) => (
+            <NavItem
+              key={section.id}
+              id={section.id}
+              label={section.label}
+              active={activeSection === section.id}
+              onNavigate={handleNavigate}
+            />
+          ))}
+        </nav>
+
+        <div className="flex items-center gap-2">
+          <CommandPaletteToggle />
+          <FpsToggle />
+          <TelemetryToggle />
+          <SoundToggle />
+          <div className="hidden sm:block">
+            <SoundSpectrum />
+          </div>
+          <div className="hidden sm:block">
+            <ScrollProgressRing />
+          </div>
+          <button
+            type="button"
+            title={menuOpen ? '关闭导航菜单' : '打开导航菜单'}
+            aria-label={menuOpen ? '关闭导航菜单' : '打开导航菜单'}
+            aria-expanded={menuOpen}
+            aria-controls="mobile-navigation"
+            onClick={() => setMenuOpen((open) => !open)}
+            className="grid size-9 place-items-center border border-white/10 bg-white/[0.025] text-frost transition-colors hover:border-white/25 lg:hidden"
+          >
+            {menuOpen ? (
+              <X size={17} strokeWidth={1.7} />
+            ) : (
+              <Menu size={17} strokeWidth={1.7} />
+            )}
+          </button>
+        </div>
+      </div>
+
+      <FpsReadout />
+
+      <AnimatePresence>
+        {menuOpen && (
+          <motion.nav
+            id="mobile-navigation"
+            aria-label="移动端展厅导航"
+            initial={reducedMotion ? false : { opacity: 0, y: -10 }}
+            animate={{ opacity: 1, y: 0 }}
+            exit={{ opacity: 0, y: -8 }}
+            transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
+            className="border-t border-white/[0.07] bg-void/95 px-4 py-4 backdrop-blur-2xl sm:px-6 lg:hidden"
+          >
+            <div className="grid gap-1">
+              {SHOWROOM_SECTIONS.map((section, index) => (
+                <a
+                  key={section.id}
+                  href={`#${section.id}`}
+                  aria-current={
+                    activeSection === section.id ? 'location' : undefined
+                  }
+                  onClick={(event) => handleNavigate(event, section.id)}
+                  className={cn(
+                    'flex items-center justify-between border-b border-white/[0.06] py-3.5 text-base transition-colors',
+                    activeSection === section.id
+                      ? 'text-signal'
+                      : 'text-mist hover:text-frost',
+                  )}
+                >
+                  <span>{section.label}</span>
+                  <span className="font-mono text-[10px] text-mist/50">
+                    0{index + 1}
+                  </span>
+                </a>
+              ))}
+            </div>
+          </motion.nav>
+        )}
+      </AnimatePresence>
+    </header>
+  )
+}

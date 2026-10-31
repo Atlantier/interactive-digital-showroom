@@ -1,0 +1,46 @@
+# Dependencies
+node_modules/
+.pnp.*
+
+# Production and generated output
+dist/
+dist-ssr/
+coverage/
+.vite/
+*.tsbuildinfo
+
+# Environment variables and secrets
+.env
+.env.*
+!.env.example
+
+# Logs and diagnostics
+logs/
+*.log
+npm-debug.log*
+yarn-debug.log*
+yarn-error.log*
+pnpm-debug.log*
+
+# Test and visual-regression artifacts
+artifacts/
+playwright-report/
+test-results/
+
+# Python test caches
+__pycache__/
+*.py[cod]
+.pytest_cache/
+
+# OS and editor metadata
+.DS_Store
+Thumbs.db
+.idea/
+.vscode/
+
+# Local tooling and temporary files
+.codex/
+.tmp/
+tmp/
+temp/
+*.local
