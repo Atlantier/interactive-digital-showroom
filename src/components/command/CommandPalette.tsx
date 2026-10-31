@@ -11,6 +11,7 @@ import {
   Hash,
   Palette,
   Search,
+  Sparkles,
   X,
   type LucideIcon,
 } from 'lucide-react'
@@ -32,12 +33,18 @@ import {
   SHOWROOM_SECTIONS,
   type SectionId,
 } from '../../data/sections'
+import { VFX_PRESETS } from '../../data/vfxPresets'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { cn } from '../../lib/cn'
 import { useAppStore } from '../../store/useAppStore'
 import { useSmoothScroll } from '../layout/SmoothScroll'
 
-type CommandGroup = '章节跳转' | '物理环境' | '主题强调色' | '工具'
+type CommandGroup =
+  | '章节跳转'
+  | '物理环境'
+  | '光效预设'
+  | '主题强调色'
+  | '工具'
 
 interface PaletteCommand {
   id: string
@@ -55,6 +62,7 @@ const EMAIL = 'hello@node01.design'
 const GROUP_ORDER: readonly CommandGroup[] = [
   '章节跳转',
   '物理环境',
+  '光效预设',
   '主题强调色',
   '工具',
 ]
@@ -140,6 +148,7 @@ function downloadResumeJson() {
     ],
     preferences: {
       accentTheme: state.accentTheme,
+      vfxPreset: state.vfxPreset,
       gravityMode: state.gravityMode,
     },
     links: {
@@ -164,9 +173,11 @@ export function CommandPalette() {
   const setOpen = useAppStore((state) => state.setCommandPaletteOpen)
   const activeSection = useAppStore((state) => state.activeSection)
   const accentTheme = useAppStore((state) => state.accentTheme)
+  const vfxPreset = useAppStore((state) => state.vfxPreset)
   const gravityMode = useAppStore((state) => state.gravityMode)
   const setActiveSection = useAppStore((state) => state.setActiveSection)
   const setAccentTheme = useAppStore((state) => state.setAccentTheme)
+  const setVfxPreset = useAppStore((state) => state.setVfxPreset)
   const setGravityMode = useAppStore((state) => state.setGravityMode)
   const lenis = useSmoothScroll()
   const playSound = useInterfaceSound()
@@ -242,9 +253,30 @@ export function CommandPalette() {
       run: () => setAccentTheme(theme.id),
     }))
 
+    const vfxCommands = VFX_PRESETS.map((preset) => ({
+      id: `vfx-${preset.id}`,
+      group: '光效预设' as const,
+      title: `光效超频：${preset.label}`,
+      subtitle: preset.subtitle,
+      keywords: [
+        'vfx',
+        'visual',
+        'overdrive',
+        'preset',
+        preset.id,
+        preset.label,
+        preset.description,
+      ],
+      icon: Sparkles,
+      swatch: preset.secondary,
+      active: vfxPreset === preset.id,
+      run: () => setVfxPreset(preset.id),
+    }))
+
     return [
       ...sectionCommands,
       ...gravityCommands,
+      ...vfxCommands,
       ...accentCommands,
       {
         id: 'copy-email',
@@ -271,7 +303,9 @@ export function CommandPalette() {
     gravityMode,
     navigateToSection,
     setAccentTheme,
+    setVfxPreset,
     setGravityMode,
+    vfxPreset,
   ])
 
   const filteredCommands = useMemo(() => {
@@ -316,6 +350,8 @@ export function CommandPalette() {
             showNotice('简历 JSON 已生成')
           } else if (command.id.startsWith('gravity-')) {
             showNotice('物理重力环境已切换')
+          } else if (command.id.startsWith('vfx-')) {
+            showNotice('全站光效超频预设已切换')
           } else if (command.id.startsWith('accent-')) {
             showNotice('主题强调色已切换')
           }
@@ -516,7 +552,7 @@ export function CommandPalette() {
                     }
                     aria-autocomplete="list"
                     aria-label="搜索命令"
-                    placeholder="搜索章节、物理环境、主题或工具"
+                    placeholder="搜索章节、光效、物理环境或工具"
                     autoComplete="off"
                     autoCapitalize="off"
                     autoCorrect="off"

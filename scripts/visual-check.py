@@ -164,6 +164,19 @@ with sync_playwright() as playwright:
         expect(bento_grid).to_be_visible()
         bento_cards = bento_grid.locator("[data-spotlight-card]")
         assert bento_cards.count() == 5
+        assert bento_cards.nth(0).get_attribute("data-perimeter-comets") == "2"
+        assert bento_cards.nth(0).locator("[data-comet-beam]").count() == 2
+        card_particle_canvas = bento_cards.nth(0).locator(
+            "[data-card-particle-canvas]"
+        )
+        assert (
+            card_particle_canvas.get_attribute("data-card-ember-pool")
+            == "96"
+        )
+        assert (
+            card_particle_canvas.get_attribute("data-card-burst-pool")
+            == "64"
+        )
 
         main_card_box = bento_cards.nth(0).bounding_box()
         side_card_box = bento_cards.nth(1).bounding_box()
@@ -207,12 +220,57 @@ with sync_playwright() as playwright:
         assert card_motion_style["transformStyle"] == "preserve-3d"
         assert "transform" in card_motion_style["willChange"]
         assert card_motion_style["backfaceVisibility"] == "hidden"
+        assert bento_cards.nth(1).get_attribute(
+            "data-card-particle-mode"
+        ) in ("rise", "attract")
+        hovered_comet = bento_cards.nth(1).locator(
+            '[data-comet-beam="emerald"]'
+        )
+        page.wait_for_function(
+            """
+            (element) =>
+              parseFloat(getComputedStyle(element).opacity) > 0.8
+            """,
+            arg=hovered_comet.element_handle(),
+        )
+        hovered_comet_opacity = float(
+            hovered_comet.evaluate(
+                "(element) => getComputedStyle(element).opacity"
+            )
+        )
+        assert hovered_comet_opacity > 0.8, hovered_comet_opacity
         page.screenshot(path=output_dir / "desktop-bento-hover.png")
 
-        page.get_by_role("button", name="向量", exact=True).click()
+        vector_button = page.get_by_role(
+            "button",
+            name="向量",
+            exact=True,
+        )
+        pulse_overlay = page.locator("[data-bento-data-pulse]")
+        pulse_id_before = int(
+            pulse_overlay.get_attribute("data-pulse-id") or "0"
+        )
+        vector_button.hover()
+        page.wait_for_timeout(80)
+        expect(bento_cards.nth(1)).to_have_attribute(
+            "data-card-particle-mode",
+            "attract",
+        )
+        vector_button.click()
+        expect(bento_cards.nth(1)).to_have_attribute(
+            "data-card-particle-mode",
+            "burst",
+        )
         expect(
             page.get_by_role("button", name="向量", exact=True)
         ).to_have_attribute("aria-pressed", "true")
+        expect(pulse_overlay).not_to_have_attribute(
+            "data-pulse-id",
+            str(pulse_id_before),
+        )
+        expect(
+            pulse_overlay.locator(".bento-data-pulse-beam")
+        ).to_have_attribute("d", re.compile(r"^M "))
 
         terminal_pause = page.locator(
             'button[aria-label="暂停终端模拟"]'

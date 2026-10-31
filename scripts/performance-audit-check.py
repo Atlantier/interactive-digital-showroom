@@ -91,6 +91,18 @@ with sync_playwright() as playwright:
         expect(scene_canvas).to_have_attribute(
             "data-particle-count", "4000"
         )
+        expect(scene_canvas).to_have_attribute(
+            "data-cursor-stardust-count", "2000"
+        )
+        expect(scene_canvas).to_have_attribute(
+            "data-volumetric-dust-count", "750"
+        )
+        expect(scene_canvas).to_have_attribute(
+            "data-postprocessing", "bloom-vignette"
+        )
+        expect(scene_canvas).to_have_attribute(
+            "data-shader-pass-count", "2"
+        )
         print("Adaptive downgrade verified after sustained sub-45 FPS load.")
 
     page.keyboard.press("Shift+D")
@@ -108,8 +120,15 @@ with sync_playwright() as playwright:
     )
     assert int(fps_text) > 0, fps_text
     assert float(frame_time_text) > 0, frame_time_text
-    assert active_particles == int(
+    assert active_particles >= int(
         scene_canvas.get_attribute("data-particle-count") or "0"
+    )
+    assert int(
+        page.locator("[data-telemetry-shader-passes]").inner_text()
+    ) >= 2
+    expect(page.locator("[data-telemetry-vfx-preset]")).to_have_attribute(
+        "data-telemetry-vfx-preset",
+        "emerald-cyber",
     )
     assert page.locator(
         "[data-telemetry-memory-path]"
@@ -182,6 +201,9 @@ with sync_playwright() as playwright:
         "data-performance-tier", "medium"
     )
     expect(scene_4k).to_have_attribute("data-particle-count", "4000")
+    expect(scene_4k).to_have_attribute(
+        "data-postprocessing", "bloom-vignette"
+    )
     page_4k.screenshot(path=artifact_dir / "4k-medium-tier.png")
     four_k.close()
 
@@ -206,6 +228,16 @@ with sync_playwright() as playwright:
             "document.documentElement.scrollWidth - window.innerWidth"
         )
         assert overflow <= 1, f"{label} horizontal overflow: {overflow}"
+        mobile_scene = mobile_page.locator("[data-scene-canvas]")
+        expect(mobile_scene).to_have_attribute(
+            "data-cursor-stardust-count", "2000"
+        )
+        expect(mobile_scene).to_have_attribute(
+            "data-volumetric-dust-count", "750"
+        )
+        expect(mobile_scene).to_have_attribute(
+            "data-postprocessing", "bloom-vignette"
+        )
         mobile_page.get_by_role(
             "button", name="打开性能遥测面板"
         ).click()

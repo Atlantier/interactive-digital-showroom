@@ -13,15 +13,25 @@ import {
 import {
   useEffect,
   useLayoutEffect,
+  useMemo,
   useRef,
   type CSSProperties,
   type PointerEvent as ReactPointerEvent,
 } from 'react'
+import { getVfxPreset } from '../../data/vfxPresets'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
 import { getGravityMode } from '../../data/preferences'
-import { recordPhysicsSolveTime } from '../../store/performanceTelemetry'
+import {
+  recordPhysicsSolveTime,
+  setParticleSourceCount,
+} from '../../store/performanceTelemetry'
 import { useAppStore } from '../../store/useAppStore'
 import { soundEngine } from '../../utils/soundEngine'
+import {
+  createVfxIllumination,
+  VfxLightningArcPool,
+  VfxParticlePool,
+} from '../../utils/vfxParticleEngine'
 import { useSmoothScroll } from '../layout/SmoothScroll'
 import {
   aabbOverlaps,
@@ -52,6 +62,10 @@ const RUPTURE_STRAIN = 2.5
 const OVERLOAD_GRACE = 0.42
 const WIND_AMPLITUDE = 31
 let activeTouchMoveGuard: ((event: TouchEvent) => void) | null = null
+type VfxPalette = Pick<
+  ReturnType<typeof getVfxPreset>,
+  'primary' | 'secondary' | 'tertiary'
+>
 
 interface BadgeSpec {
   id: string
@@ -103,6 +117,9 @@ interface LanyardState {
   broken: boolean
   tension: number
   overloadTime: number
+  breakX: number
+  breakY: number
+  nextEmberAt: number
 }
 
 interface BadgeState extends OBB {
@@ -183,6 +200,9 @@ function createSandboxWorld(
       broken: false,
       tension: 0,
       overloadTime: 0,
+      breakX: 0,
+      breakY: 0,
+      nextEmberAt: 0,
     })
 
     const endpoint = points[points.length - 1]
@@ -240,6 +260,21 @@ function mixHexColor(from: string, to: string, amount: number) {
   const toBlue = toValue & 255
 
   return `rgb(${Math.round(fromRed + (toRed - fromRed) * weight)} ${Math.round(fromGreen + (toGreen - fromGreen) * weight)} ${Math.round(fromBlue + (toBlue - fromBlue) * weight)})`
+}
+
+function getLanyardAccent(palette: VfxPalette, index: number) {
+  return [palette.primary, palette.secondary, palette.tertiary][
+    index % 3
+  ]
+}
+
+function getColorChannels(hex: string) {
+  const value = Number.parseInt(hex.replace('#', ''), 16)
+  return {
+    red: (value >> 16) & 255,
+    green: (value >> 8) & 255,
+    blue: value & 255,
+  }
 }
 
 function getDisplayPointX(
@@ -389,9 +424,15 @@ function setSandboxDragLock(stage: HTMLDivElement, active: boolean) {
 export function VerletLanyard() {
   const soundEnabled = useAppStore((state) => state.soundEnabled)
   const gravityMode = useAppStore((state) => state.gravityMode)
+  const vfxPreset = useAppStore((state) => state.vfxPreset)
+  const vfxPalette = useMemo(
+    () => getVfxPreset(vfxPreset),
+    [vfxPreset],
+  )
   const gravitySetting = getGravityMode(gravityMode)
   const lenis = useSmoothScroll()
   const stageRef = useRef<HTMLDivElement>(null)
+  const particleCanvasRef = useRef<HTMLCanvasElement>(null)
   const worldRef = useRef<SandboxWorld | null>(null)
   const badgeRefs = useRef<Array<HTMLButtonElement | null>>([])
   const anchorRefs = useRef<Array<SVGCircleElement | null>>([])
@@ -400,6 +441,8 @@ export function VerletLanyard() {
   const ropeShadowRefs = useRef<Array<SVGPathElement | null>>([])
   const ropeTextureRefs = useRef<Array<SVGPathElement | null>>([])
   const ropeHighlightRefs = useRef<Array<SVGPathElement | null>>([])
+  const ropePulseGlowRefs = useRef<Array<SVGPathElement | null>>([])
+  const ropePulseCoreRefs = useRef<Array<SVGPathElement | null>>([])
   const ropeGradientStartRefs = useRef<Array<SVGStopElement | null>>([])
   const ropeGradientMiddleRefs = useRef<Array<SVGStopElement | null>>([])
   const ropeGradientEndRefs = useRef<Array<SVGStopElement | null>>([])
@@ -414,6 +457,7 @@ export function VerletLanyard() {
   const resumeAnimationRef = useRef<() => void>(() => undefined)
   const gravityRef = useRef(gravitySetting.gravity)
   const lenisRef = useRef(lenis)
+  const vfxPaletteRef = useRef<VfxPalette>(vfxPalette)
   const reducedMotion = Boolean(useReducedMotion())
   const windAmplitude = reducedMotion ? 8 : WIND_AMPLITUDE
   const inView = useInViewAnimation(stageRef)
@@ -421,6 +465,7 @@ export function VerletLanyard() {
   soundEnabledRef.current = soundEnabled
   gravityRef.current = gravitySetting.gravity
   lenisRef.current = lenis
+  vfxPaletteRef.current = vfxPalette
 
   useEffect(() => {
     inViewRef.current = inView
@@ -449,6 +494,235 @@ export function VerletLanyard() {
       contactX: 0,
       contactY: 0,
     }
+    const lightningPool = new VfxLightningArcPool(10)
+    let particlePool: VfxParticlePool | null = null
+    let particleContext: CanvasRenderingContext2D | null = null
+    const particleLight = createVfxIllumination()
+    const arcLight = createVfxIllumination()
+    const initialLightChannels = getColorChannels(
+      vfxPaletteRef.current.secondary,
+    )
+    let lightEnvelope = 0
+    let lightRed = initialLightChannels.red
+    let lightGreen = initialLightChannels.green
+    let lightBlue = initialLightChannels.blue
+
+    const updateDynamicLight = (delta = 1 / 60) => {
+      const particleEnergy = particlePool
+        ? particlePool.getIllumination(particleLight).energy
+        : 0
+      const arcEnergy =
+        lightningPool.getIllumination(arcLight).energy
+      const totalEnergy = particleEnergy + arcEnergy
+      let targetIntensity = 0
+      if (totalEnergy > 0.001) {
+        const lightX =
+          (particleLight.x * particleEnergy +
+            arcLight.x * arcEnergy) /
+          totalEnergy
+        const lightY =
+          (particleLight.y * particleEnergy +
+            arcLight.y * arcEnergy) /
+          totalEnergy
+        targetIntensity = clamp(totalEnergy / 74, 0, 1)
+        lightRed = Math.round(
+          (particleLight.r * particleEnergy +
+            arcLight.r * arcEnergy) /
+            totalEnergy,
+        )
+        lightGreen = Math.round(
+          (particleLight.g * particleEnergy +
+            arcLight.g * arcEnergy) /
+            totalEnergy,
+        )
+        lightBlue = Math.round(
+          (particleLight.b * particleEnergy +
+            arcLight.b * arcEnergy) /
+            totalEnergy,
+        )
+
+        stage.style.setProperty(
+          '--vfx-light-x',
+          `${clamp(lightX, 0, world?.width ?? lightX).toFixed(1)}px`,
+        )
+        stage.style.setProperty(
+          '--vfx-light-y',
+          `${clamp(lightY, 0, world?.height ?? lightY).toFixed(1)}px`,
+        )
+        stage.style.setProperty('--vfx-light-r', String(lightRed))
+        stage.style.setProperty('--vfx-light-g', String(lightGreen))
+        stage.style.setProperty('--vfx-light-b', String(lightBlue))
+        stage.style.setProperty(
+          '--vfx-light-spread',
+          `${(24 + targetIntensity * 22).toFixed(1)}%`,
+        )
+        stage.dataset.vfxLightColor =
+          `${lightRed},${lightGreen},${lightBlue}`
+        stage.dataset.vfxLightX = lightX.toFixed(1)
+        stage.dataset.vfxLightY = lightY.toFixed(1)
+      }
+
+      const targetOpacity = targetIntensity * 0.78
+      lightEnvelope =
+        targetOpacity >= lightEnvelope
+          ? targetOpacity
+          : Math.max(
+              targetOpacity,
+              lightEnvelope * Math.exp(-8.5 * delta),
+            )
+      if (lightEnvelope < 0.002) {
+        lightEnvelope = 0
+        stage.style.setProperty('--vfx-light-opacity', '0')
+        stage.dataset.vfxLightIntensity = '0'
+        return
+      }
+
+      stage.style.setProperty(
+        '--vfx-light-opacity',
+        lightEnvelope.toFixed(3),
+      )
+      stage.dataset.vfxLightIntensity = Math.max(
+        targetIntensity,
+        lightEnvelope / 0.78,
+      ).toFixed(3)
+    }
+
+    const emitImpactSparks = (
+      x: number,
+      y: number,
+      normalX: number,
+      normalY: number,
+      impulse: number,
+    ) => {
+      if (!particlePool || impulse < 18) return
+      const palette = vfxPaletteRef.current
+      const strength = clamp((impulse - 18) / 620, 0, 1)
+      const count = Math.round(15 + strength * 25)
+      const tangentX = -normalY
+      const tangentY = normalX
+      const side = Math.random() < 0.5 ? -1 : 1
+
+      particlePool.emit({
+        origin: { x, y },
+        count,
+        originJitter: { x: 2.5, y: 2.5 },
+        direction: {
+          x: tangentX * side,
+          y: tangentY * side,
+        },
+        spread: 0.43 + strength * 0.38,
+        speed: [125 + strength * 80, 355 + strength * 225],
+        life: [0.38 + strength * 0.08, 0.88 + strength * 0.3],
+        size: [1.1, 2.5],
+        color: [palette.tertiary, palette.secondary],
+        alpha: [1, 0],
+        gravity: { x: 0, y: 760, z: 0 },
+        drag: 0.24,
+        turbulence: 75,
+        turbulenceFrequency: 23,
+        bounce: 0.6,
+        splitChance: 0.82,
+        maxSplitDepth: 1,
+        renderMode: 'streak',
+        stretch: 0.072,
+        glow: 1.8,
+        fadeIn: 0.025,
+        floorCollision: true,
+      })
+      particlePool.emit({
+        origin: { x, y },
+        count: 3,
+        direction: { x: normalX, y: normalY },
+        spread: Math.PI,
+        speed: [12, 48],
+        life: [0.12, 0.24],
+        size: [3, 4.8],
+        color: ['#fffef2', palette.primary],
+        alpha: [0.9, 0],
+        drag: 2.8,
+        renderMode: 'plasma',
+        glow: 2.2,
+        fadeIn: 0.08,
+      })
+      stage.dataset.vfxImpactBursts = String(
+        Number(stage.dataset.vfxImpactBursts ?? '0') + 1,
+      )
+    }
+
+    const spawnBrokenEmbers = (nextWorld: SandboxWorld) => {
+      if (!particlePool) return
+      const palette = vfxPaletteRef.current
+      for (let index = 0; index < nextWorld.lanyards.length; index += 1) {
+        const lanyard = nextWorld.lanyards[index]
+        if (
+          !lanyard.broken ||
+          nextWorld.time < lanyard.nextEmberAt
+        ) {
+          continue
+        }
+        lanyard.nextEmberAt = nextWorld.time + 0.055 + Math.random() * 0.05
+        particlePool.emit({
+          origin: {
+            x: lanyard.breakX + (Math.random() * 2 - 1) * 4,
+            y: lanyard.breakY + (Math.random() * 2 - 1) * 4,
+          },
+          count: Math.random() < 0.24 ? 2 : 1,
+          direction: {
+            x: Math.random() * 2 - 1,
+            y: -0.35 - Math.random() * 0.9,
+          },
+          spread: 0.75,
+          speed: [45, 180],
+          life: [0.18, 0.42],
+          size: [0.45, 1.15],
+          color: [palette.tertiary, palette.secondary],
+          alpha: [0.9, 0],
+          gravity: { x: 0, y: 440, z: 0 },
+          drag: 0.6,
+          turbulence: 160,
+          turbulenceFrequency: 38,
+          bounce: 0.6,
+          renderMode: 'streak',
+          stretch: 0.02,
+          glow: 1.8,
+          floorCollision: true,
+        })
+      }
+    }
+
+    const configureParticleCanvas = (nextWorld: SandboxWorld) => {
+      const canvas = particleCanvasRef.current
+      if (!canvas) return
+      const dpr = Math.min(2, window.devicePixelRatio || 1)
+      canvas.width = Math.max(1, Math.round(nextWorld.width * dpr))
+      canvas.height = Math.max(1, Math.round(nextWorld.height * dpr))
+      const context = canvas.getContext('2d')
+      if (!context) return
+      context.setTransform(dpr, 0, 0, dpr, 0, 0)
+      particleContext = context
+
+      if (!particlePool) {
+        particlePool = new VfxParticlePool({
+          capacity: 1_600,
+          space: '2d',
+          bounds: {
+            left: 0,
+            right: nextWorld.width,
+            top: 0,
+            floorY: nextWorld.floorY,
+          },
+        })
+      } else {
+        particlePool.clear()
+        particlePool.setBounds({
+          left: 0,
+          right: nextWorld.width,
+          top: 0,
+          floorY: nextWorld.floorY,
+        })
+      }
+      lightningPool.clear()
+    }
 
     const setStatus = (label: string) => {
       if (statusRef.current) statusRef.current.textContent = label
@@ -465,6 +739,7 @@ export function VerletLanyard() {
     }
 
     const renderWorld = (nextWorld: SandboxWorld) => {
+      const palette = vfxPaletteRef.current
       for (let index = 0; index < nextWorld.lanyards.length; index += 1) {
         const lanyard = nextWorld.lanyards[index]
         const warning = smoothstepRange(0.52, 0.96, lanyard.tension)
@@ -504,6 +779,8 @@ export function VerletLanyard() {
         ropeGlowRefs.current[index]?.setAttribute('d', ropePath)
         ropeTextureRefs.current[index]?.setAttribute('d', ropePath)
         ropeHighlightRefs.current[index]?.setAttribute('d', ropePath)
+        ropePulseGlowRefs.current[index]?.setAttribute('d', ropePath)
+        ropePulseCoreRefs.current[index]?.setAttribute('d', ropePath)
         ropeRefs.current[index]?.setAttribute(
           'data-tension',
           lanyard.tension.toFixed(3),
@@ -511,6 +788,26 @@ export function VerletLanyard() {
         ropeTextureRefs.current[index]?.setAttribute(
           'stroke-dashoffset',
           String(-nextWorld.time * 18),
+        )
+        const photonOffset = -(
+          (nextWorld.time * 310 + index * 17) %
+          118
+        )
+        ropePulseGlowRefs.current[index]?.setAttribute(
+          'stroke-dashoffset',
+          String(photonOffset),
+        )
+        ropePulseCoreRefs.current[index]?.setAttribute(
+          'stroke-dashoffset',
+          String(photonOffset),
+        )
+        ropePulseGlowRefs.current[index]?.setAttribute(
+          'stroke-opacity',
+          String(lanyard.broken ? 0 : 0.3 + warning * 0.16),
+        )
+        ropePulseCoreRefs.current[index]?.setAttribute(
+          'stroke-opacity',
+          String(lanyard.broken ? 0 : 0.94 - warning * 0.2),
         )
 
         ropeGradientStartRefs.current[index]?.setAttribute(
@@ -527,11 +824,15 @@ export function VerletLanyard() {
         )
         ropeGlowRefs.current[index]?.setAttribute(
           'stroke',
-          mixHexColor(BADGE_SPECS[index].accent, '#ff2038', warning),
+          mixHexColor(
+            getLanyardAccent(palette, index),
+            '#ff2038',
+            warning,
+          ),
         )
         ropeGlowRefs.current[index]?.setAttribute(
           'stroke-opacity',
-          String(0.14 + warning * 0.3),
+          String(0.22 + warning * 0.34),
         )
         ropeTextureRefs.current[index]?.setAttribute(
           'stroke',
@@ -620,6 +921,9 @@ export function VerletLanyard() {
         bounds.height,
       )
       worldRef.current = world
+      configureParticleCanvas(world)
+      lightEnvelope = 0
+      updateDynamicLight()
       activeDragRef.current = null
       setSandboxDragLock(stage, false)
       lenisRef.current?.start()
@@ -669,10 +973,79 @@ export function VerletLanyard() {
       badge.attached = false
       lanyard.broken = true
       lanyard.tension = 1
+      lanyard.breakX = endpoint.x
+      lanyard.breakY = endpoint.y
+      lanyard.nextEmberAt = nextWorld.time + 0.035
       endpoint.pinned = false
       nextWorld.strain = RUPTURE_STRAIN
 
       triggerRuptureFlash(endpoint.x, endpoint.y)
+      const previousPoint = lanyard.points[lanyard.points.length - 2]
+      const tangentLength =
+        Math.hypot(
+          endpoint.x - previousPoint.x,
+          endpoint.y - previousPoint.y,
+        ) || 1
+      const tangentX = (endpoint.x - previousPoint.x) / tangentLength
+      const tangentY = (endpoint.y - previousPoint.y) / tangentLength
+      const palette = vfxPaletteRef.current
+      lightningPool.spawn({
+        start: {
+          x: endpoint.x - tangentX * 25,
+          y: endpoint.y - tangentY * 25,
+        },
+        end: {
+          x: endpoint.x + tangentX * 52,
+          y: endpoint.y + tangentY * 52,
+        },
+        duration: 0.25,
+        color: palette.tertiary,
+        branches: 4,
+        amplitude: 22,
+        width: 1.15,
+        flashRadius: 64,
+      })
+      lightningPool.spawn({
+        start: {
+          x: endpoint.x + tangentY * 8,
+          y: endpoint.y - tangentX * 8,
+        },
+        end: {
+          x: endpoint.x - tangentY * 43,
+          y: endpoint.y + tangentX * 43,
+        },
+        duration: 0.2,
+        color: palette.secondary,
+        branches: 2,
+        amplitude: 14,
+        width: 0.8,
+        flashRadius: 44,
+      })
+      stage.dataset.vfxArcBursts = String(
+        Number(stage.dataset.vfxArcBursts ?? '0') + 1,
+      )
+      particlePool?.emit({
+        origin: { x: endpoint.x, y: endpoint.y },
+        count: 30,
+        direction: { x: tangentX, y: tangentY },
+        spread: Math.PI * 1.8,
+        speed: [95, 390],
+        life: [0.3, 0.95],
+        size: [0.7, 1.7],
+        color: ['#efffff', palette.secondary],
+        alpha: [1, 0],
+        gravity: { x: 0, y: 540, z: 0 },
+        drag: 0.32,
+        turbulence: 180,
+        turbulenceFrequency: 32,
+        bounce: 0.6,
+        splitChance: 0.7,
+        maxSplitDepth: 1,
+        renderMode: 'streak',
+        stretch: 0.025,
+        glow: 1.8,
+        floorCollision: true,
+      })
       setSandboxDragLock(stage, false)
       if (drag && stage.hasPointerCapture(drag.pointerId)) {
         stage.releasePointerCapture(drag.pointerId)
@@ -706,19 +1079,50 @@ export function VerletLanyard() {
       )
 
       if (badge.centerX - horizontalExtent < 0) {
+        const wallImpact = Math.abs(badge.velocityX)
         badge.centerX = horizontalExtent
-        if (badge.velocityX < 0) badge.velocityX *= -0.36
+        if (badge.velocityX < 0) {
+          if (wallImpact > 58) {
+            emitImpactSparks(
+              1,
+              badge.centerY,
+              1,
+              0,
+              wallImpact,
+            )
+          }
+          badge.velocityX *= -0.36
+        }
       } else if (
         badge.centerX + horizontalExtent > nextWorld.width
       ) {
+        const wallImpact = Math.abs(badge.velocityX)
         badge.centerX = nextWorld.width - horizontalExtent
-        if (badge.velocityX > 0) badge.velocityX *= -0.36
+        if (badge.velocityX > 0) {
+          if (wallImpact > 58) {
+            emitImpactSparks(
+              nextWorld.width - 1,
+              badge.centerY,
+              -1,
+              0,
+              wallImpact,
+            )
+          }
+          badge.velocityX *= -0.36
+        }
       }
 
       if (badge.centerY + verticalExtent > nextWorld.floorY) {
         badge.centerY = nextWorld.floorY - verticalExtent
         if (badge.velocityY > 0) {
           const impactSpeed = badge.velocityY
+          emitImpactSparks(
+            badge.centerX,
+            nextWorld.floorY - 1,
+            0,
+            -1,
+            impactSpeed,
+          )
           badge.velocityY =
             impactSpeed < 42 ? 0 : -impactSpeed * 0.46
           badge.velocityX *= 0.86
@@ -842,6 +1246,13 @@ export function VerletLanyard() {
               badgeB.contactUntil = nextWorld.time + 0.12
               if (isNewContact) {
                 nextWorld.collisionCount += 1
+                emitImpactSparks(
+                  contact.contactX,
+                  contact.contactY,
+                  contact.normalX,
+                  contact.normalY,
+                  relativeImpactSpeed + impulse * 0.35,
+                )
                 if (soundEnabledRef.current) {
                   soundEngine.playPhysicsCollision(
                     relativeImpactSpeed,
@@ -892,11 +1303,12 @@ export function VerletLanyard() {
 
     const tick = (timestamp: number) => {
       if (disposed || !world) return
-      const delta = clamp(
+      const frameDelta = clamp(
         (timestamp - world.lastFrame) / 1_000,
         1 / 240,
-        1 / 32,
+        0.12,
       )
+      const delta = Math.min(frameDelta, 1 / 32)
       world.lastFrame = timestamp
       world.time += delta
       let frameStrain = 0
@@ -992,6 +1404,24 @@ export function VerletLanyard() {
       for (let index = 0; index < world.badges.length; index += 1) {
         applyBadgeFloorCollision(world, index, delta)
       }
+      spawnBrokenEmbers(world)
+      particlePool?.update(frameDelta, world.time)
+      lightningPool.update(frameDelta)
+      updateDynamicLight(frameDelta)
+      if (particleContext) {
+        particleContext.clearRect(0, 0, world.width, world.height)
+        particlePool?.render(particleContext)
+        lightningPool.render(particleContext)
+        const particleStats = particlePool?.getStats()
+        const activeParticles = particleStats?.active ?? 0
+        stage.dataset.vfxActiveParticles = String(activeParticles)
+        setParticleSourceCount('verlet-vfx-particles', activeParticles)
+        stage.dataset.vfxSplits = String(particleStats?.splits ?? 0)
+        stage.dataset.vfxFloorHits = String(
+          particleStats?.floorImpacts ?? 0,
+        )
+        stage.dataset.vfxArcs = String(lightningPool.activeArcs)
+      }
       recordPhysicsSolveTime(solverElapsed)
 
       world.strain = Math.max(
@@ -1078,6 +1508,23 @@ export function VerletLanyard() {
         activeTouchMoveGuard = null
       }
       lenisRef.current?.start()
+      particlePool?.clear()
+      particlePool = null
+      lightningPool.clear()
+      setParticleSourceCount('verlet-vfx-particles', 0)
+      const particleCanvas = particleCanvasRef.current
+      if (particleCanvas) {
+        particleContext?.clearRect(
+          0,
+          0,
+          particleCanvas.clientWidth,
+          particleCanvas.clientHeight,
+        )
+        particleCanvas.width = 0
+        particleCanvas.height = 0
+      }
+      stage.style.setProperty('--vfx-light-opacity', '0')
+      particleContext = null
       worldRef.current = null
       rebuildRef.current = () => undefined
       resumeAnimationRef.current = () => undefined
@@ -1243,6 +1690,17 @@ export function VerletLanyard() {
           data-overloaded="false"
           data-collision-count="0"
           data-detached-count="0"
+          data-vfx-active-particles="0"
+          data-vfx-impact-bursts="0"
+          data-vfx-splits="0"
+          data-vfx-floor-hits="0"
+          data-vfx-arcs="0"
+          data-vfx-arc-bursts="0"
+          data-vfx-light-intensity="0"
+          data-vfx-light-color="0,0,0"
+          data-vfx-light-x="0"
+          data-vfx-light-y="0"
+          data-vfx-preset={vfxPreset}
           data-gravity-mode={gravityMode}
           className="sandbox-stage relative mt-8 h-[610px] touch-pan-y select-none overflow-hidden rounded-md border border-white/[0.1] bg-[#05080c]/90 shadow-[0_34px_120px_rgba(0,0,0,0.38)] sm:mt-10 sm:h-[670px]"
           onPointerMove={handlePointerMove}
@@ -1252,11 +1710,21 @@ export function VerletLanyard() {
         >
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-0 bg-[linear-gradient(180deg,rgba(255,255,255,0.025),transparent_26%,rgba(16,185,129,0.025))]"
+            className="sandbox-atmosphere pointer-events-none absolute inset-0"
           />
           <div
             aria-hidden="true"
             className="sandbox-grid pointer-events-none absolute inset-0 opacity-55"
+          />
+          <div
+            aria-hidden="true"
+            data-verlet-grid-light
+            className="vfx-grid-light"
+          />
+          <div
+            aria-hidden="true"
+            data-verlet-lightfield
+            className="vfx-environment-light sandbox-vfx-light"
           />
           <div
             aria-hidden="true"
@@ -1390,11 +1858,11 @@ export function VerletLanyard() {
                   }}
                   data-lanyard-glow
                   fill="none"
-                  stroke={spec.accent}
-                  strokeOpacity="0.18"
-                  strokeWidth="4"
+                  stroke="var(--vfx-primary)"
+                  strokeOpacity="0.24"
+                  strokeWidth="11"
                   vectorEffect="non-scaling-stroke"
-                  className="blur-[3px]"
+                  className="blur-[5px]"
                 />
                 <path
                   ref={(element) => {
@@ -1442,6 +1910,33 @@ export function VerletLanyard() {
                   stroke="#f7fbfc"
                   strokeOpacity="0.72"
                   strokeWidth="0.65"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                />
+                <path
+                  ref={(element) => {
+                    ropePulseGlowRefs.current[index] = element
+                  }}
+                  data-lanyard-pulse-glow
+                  fill="none"
+                  stroke="var(--vfx-secondary)"
+                  strokeOpacity="0.32"
+                  strokeWidth="6"
+                  strokeDasharray="12 46"
+                  strokeLinecap="round"
+                  vectorEffect="non-scaling-stroke"
+                  className="blur-[3px]"
+                />
+                <path
+                  ref={(element) => {
+                    ropePulseCoreRefs.current[index] = element
+                  }}
+                  data-lanyard-pulse
+                  fill="none"
+                  stroke="var(--vfx-tertiary)"
+                  strokeOpacity="0.94"
+                  strokeWidth="2"
+                  strokeDasharray="12 46"
                   strokeLinecap="round"
                   vectorEffect="non-scaling-stroke"
                 />
@@ -1496,13 +1991,20 @@ export function VerletLanyard() {
             ))}
           </svg>
 
+          <canvas
+            ref={particleCanvasRef}
+            data-verlet-vfx-canvas
+            aria-hidden="true"
+            className="pointer-events-none absolute inset-0 z-[35] size-full"
+          />
+
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 bottom-[27px] z-20 h-px bg-gradient-to-r from-transparent via-signal/30 to-transparent"
           />
           <div
             aria-hidden="true"
-            className="pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[28px] bg-[linear-gradient(180deg,rgba(114,230,255,0.045),rgba(3,5,7,0.82))]"
+            className="sandbox-floor-glow pointer-events-none absolute inset-x-0 bottom-0 z-20 h-[28px]"
           />
 
           {BADGE_SPECS.map((spec, index) => {

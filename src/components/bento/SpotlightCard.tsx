@@ -7,6 +7,7 @@ import {
 import type { HTMLMotionProps } from 'framer-motion'
 import type { ReactNode } from 'react'
 import { cn } from '../../lib/cn'
+import { CardParticleCanvas } from './CardParticleCanvas'
 
 const SPRING_CONFIG = {
   stiffness: 260,
@@ -42,6 +43,7 @@ export function SpotlightCard({
     <motion.article
       {...props}
       data-spotlight-card
+      data-perimeter-comets="2"
       onPointerMove={(event) => {
         onPointerMove?.(event)
         if (reducedMotion || event.pointerType !== 'mouse') return
@@ -96,9 +98,26 @@ export function SpotlightCard({
       />
       <div
         aria-hidden="true"
+        data-comet-beam="emerald"
+        className="bento-comet bento-comet-emerald"
+      />
+      <div
+        aria-hidden="true"
+        data-comet-beam="cyan"
+        className="bento-comet bento-comet-cyan"
+      />
+      <CardParticleCanvas />
+      <div
+        aria-hidden="true"
         className="bento-card-surface-glare pointer-events-none absolute inset-0 z-0 rounded-[inherit]"
       />
-      <div className="pointer-events-none absolute inset-0 z-0 bg-[linear-gradient(145deg,rgba(255,255,255,0.026),transparent_34%,rgba(16,185,129,0.018))]" />
+      <div
+        className="pointer-events-none absolute inset-0 z-0"
+        style={{
+          background:
+            'linear-gradient(145deg, rgb(255 255 255 / 2.6%), transparent 34%, rgb(var(--vfx-primary-rgb) / 1.8%))',
+        }}
+      />
       <div
         data-spotlight-content
         className="relative z-10 flex h-full flex-col [transform:translateZ(30px)]"

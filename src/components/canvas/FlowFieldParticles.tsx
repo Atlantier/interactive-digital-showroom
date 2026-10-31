@@ -1,7 +1,12 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import { useEffect, useMemo, useRef } from 'react'
 import * as THREE from 'three'
-import { readTransientState } from '../../store/useAppStore'
+import { getVfxPreset } from '../../data/vfxPresets'
+import {
+  readTransientState,
+  useAppStore,
+} from '../../store/useAppStore'
+import { soundEngine } from '../../utils/soundEngine'
 
 export const HIGH_PARTICLE_COUNT = 8000
 export const MEDIUM_PARTICLE_COUNT = HIGH_PARTICLE_COUNT / 2
@@ -20,6 +25,7 @@ const vertexShader = /* glsl */ `
   uniform float uMouseActivity;
   uniform float uScrollVelocity;
   uniform float uWarpAmount;
+  uniform float uAudioEnergy;
 
   attribute vec3 aParticleColor;
   attribute float aParticleSize;
@@ -133,8 +139,13 @@ const vertexShader = /* glsl */ `
   void main() {
     float seed = aParticleSeed;
     float warp = clamp(uWarpAmount, 0.0, 1.2);
+    float audioEnergy = clamp(uAudioEnergy, 0.0, 1.0);
     float warpDirection = sign(uScrollVelocity);
-    float pulse = sin(uTime * 0.62 + seed * 6.28318 + length(position) * 0.72);
+    float pulse = sin(
+      uTime * (0.62 + audioEnergy * 0.38) +
+      seed * 6.28318 +
+      length(position) * 0.72
+    );
     vec3 flow = curlNoise(
       position * 0.16 +
       vec3(uTime * 0.035, uTime * -0.026, uTime * 0.019)
@@ -156,7 +167,8 @@ const vertexShader = /* glsl */ `
       uPixelRatio *
       (190.0 / max(1.0, -mvPosition.z)) *
       (1.0 + mouseHalo * 0.8) *
-      warpScale,
+      warpScale *
+      (1.0 + audioEnergy * 0.38),
       1.0,
       maxPointSize
     );
@@ -164,8 +176,19 @@ const vertexShader = /* glsl */ `
     vec3 warpColor = vec3(0.78, 0.92, 1.0);
     vColor =
       mix(aParticleColor, warpColor, warp * 0.62) *
-      (1.0 + mouseHalo * 0.9 + pulse * 0.08 + warp * 0.22);
-    vGlow = 0.45 + seed * 0.55 + mouseHalo * 0.85 + warp * 0.7;
+      (
+        1.0 +
+        mouseHalo * 0.9 +
+        pulse * 0.08 +
+        warp * 0.22 +
+        audioEnergy * 0.72
+      );
+    vGlow =
+      0.45 +
+      seed * 0.55 +
+      mouseHalo * 0.85 +
+      warp * 0.7 +
+      audioEnergy * 1.35;
     vWarp = warp;
   }
 `
@@ -218,7 +241,7 @@ function createParticleSystem(particleCount: number) {
   const colors = new Float32Array(particleCount * 3)
   const sizes = new Float32Array(particleCount)
   const seeds = new Float32Array(particleCount)
-  const emerald = new THREE.Color('#10b981')
+  const primary = new THREE.Color('#10b981')
   const torusSource = new THREE.TorusKnotGeometry(
     1.92,
     0.34,
@@ -266,9 +289,9 @@ function createParticleSystem(particleCount: number) {
     positions[offset] = basePositions[offset]
     positions[offset + 1] = basePositions[offset + 1]
     positions[offset + 2] = basePositions[offset + 2]
-    colors[offset] = emerald.r
-    colors[offset + 1] = emerald.g
-    colors[offset + 2] = emerald.b
+    colors[offset] = primary.r
+    colors[offset + 1] = primary.g
+    colors[offset + 2] = primary.b
     sizes[index] = 0.06 + random() * 0.08
     seeds[index] = random()
   }
@@ -296,6 +319,7 @@ function createParticleSystem(particleCount: number) {
       uMouseActivity: { value: 0 },
       uScrollVelocity: { value: 0 },
       uWarpAmount: { value: 0 },
+      uAudioEnergy: { value: 0 },
     },
     vertexShader,
     fragmentShader,
@@ -332,8 +356,8 @@ function createParticleSystem(particleCount: number) {
       cameraDirection: new THREE.Vector3(0, 0, -1),
       plane: new THREE.Plane(new THREE.Vector3(0, 0, 1), 0),
       raycaster: new THREE.Raycaster(),
-      emerald,
-      violet: new THREE.Color('#8b5cf6'),
+      primary,
+      secondary: new THREE.Color('#72e6ff'),
       white: new THREE.Color('#ffffff'),
       color: new THREE.Color(),
     },
@@ -357,6 +381,11 @@ export function FlowFieldParticles({
   const particleSystem = useMemo(
     () => createParticleSystem(Math.max(1, Math.floor(particleCount))),
     [particleCount],
+  )
+  const vfxPreset = useAppStore((state) => state.vfxPreset)
+  const palette = useMemo(
+    () => getVfxPreset(vfxPreset),
+    [vfxPreset],
   )
   const camera = useThree((state) => state.camera)
   const gl = useThree((state) => state.gl)
@@ -387,6 +416,24 @@ export function FlowFieldParticles({
       material.dispose()
     }
   }, [geometry, material, points])
+
+  useEffect(() => {
+    scratch.primary.set(palette.primary)
+    scratch.secondary.set(palette.secondary)
+    for (let index = 0; index < activeParticleCount; index += 1) {
+      const offset = index * 3
+      colors[offset] = scratch.primary.r
+      colors[offset + 1] = scratch.primary.g
+      colors[offset + 2] = scratch.primary.b
+    }
+    colorAttribute.needsUpdate = true
+  }, [
+    activeParticleCount,
+    colorAttribute,
+    colors,
+    palette,
+    scratch,
+  ])
 
   useEffect(() => {
     const canvas = gl.domElement
@@ -503,6 +550,8 @@ export function FlowFieldParticles({
     material.uniforms.uMouseLocal.value.copy(scratch.mouseLocal)
     material.uniforms.uScrollVelocity.value = transient.scrollVelocity
     material.uniforms.uWarpAmount.value = warpState.current.amount
+    material.uniforms.uAudioEnergy.value =
+      soundEngine.readEnergyEnvelope()
 
     const shouldSimulate =
       mouseActive === 1 || simulationState.current.needsSimulation
@@ -609,8 +658,8 @@ export function FlowFieldParticles({
         velocities[offset + 2] = velocityZ
 
         scratch.color
-          .copy(scratch.emerald)
-          .lerp(scratch.violet, purpleMix)
+          .copy(scratch.primary)
+          .lerp(scratch.secondary, purpleMix)
           .lerp(
             scratch.white,
             Math.min(1, whiteMix * (0.55 + mouseInfluence * 0.45)),
@@ -634,9 +683,9 @@ export function FlowFieldParticles({
           velocities[offset] = 0
           velocities[offset + 1] = 0
           velocities[offset + 2] = 0
-          colors[offset] = scratch.emerald.r
-          colors[offset + 1] = scratch.emerald.g
-          colors[offset + 2] = scratch.emerald.b
+          colors[offset] = scratch.primary.r
+          colors[offset + 1] = scratch.primary.g
+          colors[offset + 2] = scratch.primary.b
         }
         simulationState.current.needsSimulation = false
       } else {

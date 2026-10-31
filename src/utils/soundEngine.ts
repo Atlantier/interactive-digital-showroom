@@ -13,6 +13,8 @@ export interface SoundEngineDiagnostics {
   throttleWindowMs: number
   triggerCounts: Record<SoundEvent, number>
   analyserReady: boolean
+  audioEnergy: number
+  audioPeak: number
 }
 
 type AudioWindow = Window & {
@@ -37,6 +39,10 @@ export class SoundEngine {
   private analyser: AnalyserNode | null = null
   private noiseBuffer: AudioBuffer | null = null
   private frequencyData: Uint8Array<ArrayBuffer> | null = null
+  private waveformData: Uint8Array<ArrayBuffer> | null = null
+  private audioEnergy = 0
+  private audioPeak = 0
+  private lastEnergySampleAt = Number.NEGATIVE_INFINITY
   private masterVolume = 0.62
   private lastTriggered: Record<SoundEvent, number> = {
     hoverTick: Number.NEGATIVE_INFINITY,
@@ -95,7 +101,60 @@ export class SoundEngine {
       throttleWindowMs: THROTTLE_WINDOW_MS,
       triggerCounts: { ...this.triggerCounts },
       analyserReady: this.analyser !== null,
+      audioEnergy: this.audioEnergy,
+      audioPeak: this.audioPeak,
     }
+  }
+
+  readEnergyEnvelope(now = performance.now()) {
+    const elapsed =
+      this.lastEnergySampleAt > 0
+        ? Math.max(0, now - this.lastEnergySampleAt) / 1_000
+        : 1 / 60
+
+    if (
+      this.lastEnergySampleAt > 0 &&
+      now - this.lastEnergySampleAt < 3
+    ) {
+      return this.audioEnergy
+    }
+
+    const analyser = this.analyser
+    const context = this.context
+    const waveformData = this.waveformData
+    let rawEnergy = 0
+    let rawPeak = 0
+
+    if (
+      analyser &&
+      context?.state === 'running' &&
+      waveformData
+    ) {
+      analyser.getByteTimeDomainData(waveformData)
+      let sumSquares = 0
+      for (let index = 0; index < waveformData.length; index += 1) {
+        const sample = (waveformData[index] - 128) / 128
+        const absolute = Math.abs(sample)
+        sumSquares += sample * sample
+        rawPeak = Math.max(rawPeak, absolute)
+      }
+      const rms = Math.sqrt(sumSquares / waveformData.length)
+      rawEnergy = Math.min(1, rms * 17 + rawPeak * 1.5)
+    }
+
+    const safeDelta = Math.min(0.05, Math.max(0.001, elapsed))
+    const attack = 1 - Math.exp(-safeDelta * 42)
+    const release = Math.exp(-safeDelta * 8.5)
+    this.audioEnergy =
+      rawEnergy >= this.audioEnergy
+        ? this.audioEnergy + (rawEnergy - this.audioEnergy) * attack
+        : Math.max(rawEnergy, this.audioEnergy * release)
+    this.audioPeak = Math.max(rawPeak, this.audioPeak * release)
+
+    if (this.audioEnergy < 0.001) this.audioEnergy = 0
+    if (this.audioPeak < 0.001) this.audioPeak = 0
+    this.lastEnergySampleAt = now
+    return this.audioEnergy
   }
 
   readFrequencyBands(target: Float32Array) {
@@ -395,6 +454,7 @@ export class SoundEngine {
     this.compressor = compressor
     this.analyser = analyser
     this.frequencyData = new Uint8Array(analyser.frequencyBinCount)
+    this.waveformData = new Uint8Array(analyser.fftSize)
     this.masterGain = masterGain
     return context
   }

@@ -21,6 +21,12 @@
   --scroll-velocity: 0;
   --color-signal: #10b981;
   --theme-accent-rgb: 16 185 129;
+  --vfx-primary: #10b981;
+  --vfx-secondary: #72e6ff;
+  --vfx-tertiary: #a7f3d0;
+  --vfx-primary-rgb: 16 185 129;
+  --vfx-secondary-rgb: 114 230 255;
+  --vfx-tertiary-rgb: 167 243 208;
 }
 
 * {
@@ -150,6 +156,12 @@ a {
   box-shadow: inset 0 0 12px rgb(var(--theme-accent-rgb) / 4%);
 }
 
+@property --comet-angle {
+  syntax: "<angle>";
+  inherits: false;
+  initial-value: 0deg;
+}
+
 .bento-card {
   --mouse-x: -999px;
   --mouse-y: -999px;
@@ -163,7 +175,7 @@ a {
     linear-gradient(180deg, rgb(255 255 255 / 2.2%), transparent 22%),
     linear-gradient(
       145deg,
-      rgb(var(--theme-accent-rgb) / 2.5%),
+      rgb(var(--vfx-primary-rgb) / 2.5%),
       transparent 38%
     );
   box-shadow:
@@ -172,10 +184,129 @@ a {
   will-change: transform;
 }
 
+.bento-comet {
+  --comet-angle: 0deg;
+  position: absolute;
+  inset: -1px;
+  z-index: 2;
+  border-radius: inherit;
+  padding: 1px;
+  opacity: 0.15;
+  pointer-events: none;
+  filter: saturate(0.84);
+  -webkit-mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  -webkit-mask-composite: xor;
+  mask:
+    linear-gradient(#000 0 0) content-box,
+    linear-gradient(#000 0 0);
+  mask-composite: exclude;
+  transform: translateZ(0);
+  will-change: --comet-angle, opacity, filter;
+  transition:
+    opacity 160ms ease,
+    filter 160ms ease;
+}
+
+.bento-comet-emerald {
+  background: conic-gradient(
+    from var(--comet-angle),
+    transparent 0deg,
+    transparent 252deg,
+    rgb(var(--vfx-primary-rgb) / 4%) 284deg,
+    rgb(var(--vfx-primary-rgb) / 72%) 334deg,
+    var(--vfx-tertiary) 355deg,
+    transparent 360deg
+  );
+  animation: bento-comet-orbit 9.5s linear infinite;
+}
+
+.bento-comet-cyan {
+  background: conic-gradient(
+    from var(--comet-angle),
+    transparent 0deg,
+    transparent 268deg,
+    rgb(var(--vfx-secondary-rgb) / 3%) 296deg,
+    rgb(var(--vfx-secondary-rgb) / 64%) 338deg,
+    var(--vfx-tertiary) 356deg,
+    transparent 360deg
+  );
+  animation: bento-comet-orbit-reverse 12s linear infinite;
+}
+
+.bento-card:hover .bento-comet,
+.bento-card:focus-within .bento-comet {
+  opacity: 0.96;
+  filter: saturate(1.2) brightness(1.15);
+}
+
+.bento-card:hover .bento-comet-emerald,
+.bento-card:focus-within .bento-comet-emerald {
+  animation-duration: 2.5s;
+  filter:
+    saturate(1.22) brightness(1.15)
+    drop-shadow(0 0 8px rgb(var(--vfx-primary-rgb) / 78%));
+}
+
+.bento-card:hover .bento-comet-cyan,
+.bento-card:focus-within .bento-comet-cyan {
+  animation-duration: 3.2s;
+  filter:
+    saturate(1.16) brightness(1.12)
+    drop-shadow(0 0 8px rgb(var(--vfx-secondary-rgb) / 72%));
+}
+
+.bento-data-pulse-ghost,
+.bento-data-pulse-halo,
+.bento-data-pulse-beam {
+  stroke-linecap: round;
+  stroke-linejoin: round;
+  vector-effect: non-scaling-stroke;
+}
+
+.bento-data-pulse-ghost {
+  stroke: var(--vfx-secondary);
+  stroke-width: 0.8;
+  stroke-dasharray: 1;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  animation: bento-data-pulse-ghost 920ms ease-out forwards;
+}
+
+.bento-data-pulse-halo {
+  stroke: url("#bento-data-pulse-gradient");
+  stroke-width: 5.2;
+  stroke-dasharray: 0.19 0.81;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  animation: bento-data-pulse-flow 860ms cubic-bezier(0.16, 0.76, 0.25, 1)
+    forwards;
+}
+
+.bento-data-pulse-beam {
+  stroke: var(--vfx-tertiary);
+  stroke-width: 1.35;
+  stroke-dasharray: 0.08 0.92;
+  stroke-dashoffset: 1;
+  opacity: 0;
+  filter: drop-shadow(0 0 5px var(--vfx-secondary));
+  animation: bento-data-pulse-flow 860ms cubic-bezier(0.16, 0.76, 0.25, 1)
+    forwards;
+}
+
+.bento-data-pulse-node {
+  fill: var(--vfx-tertiary);
+  filter: drop-shadow(0 0 5px var(--vfx-secondary));
+  transform-box: fill-box;
+  transform-origin: center;
+  animation: bento-data-pulse-node 760ms ease-out forwards;
+}
+
 .bento-card-border-glow {
   background: radial-gradient(
     400px circle at var(--mouse-x) var(--mouse-y),
-    rgb(var(--theme-accent-rgb) / 50%),
+    rgb(var(--vfx-primary-rgb) / 50%),
     transparent 40%
   );
   opacity: var(--border-glow-opacity);
@@ -289,7 +420,7 @@ a {
   background-image:
     radial-gradient(
       circle at 50% 18%,
-      rgb(var(--theme-accent-rgb) / 5%),
+      rgb(var(--vfx-primary-rgb) / 5%),
       transparent 34%
     ),
     linear-gradient(180deg, rgb(8 12 18 / 82%), rgb(3 5 7 / 96%));
@@ -298,6 +429,23 @@ a {
 .sandbox-stage[data-dragging="true"],
 .sandbox-stage[data-dragging="true"] .sandbox-badge {
   touch-action: none;
+}
+
+.sandbox-atmosphere {
+  background: linear-gradient(
+    180deg,
+    rgb(255 255 255 / 2.5%),
+    transparent 26%,
+    rgb(var(--vfx-primary-rgb) / 2.5%)
+  );
+}
+
+.sandbox-floor-glow {
+  background: linear-gradient(
+    180deg,
+    rgb(var(--vfx-secondary-rgb) / 4.5%),
+    rgb(3 5 7 / 82%)
+  );
 }
 
 html[data-sandbox-dragging="true"],
@@ -316,6 +464,87 @@ html[data-sandbox-dragging="true"] body {
     rgb(0 0 0 / 24%) 62%,
     transparent
   );
+}
+
+.vfx-environment-light {
+  position: absolute;
+  inset: -10%;
+  pointer-events: none;
+  opacity: var(--vfx-light-opacity, 0);
+  mix-blend-mode: screen;
+  background:
+    radial-gradient(
+      circle at var(--vfx-light-x, 50%) var(--vfx-light-y, 50%),
+      rgb(
+          var(--vfx-light-r, 114) var(--vfx-light-g, 230)
+            var(--vfx-light-b, 255) / 42%
+        )
+        0%,
+      rgb(
+          var(--vfx-light-r, 114) var(--vfx-light-g, 230)
+            var(--vfx-light-b, 255) / 17%
+        )
+        12%,
+      rgb(
+          var(--vfx-light-r, 114) var(--vfx-light-g, 230)
+            var(--vfx-light-b, 255) / 5%
+        )
+        var(--vfx-light-spread, 30%),
+      transparent calc(var(--vfx-light-spread, 30%) + 15%)
+    ),
+    radial-gradient(
+      circle at var(--vfx-light-x, 50%) var(--vfx-light-y, 50%),
+      rgb(255 255 255 / 24%) 0%,
+      rgb(255 255 255 / 8%) 5%,
+      transparent 13%
+    );
+  filter: blur(8px) saturate(1.28);
+  transform: translate3d(0, 0, 0);
+  will-change: opacity;
+}
+
+.sandbox-vfx-light {
+  z-index: 34;
+}
+
+.fabrik-vfx-light {
+  z-index: 20;
+}
+
+.vfx-grid-light {
+  position: absolute;
+  inset: 0;
+  z-index: 6;
+  pointer-events: none;
+  opacity: var(--vfx-light-opacity, 0);
+  mix-blend-mode: screen;
+  background-image:
+    linear-gradient(
+      rgb(
+          var(--vfx-light-r, 114) var(--vfx-light-g, 230)
+            var(--vfx-light-b, 255) / 34%
+        )
+        1px,
+      transparent 1px
+    ),
+    linear-gradient(
+      90deg,
+      rgb(
+          var(--vfx-light-r, 114) var(--vfx-light-g, 230)
+            var(--vfx-light-b, 255) / 34%
+        )
+        1px,
+      transparent 1px
+    );
+  background-size: 48px 48px;
+  mask-image: radial-gradient(
+    circle at var(--vfx-light-x, 50%) var(--vfx-light-y, 50%),
+    #000 0%,
+    rgb(0 0 0 / 72%) 14%,
+    transparent var(--vfx-light-spread, 30%)
+  );
+  filter: saturate(1.3);
+  will-change: opacity;
 }
 
 .sandbox-stage[data-overloaded="true"] {
@@ -463,12 +692,12 @@ html[data-sandbox-dragging="true"] body {
   background-image:
     radial-gradient(
       circle at 40% 38%,
-      rgb(var(--theme-accent-rgb) / 7%),
+      rgb(var(--vfx-primary-rgb) / 6%),
       transparent 34%
     ),
     radial-gradient(
       circle at 76% 68%,
-      rgb(242 179 94 / 4%),
+      rgb(var(--vfx-secondary-rgb) / 3.5%),
       transparent 28%
     ),
     linear-gradient(180deg, rgb(8 12 18 / 82%), rgb(3 5 7 / 96%));
@@ -488,7 +717,13 @@ html[data-sandbox-dragging="true"] body {
 }
 
 .fabrik-stage canvas {
+  z-index: 1;
   touch-action: pan-y;
+}
+
+.fabrik-vfx-grid-light {
+  z-index: 0;
+  background-size: 44px 44px;
 }
 
 @keyframes status-pulse {
@@ -567,6 +802,80 @@ html[data-sandbox-dragging="true"] body {
   }
 }
 
+@keyframes bento-comet-orbit {
+  to {
+    --comet-angle: 360deg;
+  }
+}
+
+@keyframes bento-comet-orbit-reverse {
+  from {
+    --comet-angle: 180deg;
+  }
+
+  to {
+    --comet-angle: -180deg;
+  }
+}
+
+@keyframes bento-data-pulse-ghost {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+
+  22% {
+    opacity: 0.16;
+  }
+
+  68% {
+    opacity: 0.1;
+    stroke-dashoffset: 0;
+  }
+
+  100% {
+    opacity: 0;
+    stroke-dashoffset: 0;
+  }
+}
+
+@keyframes bento-data-pulse-flow {
+  0% {
+    opacity: 0;
+    stroke-dashoffset: 1;
+  }
+
+  12% {
+    opacity: 1;
+  }
+
+  82% {
+    opacity: 1;
+  }
+
+  100% {
+    opacity: 0;
+    stroke-dashoffset: -1;
+  }
+}
+
+@keyframes bento-data-pulse-node {
+  0% {
+    opacity: 0;
+    transform: scale(0.2);
+  }
+
+  24% {
+    opacity: 1;
+    transform: scale(1);
+  }
+
+  100% {
+    opacity: 0;
+    transform: scale(2.4);
+  }
+}
+
 @keyframes tension-pulse {
   0%,
   100% {
@@ -604,6 +913,10 @@ html[data-sandbox-dragging="true"] body {
 }
 
 @media (hover: none), (pointer: coarse) {
+  .bento-comet {
+    opacity: 0.24;
+  }
+
   .bento-card {
     --mouse-x: 50%;
     --mouse-y: 32%;
@@ -654,5 +967,17 @@ html[data-sandbox-dragging="true"] body {
     animation-duration: 0.01ms !important;
     animation-iteration-count: 1 !important;
     transition-duration: 0.01ms !important;
+  }
+
+  .bento-comet {
+    animation: none !important;
+    opacity: 0.28;
+  }
+
+  .bento-data-pulse-ghost,
+  .bento-data-pulse-halo,
+  .bento-data-pulse-beam,
+  .bento-data-pulse-node {
+    animation-duration: 0.01ms !important;
   }
 }

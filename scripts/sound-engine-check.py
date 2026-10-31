@@ -107,7 +107,12 @@ with sync_playwright() as playwright:
           await new Promise((resolve) => setTimeout(resolve, 80))
           const frequencyBands = new Float32Array(5)
           let spectrumPeak = 0
+          let audioEnergyPeak = 0
           for (let sample = 0; sample < 8; sample += 1) {
+            audioEnergyPeak = Math.max(
+              audioEnergyPeak,
+              soundEngine.readEnergyEnvelope(),
+            )
             soundEngine.readFrequencyBands(frequencyBands)
             spectrumPeak = Math.max(
               spectrumPeak,
@@ -128,6 +133,7 @@ with sync_playwright() as playwright:
             rope,
             laser,
             spectrumPeak,
+            audioEnergyPeak,
             diagnostics: soundEngine.getDiagnostics(),
           }
         }
@@ -149,6 +155,7 @@ with sync_playwright() as playwright:
     assert abs(initial_diagnostics["compressorRatio"] - 4.5) < 0.01
     assert initial_diagnostics["throttleWindowMs"] == 40
     assert initial_diagnostics["analyserReady"] is True
+    assert 0 < engine_result["audioEnergyPeak"] <= 1, engine_result
     assert initial_diagnostics["triggerCounts"]["physicsCollision"] >= 1
     assert initial_diagnostics["triggerCounts"]["ropeSnap"] >= 1
     assert initial_diagnostics["triggerCounts"]["laserPulse"] >= 1
@@ -170,6 +177,17 @@ with sync_playwright() as playwright:
         """
     )
     page.wait_for_timeout(80)
+    scene_audio_energy = float(
+        page.locator("[data-scene-canvas]").get_attribute(
+            "data-audio-energy"
+        )
+        or "0"
+    )
+    assert scene_audio_energy > 0.001, scene_audio_energy
+    expect(page.locator("[data-scene-canvas]")).to_have_attribute(
+        "data-audio-reactive",
+        "stardust-aurora-volume",
+    )
     spectrum_level = float(spectrum.get_attribute("data-audio-level") or "0")
     assert spectrum_level > 0.005, spectrum_level
     bar_transforms = spectrum_bars.evaluate_all(
@@ -239,6 +257,17 @@ with sync_playwright() as playwright:
     page.wait_for_timeout(220)
     page.mouse.click(720, 500)
     page.wait_for_timeout(150)
+    architecture_audio_energy = float(
+        page.locator("[data-architecture-section]").get_attribute(
+            "data-audio-energy"
+        )
+        or "0"
+    )
+    assert architecture_audio_energy > 0.001, architecture_audio_energy
+    expect(page.locator("[data-architecture-section]")).to_have_attribute(
+        "data-audio-reactive",
+        "architecture-model",
+    )
     after_architecture = diagnostics(page)
     assert (
         after_architecture["triggerCounts"]["hoverTick"]

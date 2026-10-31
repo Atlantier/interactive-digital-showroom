@@ -15,6 +15,7 @@ import { Navbar } from './components/layout/Navbar'
 import { CommandPalette } from './components/command/CommandPalette'
 import { PerformanceQualityNotice } from './components/layout/PerformanceQualityNotice'
 import { PerformanceTelemetryHud } from './components/layout/PerformanceTelemetryHud'
+import { VfxPresetSweep } from './components/layout/VfxPresetSweep'
 import { BentoGrid } from './components/bento/BentoGrid'
 import {
   SmoothScroll,
@@ -26,6 +27,7 @@ import { FabrikCreature } from './components/sandbox/FabrikCreature'
 import { VerletLanyard } from './components/sandbox/VerletLanyard'
 import { SHOWROOM_SECTIONS, type SectionId } from './data/sections'
 import { getAccentTheme } from './data/preferences'
+import { getVfxPreset } from './data/vfxPresets'
 import { useInterfaceSound } from './hooks/useInterfaceSound'
 import { usePerformanceTelemetry } from './hooks/usePerformanceTelemetry'
 import { useAppStore } from './store/useAppStore'
@@ -299,6 +301,7 @@ function App() {
   const heroRef = useRef<HTMLElement>(null)
   const setActiveSection = useAppStore((state) => state.setActiveSection)
   const accentTheme = useAppStore((state) => state.accentTheme)
+  const vfxPreset = useAppStore((state) => state.vfxPreset)
 
   usePerformanceTelemetry()
 
@@ -309,6 +312,18 @@ function App() {
     root.style.setProperty('--color-signal', theme.color)
     root.style.setProperty('--theme-accent-rgb', theme.rgb)
   }, [accentTheme])
+
+  useEffect(() => {
+    const preset = getVfxPreset(vfxPreset)
+    const root = document.documentElement
+    root.dataset.vfxPreset = vfxPreset
+    root.style.setProperty('--vfx-primary', preset.primary)
+    root.style.setProperty('--vfx-secondary', preset.secondary)
+    root.style.setProperty('--vfx-tertiary', preset.tertiary)
+    root.style.setProperty('--vfx-primary-rgb', preset.primaryRgb)
+    root.style.setProperty('--vfx-secondary-rgb', preset.secondaryRgb)
+    root.style.setProperty('--vfx-tertiary-rgb', preset.tertiaryRgb)
+  }, [vfxPreset])
 
   useEffect(() => {
     const sectionVisibility = new Map<string, number>()
@@ -351,6 +366,7 @@ function App() {
     <SmoothScroll>
       <SceneCanvas visibilityRef={heroRef} />
       <div className="film-grain pointer-events-none fixed inset-0 z-[5]" />
+      <VfxPresetSweep />
       <Navbar />
       <CommandPalette />
       <PerformanceQualityNotice />

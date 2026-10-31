@@ -2,6 +2,7 @@ export interface PerformanceTelemetrySnapshot {
   fps: number
   frameTimeMs: number
   activeParticles: number
+  shaderPasses: number
   physicsSolveMs: number
   memoryMb: number | null
   memorySupported: boolean
@@ -20,6 +21,7 @@ const metrics: PerformanceTelemetrySnapshot = {
   fps: 0,
   frameTimeMs: 0,
   activeParticles: 0,
+  shaderPasses: 0,
   physicsSolveMs: 0,
   memoryMb: null,
   memorySupported: false,
@@ -35,6 +37,14 @@ const memoryWindow: MemoryHistoryWindow = {
 let memoryCursor = 0
 let physicsTotalMs = 0
 let physicsSamples = 0
+const particleSources = new Map<string, number>()
+const shaderPassSources = new Map<string, number>()
+
+function sumTelemetrySources(sources: Map<string, number>) {
+  let total = 0
+  for (const count of sources.values()) total += count
+  return Math.max(0, Math.round(total))
+}
 
 export function recordPhysicsSolveTime(durationMs: number) {
   if (!Number.isFinite(durationMs) || durationMs < 0) return
@@ -55,7 +65,33 @@ export function publishFrameTelemetry(
 }
 
 export function setActiveParticleCount(count: number) {
-  metrics.activeParticles = Math.max(0, Math.round(count))
+  setParticleSourceCount('ambient-flow-field', count)
+}
+
+export function setParticleSourceCount(
+  source: string,
+  count: number,
+) {
+  const normalized = Math.max(0, Math.round(count))
+  if (normalized === 0) {
+    particleSources.delete(source)
+  } else {
+    particleSources.set(source, normalized)
+  }
+  metrics.activeParticles = sumTelemetrySources(particleSources)
+}
+
+export function setShaderPassSourceCount(
+  source: string,
+  count: number,
+) {
+  const normalized = Math.max(0, Math.round(count))
+  if (normalized === 0) {
+    shaderPassSources.delete(source)
+  } else {
+    shaderPassSources.set(source, normalized)
+  }
+  metrics.shaderPasses = sumTelemetrySources(shaderPassSources)
 }
 
 export function recordMemoryUsage(memoryMb: number | null) {

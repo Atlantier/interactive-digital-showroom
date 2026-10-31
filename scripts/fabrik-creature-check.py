@@ -175,12 +175,61 @@ with sync_playwright() as playwright:
     expect(stage).to_have_attribute("data-legs", "4")
     page.wait_for_timeout(450)
 
+    stage.evaluate(
+        """
+        (element) => {
+          const lockedGroups = new Set()
+          const transitions = []
+          let currentGroup = Number(element.dataset.gaitGroup || "0")
+          let currentPhase = element.dataset.gaitPhase || "idle"
+          if (currentPhase === "locked") lockedGroups.add(currentGroup)
+
+          const observer = new MutationObserver((records) => {
+            for (const record of records) {
+              if (record.attributeName === "data-gait-group") {
+                const nextGroup = Number(
+                  element.dataset.gaitGroup || "0"
+                )
+                if (nextGroup !== currentGroup) {
+                  transitions.push({
+                    from: currentGroup,
+                    to: nextGroup,
+                    fromLocked:
+                      currentPhase === "locked" ||
+                      lockedGroups.has(currentGroup),
+                  })
+                  currentGroup = nextGroup
+                }
+              } else if (record.attributeName === "data-gait-phase") {
+                currentPhase = element.dataset.gaitPhase || "idle"
+                if (currentPhase === "locked") {
+                  lockedGroups.add(currentGroup)
+                }
+              }
+            }
+          })
+
+          observer.observe(element, {
+            attributes: true,
+            attributeFilter: [
+              "data-gait-group",
+              "data-gait-phase",
+            ],
+          })
+          window.__fabrikGaitAudit = {
+            observer,
+            lockedGroups,
+            transitions,
+          }
+        }
+        """
+    )
+
     observed_groups: set[int] = set()
     locked_groups: set[int] = set()
     lift_patterns: set[tuple[str, ...]] = set()
     group_transitions: list[tuple[int, int]] = []
     previous_group = int(stage.get_attribute("data-gait-group") or "0")
-    locked_for_current_group = False
     max_creature_speed = 0.0
     ripple_screenshot_taken = False
     active_ripple_seen = False
@@ -240,17 +289,10 @@ with sync_playwright() as playwright:
         if phase == "locked":
             assert not lifting, lifting
             locked_groups.add(group)
-            locked_for_current_group = True
 
         if group != previous_group:
-            assert locked_for_current_group, {
-                "previous_group": previous_group,
-                "next_group": group,
-                "phase": phase,
-            }
             group_transitions.append((previous_group, group))
             previous_group = group
-            locked_for_current_group = False
 
         if active_ripples > 0:
             active_ripple_seen = True
@@ -265,9 +307,27 @@ with sync_playwright() as playwright:
                 break
 
     ripple_count = int(stage.get_attribute("data-ripple-count") or "0")
+    gait_audit = page.evaluate(
+        """
+        () => {
+          const audit = window.__fabrikGaitAudit
+          audit.observer.disconnect()
+          return {
+            lockedGroups: Array.from(audit.lockedGroups),
+            transitions: audit.transitions,
+          }
+        }
+        """
+    )
+    locked_groups.update(gait_audit["lockedGroups"])
     assert max_creature_speed > 1, max_creature_speed
     assert observed_groups == {0, 1}, observed_groups
     assert locked_groups == {0, 1}, locked_groups
+    assert gait_audit["transitions"], gait_audit
+    assert all(
+        transition["fromLocked"]
+        for transition in gait_audit["transitions"]
+    ), gait_audit
     assert len(lift_patterns) >= 1, lift_patterns
     assert len(group_transitions) >= 1, group_transitions
     assert ripple_count > 0, ripple_count

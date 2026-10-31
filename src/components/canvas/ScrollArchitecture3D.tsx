@@ -14,7 +14,20 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
+import { getVfxPreset } from '../../data/vfxPresets'
+import {
+  setParticleSourceCount,
+  setShaderPassSourceCount,
+} from '../../store/performanceTelemetry'
 import { useAppStore } from '../../store/useAppStore'
+import { soundEngine } from '../../utils/soundEngine'
+import {
+  CAUSTICS_LAYER_COUNT,
+  ChromaticDispersionRim,
+  PRISM_CHROMATIC_IOR,
+  ProceduralFloorCaustics,
+} from './ArchitecturalOptics'
+import { VolumetricStageLights } from './VolumetricStageLights'
 
 type Progress = MotionValue<number>
 type LayerId = 'infrastructure' | 'orchestration' | 'spatial'
@@ -94,27 +107,35 @@ const flowFragmentShader = /* glsl */ `
   uniform float uFrequency;
   uniform float uIntensity;
   uniform float uPhaseOffset;
+  uniform float uAudioEnergy;
   uniform vec3 uColorA;
   uniform vec3 uColorB;
 
   varying vec2 vFlowUv;
 
   void main() {
+    float audioDrive = clamp(uAudioEnergy, 0.0, 1.0);
     float phase =
       vFlowUv.x * uFrequency * 6.28318 -
-      uTime * uSpeed * 6.28318 +
+      uTime * uSpeed * 6.28318 * (1.0 + audioDrive * 0.34) +
       uPhaseOffset;
     float wave = 0.5 + 0.5 * sin(phase);
     float pulse = pow(wave, 24.0);
     float halo = pow(wave, 9.0);
     float tail = pow(wave, 4.0) * 0.18;
-    float core = 0.08 + tail + halo * 0.34 + pulse * 1.8;
+    float core =
+      0.08 +
+      tail +
+      halo * 0.34 +
+      pulse * 1.8 +
+      audioDrive * 0.16;
     vec3 color = mix(uColorA, uColorB, vFlowUv.x);
     color = mix(color, vec3(0.82, 0.96, 1.0), pulse * 0.82);
 
     gl_FragColor = vec4(
-      color * (0.72 + halo * 1.2 + pulse * 3.4),
-      min(0.96, core * uIntensity)
+      color *
+        (0.72 + halo * 1.2 + pulse * 3.4 + audioDrive * 0.62),
+      min(0.98, core * uIntensity * (1.0 + audioDrive * 0.4))
     );
   }
 `
@@ -146,6 +167,7 @@ const laserVertexShader = /* glsl */ `
   uniform float uTime;
   uniform float uIntensity;
   uniform float uPixelRatio;
+  uniform float uAudioEnergy;
 
   attribute float aPhase;
   attribute float aSpeed;
@@ -154,7 +176,9 @@ const laserVertexShader = /* glsl */ `
   varying float vAlpha;
 
   void main() {
-    float travel = fract(aPhase + uTime * aSpeed);
+    float travel = fract(
+      aPhase + uTime * aSpeed * (1.0 + uAudioEnergy * 0.45)
+    );
     vec3 transformed = position;
     transformed.y = mix(-1.9, 1.9, travel);
     transformed.x += sin(uTime * 0.85 + aPhase * 11.0) * 0.035;
@@ -165,15 +189,18 @@ const laserVertexShader = /* glsl */ `
     gl_PointSize =
       (2.2 + aScale * 6.2) *
       (0.3 + uIntensity) *
-      uPixelRatio;
+      uPixelRatio *
+      (1.0 + uAudioEnergy * 0.5);
     vAlpha =
       uIntensity *
       (1.0 - abs(travel - 0.5) * 1.32) *
-      (0.3 + aScale * 0.7);
+      (0.3 + aScale * 0.7) *
+      (1.0 + uAudioEnergy * 0.65);
   }
 `
 
 const laserFragmentShader = /* glsl */ `
+  uniform float uAudioEnergy;
   varying float vAlpha;
 
   void main() {
@@ -188,7 +215,10 @@ const laserFragmentShader = /* glsl */ `
       gl_PointCoord.y
     );
     color = mix(color, vec3(0.78, 0.94, 1.0), 0.3);
-    gl_FragColor = vec4(color, core * vAlpha);
+    gl_FragColor = vec4(
+      color * (1.0 + uAudioEnergy * 0.45),
+      core * vAlpha
+    );
   }
 `
 
@@ -209,6 +239,7 @@ function createRandom(seed: number) {
 }
 
 function InfrastructureLayer() {
+  const lightRef = useRef<THREE.PointLight>(null)
   const matrixData = useMemo(() => {
     const columns = 15
     const count = columns * columns
@@ -252,6 +283,19 @@ function InfrastructureLayer() {
     }
   }, [matrixData])
 
+  useFrame((state) => {
+    const audioEnergy = soundEngine.readEnergyEnvelope()
+    matrixData.material.opacity = 0.3 + audioEnergy * 0.5
+    matrixData.mesh.scale.setScalar(1 + audioEnergy * 0.028)
+    matrixData.mesh.rotation.y =
+      Math.sin(state.clock.elapsedTime * 0.24) *
+      audioEnergy *
+      0.08
+    if (lightRef.current) {
+      lightRef.current.intensity = 8 + audioEnergy * 18
+    }
+  })
+
   return (
     <group>
       <primitive object={matrixData.mesh} />
@@ -280,6 +324,7 @@ function InfrastructureLayer() {
         />
       </mesh>
       <pointLight
+        ref={lightRef}
         color="#10b981"
         intensity={8}
         distance={3}
@@ -322,7 +367,11 @@ function AgentPulse({
 }
 
 function OrchestrationLayer() {
+  const contentRef = useRef<THREE.Group>(null)
   const ringRef = useRef<THREE.Mesh>(null)
+  const linkMaterialRef = useRef<THREE.LineBasicMaterial>(null)
+  const ringMaterialRef = useRef<THREE.MeshBasicMaterial>(null)
+  const lightRef = useRef<THREE.PointLight>(null)
   const linkGeometry = useMemo(() => {
     const positions: number[] = []
 
@@ -341,16 +390,31 @@ function OrchestrationLayer() {
   useEffect(() => () => linkGeometry.dispose(), [linkGeometry])
 
   useFrame((_, delta) => {
+    const audioEnergy = soundEngine.readEnergyEnvelope()
     if (ringRef.current) {
-      ringRef.current.rotation.z += delta * 0.09
-      ringRef.current.rotation.x += delta * 0.035
+      ringRef.current.rotation.z += delta * (0.09 + audioEnergy * 0.16)
+      ringRef.current.rotation.x += delta * (0.035 + audioEnergy * 0.08)
+      ringRef.current.scale.setScalar(1 + audioEnergy * 0.08)
+    }
+    if (contentRef.current) {
+      contentRef.current.scale.setScalar(1 + audioEnergy * 0.025)
+    }
+    if (linkMaterialRef.current) {
+      linkMaterialRef.current.opacity = 0.24 + audioEnergy * 0.44
+    }
+    if (ringMaterialRef.current) {
+      ringMaterialRef.current.opacity = 0.46 + audioEnergy * 0.4
+    }
+    if (lightRef.current) {
+      lightRef.current.intensity = 10 + audioEnergy * 16
     }
   })
 
   return (
-    <group>
+    <group ref={contentRef}>
       <lineSegments geometry={linkGeometry}>
         <lineBasicMaterial
+          ref={linkMaterialRef}
           color="#72e6ff"
           transparent
           opacity={0.3}
@@ -389,6 +453,7 @@ function OrchestrationLayer() {
       <mesh ref={ringRef} rotation={[1.1, 0.2, 0]}>
         <torusGeometry args={[1.35, 0.008, 8, 180]} />
         <meshBasicMaterial
+          ref={ringMaterialRef}
           color="#10b981"
           transparent
           opacity={0.55}
@@ -396,6 +461,7 @@ function OrchestrationLayer() {
         />
       </mesh>
       <pointLight
+        ref={lightRef}
         color="#72e6ff"
         intensity={10}
         distance={4}
@@ -407,13 +473,35 @@ function OrchestrationLayer() {
 
 function SpatialLayer() {
   const groupRef = useRef<THREE.Group>(null)
+  const wireMaterialRef = useRef<THREE.MeshBasicMaterial>(null)
+  const planeGroupRef = useRef<THREE.Group>(null)
+  const lightRef = useRef<THREE.PointLight>(null)
   const performanceTier = useAppStore((state) => state.performanceTier)
 
   useFrame((state) => {
     if (!groupRef.current) return
-    groupRef.current.rotation.y = state.clock.elapsedTime * 0.12
+    const audioEnergy = soundEngine.readEnergyEnvelope()
+    groupRef.current.rotation.y =
+      state.clock.elapsedTime * (0.12 + audioEnergy * 0.07)
     groupRef.current.rotation.z =
       Math.sin(state.clock.elapsedTime * 0.22) * 0.04
+    groupRef.current.scale.setScalar(1 + audioEnergy * 0.04)
+    if (wireMaterialRef.current) {
+      wireMaterialRef.current.opacity = 0.2 + audioEnergy * 0.42
+    }
+    if (planeGroupRef.current) {
+      for (const child of planeGroupRef.current.children) {
+        if (
+          child instanceof THREE.Mesh &&
+          child.material instanceof THREE.MeshBasicMaterial
+        ) {
+          child.material.opacity = 0.11 + audioEnergy * 0.2
+        }
+      }
+    }
+    if (lightRef.current) {
+      lightRef.current.intensity = 12 + audioEnergy * 22
+    }
   })
 
   return (
@@ -424,9 +512,9 @@ function SpatialLayer() {
           transmission={1}
           thickness={0.7}
           roughness={0.12}
-          ior={1.4}
+          ior={1.15}
           chromaticAberration={
-            performanceTier === 'high' ? 0.055 : 0
+            performanceTier === 'high' ? 0.078 : 0.025
           }
           anisotropy={0.12}
           distortion={0.18}
@@ -441,9 +529,13 @@ function SpatialLayer() {
           transparent
         />
       </mesh>
+      <ChromaticDispersionRim
+        intensity={performanceTier === 'high' ? 0.82 : 0.58}
+      />
       <mesh scale={[1.16, 0.63, 1.16]}>
         <octahedronGeometry args={[1.04, 0]} />
         <meshBasicMaterial
+          ref={wireMaterialRef}
           color="#72e6ff"
           wireframe
           transparent
@@ -451,7 +543,7 @@ function SpatialLayer() {
           toneMapped={false}
         />
       </mesh>
-      <group position={[0, 0.05, 0]}>
+      <group ref={planeGroupRef} position={[0, 0.05, 0]}>
         {[
           [-0.4, 0.16, 0.06, -0.24, 0.62, 0.34],
           [0.38, -0.03, -0.02, 0.2, 0.46, 0.28],
@@ -475,6 +567,7 @@ function SpatialLayer() {
         ))}
       </group>
       <pointLight
+        ref={lightRef}
         color="#8b5cf6"
         intensity={12}
         distance={4.5}
@@ -529,6 +622,7 @@ function FlowPipe({ index, progress }: { index: number; progress: Progress }) {
           uFrequency: { value: 1.25 + index * 0.18 },
           uIntensity: { value: 0.6 },
           uPhaseOffset: { value: index * 1.37 },
+          uAudioEnergy: { value: 0 },
           uColorA: {
             value: new THREE.Color(index % 2 === 0 ? '#10b981' : '#72e6ff'),
           },
@@ -555,6 +649,7 @@ function FlowPipe({ index, progress }: { index: number; progress: Progress }) {
   )
 
   useFrame((state) => {
+    const audioEnergy = soundEngine.readEnergyEnvelope()
     const progressValue = progress.get()
     const explode =
       smoothstep(0.3, 0.7, progressValue) *
@@ -563,6 +658,7 @@ function FlowPipe({ index, progress }: { index: number; progress: Progress }) {
     material.uniforms.uTime.value = state.clock.elapsedTime
     material.uniforms.uSpeed.value = 1.2 + explode * 1.6 + index * 0.08
     material.uniforms.uIntensity.value = 0.55 + explode * 0.9
+    material.uniforms.uAudioEnergy.value = audioEnergy
   })
 
   return (
@@ -628,6 +724,7 @@ function LaserStreams({ progress }: { progress: Progress }) {
         uTime: { value: 0 },
         uIntensity: { value: 0 },
         uPixelRatio: { value: 1 },
+        uAudioEnergy: { value: 0 },
       },
       vertexShader: laserVertexShader,
       fragmentShader: laserFragmentShader,
@@ -648,7 +745,14 @@ function LaserStreams({ progress }: { progress: Progress }) {
     [geometry, material],
   )
 
+  useEffect(() => {
+    setParticleSourceCount('architecture-laser-stream', particleCount)
+    return () =>
+      setParticleSourceCount('architecture-laser-stream', 0)
+  }, [particleCount])
+
   useFrame((state) => {
+    const audioEnergy = soundEngine.readEnergyEnvelope()
     const progressValue = progress.get()
     const intensity =
       smoothstep(0.28, 0.36, progressValue) *
@@ -657,6 +761,7 @@ function LaserStreams({ progress }: { progress: Progress }) {
     material.uniforms.uTime.value = state.clock.elapsedTime
     material.uniforms.uIntensity.value = intensity
     material.uniforms.uPixelRatio.value = state.viewport.dpr
+    material.uniforms.uAudioEnergy.value = audioEnergy
   })
 
   return (
@@ -741,10 +846,12 @@ function ArchitectureModel({
   progress,
   selectedLayer,
   onSelectLayer,
+  palette,
 }: {
   progress: Progress
   selectedLayer: LayerId | null
   onSelectLayer: (layer: LayerId) => void
+  palette: readonly [string, string, string]
 }) {
   const rootRef = useRef<THREE.Group>(null)
   const bottomRef = useRef<THREE.Group>(null)
@@ -755,12 +862,19 @@ function ArchitectureModel({
 
   useFrame((state) => {
     const time = state.clock.elapsedTime
+    const audioEnergy = soundEngine.readEnergyEnvelope()
     const progressValue = progress.get()
     const explode =
       smoothstep(0.3, 0.7, progressValue) *
       (1 - smoothstep(0.7, 0.84, progressValue))
     const reassembly = smoothstep(0.74, 0.97, progressValue)
     const motionScale = reducedMotion ? 0.14 : 1
+    const stage = state.gl.domElement.closest<HTMLElement>(
+      '[data-architecture-section]',
+    )
+    if (stage) {
+      stage.dataset.audioEnergy = audioEnergy.toFixed(4)
+    }
 
     if (rootRef.current) {
       rootRef.current.rotation.y =
@@ -769,7 +883,9 @@ function ArchitectureModel({
         Math.sin(time * 0.18 * motionScale) * 0.055
       rootRef.current.rotation.z =
         Math.cos(time * 0.14 * motionScale) * 0.025
-      rootRef.current.scale.setScalar(1 - reassembly * 0.12)
+      rootRef.current.scale.setScalar(
+        (1 - reassembly * 0.12) * (1 + audioEnergy * 0.032),
+      )
     }
     if (bottomRef.current) {
       bottomRef.current.position.y = -1.28 - explode * 0.78
@@ -783,7 +899,8 @@ function ArchitectureModel({
       topRef.current.position.y = 1.38 + explode * 0.8
     }
     if (pipeRef.current) {
-      pipeRef.current.scale.y = 1 + explode * 0.58
+      pipeRef.current.scale.y =
+        1 + explode * 0.58 + audioEnergy * 0.035
     }
   })
 
@@ -795,7 +912,7 @@ function ArchitectureModel({
           layer="infrastructure"
           size={[2.8, 0.78, 2.8]}
           selected={selectedLayer === 'infrastructure'}
-          accent="#10b981"
+          accent={palette[0]}
           onSelect={onSelectLayer}
         />
       </group>
@@ -805,7 +922,7 @@ function ArchitectureModel({
           layer="orchestration"
           size={[3.25, 1.36, 2.65]}
           selected={selectedLayer === 'orchestration'}
-          accent="#f2b35e"
+          accent={palette[1]}
           onSelect={onSelectLayer}
         />
       </group>
@@ -815,7 +932,7 @@ function ArchitectureModel({
           layer="spatial"
           size={[2.7, 1.36, 2.7]}
           selected={selectedLayer === 'spatial'}
-          accent="#72e6ff"
+          accent={palette[2]}
           onSelect={onSelectLayer}
         />
       </group>
@@ -937,6 +1054,8 @@ function ArchitectureScene({
   onSelectLayer: (layer: LayerId) => void
 }) {
   const performanceTier = useAppStore((state) => state.performanceTier)
+  const vfxPreset = useAppStore((state) => state.vfxPreset)
+  const preset = getVfxPreset(vfxPreset)
 
   return (
     <>
@@ -946,23 +1065,30 @@ function ArchitectureScene({
       <directionalLight
         position={[-4, 5, 4]}
         intensity={2.1}
-        color="#bdefff"
+        color={preset.secondary}
       />
       <directionalLight
         position={[4, -2, 3]}
         intensity={1.2}
-        color="#8b5cf6"
+        color={preset.tertiary}
       />
+      <VolumetricStageLights variant="architecture" />
+      <ProceduralFloorCaustics progress={progress} />
       <CameraRig progress={progress} selectedLayer={selectedLayer} />
       <ArchitectureModel
         progress={progress}
         selectedLayer={selectedLayer}
         onSelectLayer={onSelectLayer}
+        palette={[
+          preset.primary,
+          preset.secondary,
+          preset.tertiary,
+        ]}
       />
       <EffectComposer multisampling={0} enableNormalPass={false}>
         <Bloom
           intensity={performanceTier === 'high' ? 1 : 0.82}
-          luminanceThreshold={0.22}
+          luminanceThreshold={0.15}
           luminanceSmoothing={0.2}
           mipmapBlur
           radius={0.7}
@@ -1296,11 +1422,18 @@ export function ScrollArchitecture3D() {
   })
   const inView = useInViewAnimation(sectionRef)
 
+  useEffect(() => {
+    setShaderPassSourceCount('architecture-bloom', inView ? 1 : 0)
+    return () => setShaderPassSourceCount('architecture-bloom', 0)
+  }, [inView])
+
   return (
     <section
       ref={sectionRef}
       id="architecture"
       data-architecture-section
+      data-audio-reactive="architecture-model"
+      data-audio-energy="0"
       aria-labelledby="architecture-title"
       className="relative z-10 h-[300vh] bg-void"
     >
@@ -1309,6 +1442,8 @@ export function ScrollArchitecture3D() {
       </h2>
       <div
         data-architecture-sticky
+        data-caustics-layers={CAUSTICS_LAYER_COUNT}
+        data-prism-ior={PRISM_CHROMATIC_IOR.join(',')}
         data-performance-tier={performanceTier}
         data-frameloop={inView ? 'always' : 'demand'}
         className="sticky top-0 h-[100svh] overflow-hidden"

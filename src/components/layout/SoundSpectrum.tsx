@@ -20,6 +20,7 @@ export function SoundSpectrum() {
       }
       if (spectrumRef.current) {
         spectrumRef.current.dataset.audioLevel = '0.000'
+        spectrumRef.current.dataset.audioEnergy = '0.000'
         spectrumRef.current.dataset.active = 'false'
       }
       return
@@ -30,6 +31,7 @@ export function SoundSpectrum() {
     const smoothed = new Float32Array(BAND_COUNT)
 
     const draw = () => {
+      const audioEnergy = soundEngine.readEnergyEnvelope()
       soundEngine.readFrequencyBands(bands)
 
       let total = 0
@@ -51,6 +53,8 @@ export function SoundSpectrum() {
       const average = total / BAND_COUNT
       if (spectrumRef.current) {
         spectrumRef.current.dataset.audioLevel = average.toFixed(3)
+        spectrumRef.current.dataset.audioEnergy =
+          audioEnergy.toFixed(3)
         spectrumRef.current.dataset.active =
           average > 0.015 ? 'true' : 'false'
       }
@@ -66,6 +70,7 @@ export function SoundSpectrum() {
       ref={spectrumRef}
       data-audio-spectrum
       data-audio-level="0"
+      data-audio-energy="0"
       data-active="false"
       role="img"
       aria-label="实时音频频谱"

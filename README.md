@@ -32,7 +32,7 @@ flowchart TB
     STORE["Zustand Store<br/>Reactive UI State + Mutable Transient State"]
     LENIS["Lenis RAF<br/>Inertial Scroll"]
     PALETTE["Command Palette<br/>Cmd/Ctrl + K"]
-    TELEMETRY["Performance Telemetry<br/>FPS / Frame Time / Heap"]
+    TELEMETRY["Performance Telemetry<br/>FPS / Particles / Passes / Heap"]
     SOUND["SoundEngine<br/>Web Audio Synthesis"]
 
     subgraph DOM [DOM Runtime]
@@ -81,7 +81,7 @@ stateDiagram-v2
     Offscreen: Canvas demand / RAF paused
     Offscreen --> Visible: re-enter viewport
     Visible --> Medium: 2s average below 45 FPS
-    Medium: DPR 1 / 4000 particles / FX reduced
+    Medium: DPR 1 / half particles / 2 post passes
 ```
 
 ## 技术栈
@@ -104,8 +104,17 @@ stateDiagram-v2
 - Verlet 工牌、12 轮约束松弛、OBB 碰撞、可断裂挂绳与一键重铸。
 - FABRIK 六轴机械臂、12 节点柔性躯干和对角线 Trot 四足步态。
 - 程序化合成音效、实时五频段频谱与 Web Audio 动态压缩。
+- `AnalyserNode` 音频包络驱动的星尘、极光、体积光与架构呼吸响应。
 - `Cmd/Ctrl + K` 模糊命令面板、主题切换、重力环境与简历 JSON 导出。
 - 视口休眠、自适应画质、4K 首帧降级和 `Shift + D` 性能遥测。
+
+### 电影级光效系统
+
+1. **3D 旋度星尘尾迹**：Curl Noise 粒子流、鼠标射线斥力、Warp Speed 拉伸与多层光带。
+2. **丁达尔体积光与焦散**：动态光束、体积尘埃、程序化地面焦散与棱镜色散。
+3. **Bento 双彗星流光与萤火**：双层环绕流光、卡片粒子池、数据脉冲路径与音频响应。
+4. **物理碰撞切向火花与分形电弧**：速度拉伸金属火花、二次弹跳分裂、绳索断裂分形电弧与灼烧等离子。
+5. **电影级动态色散与数字极光**：五阶 fBm 极光、mipmap Bloom、动态色差、暗角、胶片颗粒与三套 VFX 光谱预设。
 
 ## 核心物理模型
 
@@ -163,10 +172,12 @@ a = -k(p-p_0) - cv
 
 | Tier | DPR | Particles | Post Processing | Trigger |
 | --- | --- | --- | --- | --- |
-| High | 1-2 | 8000 | Bloom + Chromatic Aberration | 低负载设备 |
-| Medium | 1 | 4000 | Reduced Bloom, no Chromatic Aberration | 4K / low-power hardware / sustained <45 FPS |
+| High | 1-2 | 8000 flow + 4000 cursor + 1500 volumetric | Bloom + Chromatic Aberration + Vignette + Noise | 低负载桌面设备 |
+| Medium / Mobile | 1 | 4000 flow + 2000 cursor + 750 volumetric | Bloom + Vignette | 4K / 手机 / 核显 / sustained <45 FPS |
 
 物理沙盒与架构 Canvas 离开视口后立即停止 RAF 或切换为 `frameloop="demand"`。所有自定义 `BufferGeometry`、`TubeGeometry`、`ShaderMaterial`、`MeshBasicMaterial` 和 `InstancedMesh` 均在 `useEffect` 清理函数中显式释放。
+
+`Shift + D` 遥测浮层实时汇总各场景活跃粒子源、当前后期 Shader Pass 数量、物理求解耗时、JS Heap 与当前 `vfxPreset`。
 
 ## 快捷操作
 
@@ -190,6 +201,11 @@ interactive-showroom/
 │  ├─ command-mobile-check.py
 │  ├─ fabrik-creature-check.py
 │  ├─ performance-audit-check.py
+│  ├─ vram-leak-audit.py
+│  ├─ cinematic-vfx-check.py
+│  ├─ sandbox-vfx-check.py
+│  ├─ cursor-stardust-check.py
+│  ├─ card-particle-check.py
 │  ├─ sound-engine-check.py
 │  ├─ verlet-sandbox-check.py
 │  └─ visual-check.py
@@ -246,9 +262,14 @@ npm run preview
 python scripts/visual-check.py artifacts/visual all
 python scripts/command-mobile-check.py artifacts/command-mobile
 python scripts/performance-audit-check.py artifacts/performance
+python scripts/vram-leak-audit.py artifacts/vram-leak-audit
 python scripts/verlet-sandbox-check.py artifacts/verlet
 python scripts/fabrik-creature-check.py artifacts/fabrik
 python scripts/architecture-focus-check.py artifacts/architecture
+python scripts/cinematic-vfx-check.py artifacts/cinematic-vfx
+python scripts/sandbox-vfx-check.py artifacts/sandbox-vfx
+python scripts/cursor-stardust-check.py artifacts/cursor-stardust
+python scripts/card-particle-check.py artifacts/card-particle
 python scripts/sound-engine-check.py artifacts/sound
 ```
 

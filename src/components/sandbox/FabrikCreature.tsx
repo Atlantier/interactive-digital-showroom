@@ -8,11 +8,26 @@ import {
   RefreshCw,
   Zap,
 } from 'lucide-react'
-import { useEffect, useLayoutEffect, useRef, useState } from 'react'
+import {
+  useEffect,
+  useLayoutEffect,
+  useMemo,
+  useRef,
+  useState,
+} from 'react'
+import { getVfxPreset } from '../../data/vfxPresets'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
-import { recordPhysicsSolveTime } from '../../store/performanceTelemetry'
+import {
+  recordPhysicsSolveTime,
+  setParticleSourceCount,
+} from '../../store/performanceTelemetry'
 import { useAppStore } from '../../store/useAppStore'
 import { soundEngine } from '../../utils/soundEngine'
+import {
+  createVfxIllumination,
+  VfxParticlePool,
+  type VfxIllumination,
+} from '../../utils/vfxParticleEngine'
 import {
   clamp,
   damp,
@@ -25,6 +40,10 @@ import {
 
 type IKMode = 'arm' | 'quadruped'
 type GaitPhase = 'idle' | 'stepping' | 'locked'
+type VfxPalette = Pick<
+  ReturnType<typeof getVfxPreset>,
+  'primary' | 'secondary' | 'tertiary'
+>
 
 interface LaserState {
   startX: number
@@ -32,6 +51,17 @@ interface LaserState {
   endX: number
   endY: number
   life: number
+}
+
+interface ScorchMark {
+  active: boolean
+  x: number
+  y: number
+  age: number
+  duration: number
+  startedAt: number
+  angle: number
+  seed: number
 }
 
 interface ArmScene {
@@ -49,6 +79,9 @@ interface ArmScene {
   velocity: IKPoint
   totalLength: number
   solveTarget: IKPoint
+  scorches: ScorchMark[]
+  scorchCursor: number
+  scorchCount: number
 }
 
 interface LegState {
@@ -75,6 +108,8 @@ interface GroundRipple {
   life: number
   duration: number
   active: boolean
+  seed: number
+  emitted: boolean
 }
 
 interface QuadrupedScene {
@@ -113,6 +148,7 @@ const LEG_MAX_BEND = Math.PI * 0.74
 const SPINE_NODE_COUNT = 12
 const GAIT_LOCK_DURATION = 0.22
 const TAU = Math.PI * 2
+const ORIGIN_POINT: IKPoint = { x: 0, y: 0 }
 const ARM_FABRIK_OPTIONS: FABRIKOptions = {
   maxIterations: 12,
   maxBendAngle: ARM_MAX_BEND,
@@ -131,6 +167,23 @@ function createPoint(x = 0, y = 0): IKPoint {
 function smoothstep(value: number) {
   const normalized = clamp(value, 0, 1)
   return normalized * normalized * (3 - 2 * normalized)
+}
+
+function colorAlpha(hex: string, alpha: number) {
+  const value = Number.parseInt(hex.replace('#', ''), 16)
+  const red = (value >> 16) & 255
+  const green = (value >> 8) & 255
+  const blue = value & 255
+  return `rgba(${red}, ${green}, ${blue}, ${alpha})`
+}
+
+function colorChannels(hex: string) {
+  const value = Number.parseInt(hex.replace('#', ''), 16)
+  return {
+    red: (value >> 16) & 255,
+    green: (value >> 8) & 255,
+    blue: value & 255,
+  }
 }
 
 function distanceBetween(a: IKPoint, b: IKPoint) {
@@ -186,6 +239,18 @@ function createArmScene(size: CanvasSize, pointer: IKPoint): ArmScene {
     velocity: createPoint(),
     totalLength: lengths.reduce((total, length) => total + length, 0),
     solveTarget: createPoint(),
+    scorches: Array.from({ length: 12 }, () => ({
+      active: false,
+      x: 0,
+      y: 0,
+      age: 0,
+      duration: 3,
+      startedAt: 0,
+      angle: 0,
+      seed: 0,
+    })),
+    scorchCursor: 0,
+    scorchCount: 0,
   }
 }
 
@@ -318,6 +383,8 @@ function createQuadrupedScene(
       life: 0,
       duration: 0.72,
       active: false,
+      seed: 0,
+      emitted: false,
     }),
   )
 
@@ -422,6 +489,18 @@ function updateArm(
   scene.centroid.y = scene.nextCentroid.y
 }
 
+function updateScorches(scene: ArmScene, time: number) {
+  for (let index = 0; index < scene.scorches.length; index += 1) {
+    const scorch = scene.scorches[index]
+    if (!scorch.active) continue
+    scorch.age = Math.max(0, time - scorch.startedAt)
+    if (scorch.age >= scorch.duration) {
+      scorch.active = false
+      scorch.age = scorch.duration
+    }
+  }
+}
+
 function getSpineAnchor(scene: QuadrupedScene, leg: LegState) {
   const node = scene.spine[leg.spineIndex]
   const perpendicularX = -Math.sin(scene.heading)
@@ -479,6 +558,8 @@ function spawnGroundRipple(
   ripple.life = 1
   ripple.duration = 0.72
   ripple.active = true
+  ripple.seed = Math.random() * TAU
+  ripple.emitted = false
   scene.rippleCursor =
     (scene.rippleCursor + 1) % scene.ripples.length
   scene.rippleCount += 1
@@ -758,11 +839,190 @@ function drawArrow(
   context.restore()
 }
 
+function drawEnergyConduit(
+  context: CanvasRenderingContext2D,
+  start: IKPoint,
+  end: IKPoint,
+  time: number,
+  phase: number,
+  palette: VfxPalette,
+) {
+  const deltaX = end.x - start.x
+  const deltaY = end.y - start.y
+  const length = Math.hypot(deltaX, deltaY)
+  if (length < 0.001) return
+  const perpendicularX = -deltaY / length
+  const perpendicularY = deltaX / length
+  const samples = 10
+
+  context.save()
+  context.globalCompositeOperation = 'lighter'
+  context.lineCap = 'round'
+  context.beginPath()
+  context.moveTo(start.x, start.y)
+  for (let sample = 1; sample <= samples; sample += 1) {
+    const progress = sample / samples
+    const envelope = Math.sin(progress * Math.PI)
+    const wave =
+      Math.sin(progress * Math.PI * 2.4 - time * 8.5 + phase) *
+      1.45 *
+      envelope
+    context.lineTo(
+      start.x + deltaX * progress + perpendicularX * wave,
+      start.y + deltaY * progress + perpendicularY * wave,
+    )
+  }
+
+  context.globalAlpha = 0.24
+  context.strokeStyle = palette.primary
+  context.lineWidth = 5
+  context.stroke()
+
+  context.globalAlpha = 0.94
+  context.strokeStyle = palette.tertiary
+  context.lineWidth = 1.35
+  context.setLineDash([6, 8])
+  context.lineDashOffset = -time * 86 - phase * 7
+  context.stroke()
+
+  context.globalAlpha = 0.5
+  context.strokeStyle = palette.secondary
+  context.lineWidth = 2.2
+  context.setLineDash([2, 13])
+  context.lineDashOffset = time * 42 + phase * 4
+  context.stroke()
+  context.restore()
+}
+
+function drawHolographicJointRings(
+  context: CanvasRenderingContext2D,
+  joint: IKPoint,
+  radius: number,
+  time: number,
+  phase: number,
+  palette: VfxPalette,
+) {
+  context.save()
+  context.translate(joint.x, joint.y)
+  context.globalCompositeOperation = 'lighter'
+
+  for (let ring = 0; ring < 3; ring += 1) {
+    const ringRadius = radius + 4 + ring * 3.4
+    const spin = time * (ring % 2 === 0 ? 1.35 : -1.05) + phase
+    const tilt =
+      0.22 +
+      ring * 0.11 +
+      Math.sin(time * 1.7 + phase + ring) * 0.08
+    context.save()
+    context.rotate(spin + ring * 0.62)
+    context.scale(1, tilt)
+    context.beginPath()
+    context.arc(0, 0, ringRadius, 0, TAU)
+    context.globalAlpha =
+      (ring === 0 ? 0.58 : 0.34) + 0.09 * Math.sin(time * 4 + ring)
+    context.strokeStyle =
+      ring % 2 === 0 ? palette.primary : palette.secondary
+    context.lineWidth = ring === 0 ? 1.2 : 0.75
+    context.setLineDash(ring === 0 ? [7, 5] : [2, 7])
+    context.lineDashOffset = -time * (21 + ring * 13)
+    context.stroke()
+    context.restore()
+  }
+
+  context.globalAlpha = 0.1
+  context.fillStyle = palette.primary
+  context.beginPath()
+  context.arc(0, 0, radius + 9, 0, TAU)
+  context.fill()
+  context.globalAlpha = 0.24
+  context.beginPath()
+  context.arc(0, 0, Math.max(0.5, radius * 0.34), 0, TAU)
+  context.fill()
+  context.restore()
+}
+
+function drawScorchMarks(
+  context: CanvasRenderingContext2D,
+  scorches: ScorchMark[],
+  time: number,
+) {
+  context.save()
+  for (let index = 0; index < scorches.length; index += 1) {
+    const scorch = scorches[index]
+    if (!scorch.active) continue
+    const lifeRatio = clamp(
+      1 - scorch.age / scorch.duration,
+      0,
+      1,
+    )
+    const heat = lifeRatio * lifeRatio
+    const radius = 18 + (1 - lifeRatio) * 12
+    const red = Math.round(72 + heat * 183)
+    const green = Math.round(8 + heat * 76)
+    const blue = Math.round(4 + heat * 20)
+
+    context.save()
+    context.translate(scorch.x, scorch.y)
+    context.rotate(scorch.angle)
+    context.globalCompositeOperation = 'lighter'
+    const glow = context.createRadialGradient(0, 0, 0, 0, 0, radius)
+    glow.addColorStop(
+      0,
+      `rgba(${red}, ${green}, ${blue}, ${0.8 * lifeRatio})`,
+    )
+    glow.addColorStop(
+      0.24,
+      `rgba(${red}, ${Math.round(green * 0.74)}, ${blue}, ${0.42 * lifeRatio})`,
+    )
+    glow.addColorStop(1, `rgba(${red}, ${green}, ${blue}, 0)`)
+    context.fillStyle = glow
+    context.beginPath()
+    context.arc(0, 0, radius, 0, TAU)
+    context.fill()
+
+    context.globalAlpha = lifeRatio * 0.62
+    context.strokeStyle = `rgb(${red} ${green} ${blue})`
+    context.lineCap = 'round'
+    context.lineWidth = 1.1 + heat * 2.2
+    context.beginPath()
+    for (let segment = 0; segment <= 7; segment += 1) {
+      const progress = segment / 7
+      const trailX = -progress * (22 + heat * 18)
+      const trailY =
+        Math.sin(
+          scorch.seed + progress * 19 + time * 1.2,
+        ) *
+        (2.4 + progress * 4)
+      if (segment === 0) context.moveTo(trailX, trailY)
+      else context.lineTo(trailX, trailY)
+    }
+    context.stroke()
+
+    context.globalCompositeOperation = 'source-over'
+    context.globalAlpha = 0.4 * lifeRatio
+    context.fillStyle = '#100705'
+    context.beginPath()
+    context.ellipse(
+      0,
+      0,
+      5 + heat * 4,
+      3.5 + heat * 3,
+      time * 0.05,
+      0,
+      TAU,
+    )
+    context.fill()
+    context.restore()
+  }
+  context.restore()
+}
+
 function drawAngleCones(
   context: CanvasRenderingContext2D,
   joints: IKPoint[],
   maxAngle: number,
   radius: number,
+  palette: VfxPalette,
 ) {
   context.save()
   for (let index = 1; index < joints.length - 1; index += 1) {
@@ -782,9 +1042,9 @@ function drawAngleCones(
       incoming + maxAngle,
     )
     context.closePath()
-    context.fillStyle = 'rgba(114, 230, 255, 0.035)'
+    context.fillStyle = colorAlpha(palette.primary, 0.04)
     context.fill()
-    context.strokeStyle = 'rgba(114, 230, 255, 0.24)'
+    context.strokeStyle = colorAlpha(palette.primary, 0.26)
     context.lineWidth = 0.7
     context.stroke()
   }
@@ -796,16 +1056,18 @@ function drawArm(
   scene: ArmScene,
   time: number,
   debug: boolean,
+  palette: VfxPalette,
 ) {
   const { base, joints } = scene
+  drawScorchMarks(context, scene.scorches, time)
 
   context.save()
-  context.strokeStyle = 'rgba(114, 230, 255, 0.1)'
+  context.strokeStyle = colorAlpha(palette.primary, 0.11)
   context.lineWidth = 1
   context.beginPath()
   context.ellipse(base.x, base.y + 16, 76, 20, 0, 0, TAU)
   context.stroke()
-  context.fillStyle = 'rgba(114, 230, 255, 0.025)'
+  context.fillStyle = colorAlpha(palette.primary, 0.028)
   context.fill()
 
   context.fillStyle = '#071016'
@@ -852,6 +1114,14 @@ function drawArm(
     context.strokeStyle = 'rgba(245, 252, 255, 0.72)'
     context.lineWidth = 1.2
     context.stroke()
+    drawEnergyConduit(
+      context,
+      start,
+      end,
+      time,
+      index * 1.37,
+      palette,
+    )
   }
 
   for (let index = 0; index < joints.length; index += 1) {
@@ -870,16 +1140,28 @@ function drawArm(
     gradient.addColorStop(0.62, '#1b272d')
     gradient.addColorStop(1, '#070b0e')
     context.fillStyle = gradient
-    context.strokeStyle = index % 2 === 0 ? '#72e6ff88' : '#f2b35e77'
+    context.strokeStyle = colorAlpha(
+      index % 2 === 0 ? palette.primary : palette.secondary,
+      0.52,
+    )
     context.lineWidth = 1
     context.beginPath()
     context.arc(joint.x, joint.y, radius, 0, TAU)
     context.fill()
     context.stroke()
-    context.fillStyle = index % 2 === 0 ? '#72e6ff' : '#f2b35e'
+    context.fillStyle =
+      index % 2 === 0 ? palette.primary : palette.secondary
     context.beginPath()
     context.arc(joint.x, joint.y, 1.6, 0, TAU)
     context.fill()
+    drawHolographicJointRings(
+      context,
+      joint,
+      radius,
+      time,
+      index * 0.83,
+      palette,
+    )
   }
 
   const endpoint = joints[joints.length - 1]
@@ -902,7 +1184,7 @@ function drawArm(
   context.lineTo(16, 8)
   context.lineTo(23, 4)
   context.stroke()
-  context.strokeStyle = 'rgba(114, 230, 255, 0.5)'
+  context.strokeStyle = colorAlpha(palette.primary, 0.52)
   context.lineWidth = 1
   context.beginPath()
   context.moveTo(17, -5)
@@ -915,30 +1197,90 @@ function drawArm(
     const alpha = smoothstep(scene.laser.life)
     context.save()
     context.globalCompositeOperation = 'screen'
-    context.strokeStyle = `rgba(114, 230, 255, ${alpha * 0.32})`
-    context.lineWidth = 12
-    context.shadowBlur = 28 * alpha
-    context.shadowColor = '#72e6ff'
+    context.lineCap = 'round'
+    context.strokeStyle = colorAlpha(palette.secondary, alpha * 0.3)
+    context.lineWidth = 18
+    context.shadowBlur = 34 * alpha
+    context.shadowColor = palette.secondary
     context.beginPath()
     context.moveTo(scene.laser.startX, scene.laser.startY)
     context.lineTo(scene.laser.endX, scene.laser.endY)
     context.stroke()
-    context.strokeStyle = `rgba(239, 253, 255, ${alpha})`
+
+    const beamX = scene.laser.endX - scene.laser.startX
+    const beamY = scene.laser.endY - scene.laser.startY
+    const beamLength = Math.max(1, Math.hypot(beamX, beamY))
+    const beamNormalX = -beamY / beamLength
+    const beamNormalY = beamX / beamLength
+    for (let filament = 0; filament < 2; filament += 1) {
+      context.beginPath()
+      for (let segment = 0; segment <= 15; segment += 1) {
+        const progress = segment / 15
+        const envelope = Math.sin(progress * Math.PI)
+        const offset =
+          Math.sin(
+            progress * 43 +
+              time * (28 + filament * 11) +
+              filament * 4.7,
+          ) *
+          (1.8 + filament * 1.2) *
+          envelope
+        const pointX =
+          scene.laser.startX +
+          beamX * progress +
+          beamNormalX * offset
+        const pointY =
+          scene.laser.startY +
+          beamY * progress +
+          beamNormalY * offset
+        if (segment === 0) context.moveTo(pointX, pointY)
+        else context.lineTo(pointX, pointY)
+      }
+      context.strokeStyle =
+        filament === 0
+          ? colorAlpha(palette.primary, alpha * 0.7)
+          : colorAlpha(palette.secondary, alpha * 0.62)
+      context.lineWidth = 0.75 + filament * 0.45
+      context.shadowBlur = 8 * alpha
+      context.stroke()
+    }
+
+    context.beginPath()
+    context.moveTo(scene.laser.startX, scene.laser.startY)
+    context.lineTo(scene.laser.endX, scene.laser.endY)
+    context.strokeStyle = colorAlpha(palette.secondary, alpha * 0.62)
+    context.lineWidth = 7
+    context.shadowBlur = 22 * alpha
+    context.shadowColor = palette.primary
+    context.stroke()
+
+    context.strokeStyle = colorAlpha(palette.tertiary, alpha * 0.42)
+    context.lineWidth = 3.8
+    context.shadowBlur = 10 * alpha
+    context.stroke()
+
+    context.strokeStyle = `rgba(255, 255, 255, ${alpha})`
     context.lineWidth = 1.8
     context.shadowBlur = 10 * alpha
+    context.stroke()
+
+    context.globalAlpha = alpha * 0.62
+    context.strokeStyle = '#ffffff'
+    context.lineWidth = 0.65
+    context.shadowBlur = 0
     context.stroke()
     context.restore()
   }
 
   if (debug) {
-    drawAngleCones(context, joints, ARM_MAX_BEND, 28)
-    drawCrosshair(context, scene.target, '#f2b35e', 11)
+    drawAngleCones(context, joints, ARM_MAX_BEND, 28, palette)
+    drawCrosshair(context, scene.target, palette.secondary, 11)
     drawArrow(
       context,
       scene.centroid,
       scene.velocity.x,
       scene.velocity.y,
-      '#72e6ff',
+      palette.primary,
     )
 
     for (let index = 0; index < joints.length; index += 1) {
@@ -948,7 +1290,7 @@ function drawArm(
       context.fillText(`J${index}`, joint.x + 13, joint.y - 9)
     }
 
-    context.fillStyle = '#72e6ff'
+    context.fillStyle = palette.primary
     context.font = '9px "JetBrains Mono Variable", monospace'
     context.fillText(
       `FABRIK ERROR ${scene.result.error.toFixed(2)} PX`,
@@ -977,6 +1319,8 @@ function drawSpine(
   context: CanvasRenderingContext2D,
   spine: IKPoint[],
   bodyRadius: number,
+  time: number,
+  palette: VfxPalette,
 ) {
   context.save()
   context.lineCap = 'round'
@@ -1006,6 +1350,20 @@ function drawSpine(
   context.strokeStyle = '#111a1f'
   context.lineWidth = bodyRadius * 1.55
   context.stroke()
+
+  context.globalCompositeOperation = 'lighter'
+  context.globalAlpha = 0.64
+  context.strokeStyle = palette.primary
+  context.lineWidth = 1.2
+  context.setLineDash([7, 12])
+  context.lineDashOffset = -time * 78
+  context.stroke()
+  context.globalAlpha = 0.28
+  context.strokeStyle = palette.secondary
+  context.lineWidth = 3.5
+  context.setLineDash([2, 18])
+  context.lineDashOffset = time * 42
+  context.stroke()
   context.restore()
 }
 
@@ -1013,6 +1371,7 @@ function drawLeg(
   context: CanvasRenderingContext2D,
   leg: LegState,
   time: number,
+  palette: VfxPalette,
 ) {
   const joints = leg.joints
   context.save()
@@ -1033,74 +1392,159 @@ function drawLeg(
     context.strokeStyle = 'rgba(221, 238, 240, 0.72)'
     context.lineWidth = 1
     context.stroke()
+    drawEnergyConduit(
+      context,
+      start,
+      end,
+      time,
+      index * 1.9,
+      palette,
+    )
   }
 
   for (let index = 0; index < joints.length; index += 1) {
     const joint = joints[index]
     context.fillStyle = '#091116'
     context.strokeStyle =
-      index === 1 ? `rgba(114, 230, 255, ${0.45 + Math.sin(time * 3) * 0.12})` : '#87989d'
+      index === 1
+        ? colorAlpha(
+            palette.primary,
+            0.45 + Math.sin(time * 3) * 0.12,
+          )
+        : '#87989d'
     context.lineWidth = 1
     context.beginPath()
     context.arc(joint.x, joint.y, index === 0 ? 5 : 3.5, 0, TAU)
     context.fill()
     context.stroke()
+    drawHolographicJointRings(
+      context,
+      joint,
+      index === 0 ? 6 : 4.5,
+      time + leg.group * 0.4,
+      index * 0.73,
+      palette,
+    )
   }
 
   const foot = joints[joints.length - 1]
-  context.fillStyle = leg.stepping ? '#72e6ff' : '#9eacb0'
+  context.fillStyle = leg.stepping ? palette.primary : '#9eacb0'
   context.shadowBlur = leg.stepping ? 9 : 0
-  context.shadowColor = '#72e6ff'
+  context.shadowColor = palette.primary
   context.beginPath()
   context.ellipse(foot.x, foot.y, 5.2, 2.4, 0, 0, TAU)
   context.fill()
   context.restore()
 }
 
+function traceHexagon(
+  context: CanvasRenderingContext2D,
+  radius: number,
+) {
+  context.beginPath()
+  for (let side = 0; side < 6; side += 1) {
+    const angle = -Math.PI / 2 + (side / 6) * TAU
+    const x = Math.cos(angle) * radius
+    const y = Math.sin(angle) * radius
+    if (side === 0) context.moveTo(x, y)
+    else context.lineTo(x, y)
+  }
+  context.closePath()
+}
+
 function drawGroundRipples(
   context: CanvasRenderingContext2D,
   scene: QuadrupedScene,
+  palette: VfxPalette,
 ) {
   context.save()
-  context.globalCompositeOperation = 'screen'
+  context.globalCompositeOperation = 'lighter'
 
   for (let index = 0; index < scene.ripples.length; index += 1) {
     const ripple = scene.ripples[index]
     if (!ripple.active) continue
     const progress = 1 - ripple.life
-    const radius = 5 + progress * 34
-    const alpha = Math.pow(ripple.life, 1.35)
+    const alpha = Math.pow(ripple.life, 1.3)
 
-    context.beginPath()
-    context.ellipse(
-      ripple.x,
-      ripple.y,
-      radius,
-      radius * 0.52,
-      0,
-      0,
-      TAU,
+    context.save()
+    context.translate(ripple.x, ripple.y + 2)
+    context.scale(1, 0.55)
+    context.rotate(
+      ripple.seed * 0.07 +
+        progress * (0.12 + (ripple.seed % 1) * 0.08),
     )
-    context.strokeStyle = `rgba(114, 230, 255, ${alpha * 0.82})`
-    context.lineWidth = 1.4 + ripple.life * 1.2
-    context.shadowBlur = 14 * alpha
-    context.shadowColor = '#72e6ff'
+
+    for (let ring = 0; ring < 2; ring += 1) {
+      const ringProgress = clamp(
+        progress * 1.22 - ring * 0.16,
+        0,
+        1,
+      )
+      if (ringProgress <= 0) continue
+      const radius = 10 + ringProgress * 64 - ring * 7
+      const ringAlpha =
+        Math.pow(1 - ringProgress, 1.45) *
+        alpha *
+        (ring === 0 ? 1 : 0.72)
+
+      traceHexagon(context, radius)
+      context.fillStyle =
+        ring === 0
+          ? colorAlpha(palette.primary, ringAlpha * 0.08)
+          : colorAlpha(palette.secondary, ringAlpha * 0.06)
+      context.fill()
+      context.strokeStyle =
+        ring === 0
+          ? colorAlpha(palette.tertiary, ringAlpha)
+          : colorAlpha(palette.secondary, ringAlpha * 0.86)
+      context.lineWidth = (ring === 0 ? 2.1 : 1.25) + alpha * 1.1
+      context.shadowBlur = 18 * ringAlpha
+      context.shadowColor =
+        ring === 0 ? palette.primary : palette.secondary
+      context.stroke()
+    }
+
+    const gridRadius = 10 + progress * 64
+    context.shadowBlur = 11 * alpha
+    context.shadowColor = palette.primary
+    context.strokeStyle = colorAlpha(palette.primary, alpha * 0.34)
+    context.lineWidth = 0.72
+    context.beginPath()
+    for (let spoke = 0; spoke < 6; spoke += 1) {
+      const angle = -Math.PI / 2 + (spoke / 6) * TAU
+      context.moveTo(
+        Math.cos(angle) * gridRadius * 0.22,
+        Math.sin(angle) * gridRadius * 0.22,
+      )
+      context.lineTo(
+        Math.cos(angle) * gridRadius,
+        Math.sin(angle) * gridRadius,
+      )
+    }
     context.stroke()
 
-    context.beginPath()
-    context.ellipse(
-      ripple.x,
-      ripple.y,
-      Math.max(0.1, radius * 0.34),
-      Math.max(0.1, radius * 0.18),
-      0,
-      0,
-      TAU,
-    )
-    context.strokeStyle = `rgba(114, 230, 255, ${alpha * 0.22})`
-    context.lineWidth = 0.7
-    context.shadowBlur = 0
+    const innerRadius = Math.max(2, gridRadius * 0.57)
+    traceHexagon(context, innerRadius)
+    context.setLineDash([4, 5])
+    context.lineDashOffset = -progress * 34
+    context.strokeStyle = colorAlpha(palette.tertiary, alpha * 0.55)
     context.stroke()
+    context.setLineDash([])
+
+    context.fillStyle = colorAlpha(palette.tertiary, alpha * 0.78)
+    for (let node = 0; node < 6; node += 1) {
+      const angle = -Math.PI / 2 + (node / 6) * TAU
+      context.beginPath()
+      context.arc(
+        Math.cos(angle) * gridRadius,
+        Math.sin(angle) * gridRadius,
+        1.35 + alpha * 1.2,
+        0,
+        TAU,
+      )
+      context.fill()
+    }
+    context.restore()
   }
 
   context.restore()
@@ -1111,12 +1555,13 @@ function drawQuadruped(
   scene: QuadrupedScene,
   time: number,
   debug: boolean,
+  palette: VfxPalette,
 ) {
-  drawGroundRipples(context, scene)
-  drawSpine(context, scene.spine, scene.bodyRadius)
+  drawGroundRipples(context, scene, palette)
+  drawSpine(context, scene.spine, scene.bodyRadius, time, palette)
 
   for (let index = 0; index < scene.legs.length; index += 1) {
-    drawLeg(context, scene.legs[index], time + index)
+    drawLeg(context, scene.legs[index], time + index, palette)
   }
 
   context.save()
@@ -1128,12 +1573,23 @@ function drawQuadruped(
     context.translate(point.x, point.y)
     context.rotate(angle)
     context.fillStyle = '#0a1116'
-    context.strokeStyle = index % 3 === 0 ? '#72e6ff55' : '#f2b35e44'
+    context.strokeStyle = colorAlpha(
+      index % 3 === 0 ? palette.primary : palette.secondary,
+      0.3,
+    )
     context.lineWidth = 0.8
     context.beginPath()
     context.roundRect(-5, -scene.bodyRadius * 0.7, 10, scene.bodyRadius * 1.4, 3)
     context.fill()
     context.stroke()
+    drawHolographicJointRings(
+      context,
+      ORIGIN_POINT,
+      scene.bodyRadius * 0.44,
+      time,
+      index * 0.51,
+      palette,
+    )
     context.restore()
   }
 
@@ -1156,9 +1612,9 @@ function drawQuadruped(
   context.fill()
   context.stroke()
   const eyeGlow = 0.58 + Math.sin(time * 3.2) * 0.16
-  context.fillStyle = `rgba(114, 230, 255, ${eyeGlow})`
+  context.fillStyle = colorAlpha(palette.primary, eyeGlow)
   context.shadowBlur = 10
-  context.shadowColor = '#72e6ff'
+  context.shadowColor = palette.primary
   context.beginPath()
   context.arc(8, 0, 2.4, 0, TAU)
   context.fill()
@@ -1166,7 +1622,7 @@ function drawQuadruped(
 
   const tail = scene.spine[scene.spine.length - 1]
   context.save()
-  context.strokeStyle = 'rgba(114, 230, 255, 0.52)'
+  context.strokeStyle = colorAlpha(palette.primary, 0.52)
   context.lineWidth = 1
   context.beginPath()
   context.moveTo(tail.x, tail.y)
@@ -1183,12 +1639,12 @@ function drawQuadruped(
     for (let index = 0; index < scene.legs.length; index += 1) {
       const leg = scene.legs[index]
       const rest = getRestFoot(scene, leg)
-      drawAngleCones(context, leg.joints, LEG_MAX_BEND, 18)
-      drawCrosshair(context, rest, '#f2b35e', 8)
+      drawAngleCones(context, leg.joints, LEG_MAX_BEND, 18, palette)
+      drawCrosshair(context, rest, palette.secondary, 8)
       context.save()
       context.strokeStyle = leg.stepping
-        ? 'rgba(114, 230, 255, 0.58)'
-        : 'rgba(114, 230, 255, 0.2)'
+        ? colorAlpha(palette.primary, 0.58)
+        : colorAlpha(palette.primary, 0.2)
       context.setLineDash([3, 4])
       context.lineWidth = 1
       context.beginPath()
@@ -1203,11 +1659,11 @@ function drawQuadruped(
       scene.centroid,
       scene.velocity.x,
       scene.velocity.y,
-      '#72e6ff',
+      palette.primary,
     )
-    drawCrosshair(context, scene.pointer, '#72e6ff', 7)
+    drawCrosshair(context, scene.pointer, palette.primary, 7)
 
-    context.fillStyle = '#72e6ff'
+    context.fillStyle = palette.primary
     context.font = '9px "JetBrains Mono Variable", monospace'
     context.fillText(
       `2-BONE IK ERROR ${scene.maxLegError.toFixed(2)} PX`,
@@ -1233,10 +1689,16 @@ export function FabrikCreature() {
   const [mode, setMode] = useState<IKMode>('arm')
   const [showDebug, setShowDebug] = useState(false)
   const soundEnabled = useAppStore((state) => state.soundEnabled)
+  const vfxPreset = useAppStore((state) => state.vfxPreset)
+  const vfxPalette = useMemo(
+    () => getVfxPreset(vfxPreset),
+    [vfxPreset],
+  )
   const stageRef = useRef<HTMLDivElement>(null)
   const canvasRef = useRef<HTMLCanvasElement>(null)
   const debugRef = useRef(showDebug)
   const soundEnabledRef = useRef(soundEnabled)
+  const vfxPaletteRef = useRef<VfxPalette>(vfxPalette)
   const rebuildRef = useRef<() => void>(() => undefined)
   const resumeAnimationRef = useRef<() => void>(() => undefined)
   const reducedMotion = Boolean(useReducedMotion())
@@ -1244,6 +1706,7 @@ export function FabrikCreature() {
   const inViewRef = useRef(inView)
   debugRef.current = showDebug
   soundEnabledRef.current = soundEnabled
+  vfxPaletteRef.current = vfxPalette
 
   useEffect(() => {
     inViewRef.current = inView
@@ -1262,8 +1725,214 @@ export function FabrikCreature() {
     let animationFrame = 0
     let lastFrame = performance.now()
     let disposed = false
+    let laserSpawnAccumulator = 0
     const pointer = createPoint(width * 0.68, height * 0.42)
     const reducedMotionScale = reducedMotion ? 0.35 : 1
+    const particlePool = new VfxParticlePool({
+      capacity: 2_200,
+      space: '2d',
+      bounds: {
+        left: 0,
+        right: width,
+        top: 0,
+        floorY: height,
+      },
+    })
+    const particleLight: VfxIllumination = createVfxIllumination()
+    const initialPalette = vfxPaletteRef.current
+    const initialLightChannels = colorChannels(
+      initialPalette.secondary,
+    )
+    let lightEnvelope = 0
+    let lightRed = initialLightChannels.red
+    let lightGreen = initialLightChannels.green
+    let lightBlue = initialLightChannels.blue
+
+    const updateDynamicLight = (
+      activeScene: SceneState,
+      delta = 1 / 60,
+    ) => {
+      particlePool.getIllumination(particleLight)
+      let totalEnergy = particleLight.energy
+      let weightedX = particleLight.x * totalEnergy
+      let weightedY = particleLight.y * totalEnergy
+      let weightedRed = particleLight.r * totalEnergy
+      let weightedGreen = particleLight.g * totalEnergy
+      let weightedBlue = particleLight.b * totalEnergy
+
+      if (activeScene.kind === 'arm' && activeScene.laser.life > 0) {
+        const palette = vfxPaletteRef.current
+        const laserColor = colorChannels(palette.secondary)
+        const beamEnergy = activeScene.laser.life * 38
+        const beamX =
+          activeScene.laser.startX * 0.32 +
+          activeScene.laser.endX * 0.68
+        const beamY =
+          activeScene.laser.startY * 0.32 +
+          activeScene.laser.endY * 0.68
+        totalEnergy += beamEnergy
+        weightedX += beamX * beamEnergy
+        weightedY += beamY * beamEnergy
+        weightedRed += laserColor.red * beamEnergy
+        weightedGreen += laserColor.green * beamEnergy
+        weightedBlue += laserColor.blue * beamEnergy
+      }
+
+      let targetIntensity = 0
+      if (totalEnergy > 0.001) {
+        const lightX = weightedX / totalEnergy
+        const lightY = weightedY / totalEnergy
+        targetIntensity = clamp(totalEnergy / 86, 0, 1)
+        lightRed = Math.round(weightedRed / totalEnergy)
+        lightGreen = Math.round(weightedGreen / totalEnergy)
+        lightBlue = Math.round(weightedBlue / totalEnergy)
+
+        stage.style.setProperty(
+          '--vfx-light-x',
+          `${clamp(lightX, 0, width).toFixed(1)}px`,
+        )
+        stage.style.setProperty(
+          '--vfx-light-y',
+          `${clamp(lightY, 0, height).toFixed(1)}px`,
+        )
+        stage.style.setProperty('--vfx-light-r', String(lightRed))
+        stage.style.setProperty('--vfx-light-g', String(lightGreen))
+        stage.style.setProperty('--vfx-light-b', String(lightBlue))
+        stage.style.setProperty(
+          '--vfx-light-spread',
+          `${(20 + targetIntensity * 24).toFixed(1)}%`,
+        )
+        stage.dataset.vfxLightColor =
+          `${lightRed},${lightGreen},${lightBlue}`
+        stage.dataset.vfxLightX = lightX.toFixed(1)
+        stage.dataset.vfxLightY = lightY.toFixed(1)
+      }
+
+      const targetOpacity = targetIntensity * 0.5
+      lightEnvelope =
+        targetOpacity >= lightEnvelope
+          ? targetOpacity
+          : Math.max(
+              targetOpacity,
+              lightEnvelope * Math.exp(-8.5 * delta),
+            )
+      if (lightEnvelope < 0.002) {
+        lightEnvelope = 0
+        stage.style.setProperty('--vfx-light-opacity', '0')
+        stage.dataset.vfxLightIntensity = '0'
+        return
+      }
+
+      stage.style.setProperty(
+        '--vfx-light-opacity',
+        lightEnvelope.toFixed(3),
+      )
+      stage.dataset.vfxLightIntensity = Math.max(
+        targetIntensity,
+        lightEnvelope / 0.5,
+      ).toFixed(3)
+    }
+
+    const emitLaserIons = (armScene: ArmScene, intensity: number) => {
+      const palette = vfxPaletteRef.current
+      const deltaX = armScene.laser.endX - armScene.laser.startX
+      const deltaY = armScene.laser.endY - armScene.laser.startY
+      const length = Math.max(1, Math.hypot(deltaX, deltaY))
+      const perpendicularX = -deltaY / length
+      const perpendicularY = deltaX / length
+      const sample = 0.08 + Math.random() * 0.9
+      const originX = armScene.laser.startX + deltaX * sample
+      const originY = armScene.laser.startY + deltaY * sample
+      const side = Math.random() < 0.5 ? -1 : 1
+
+      particlePool.emit({
+        origin: {
+          x: originX + perpendicularX * (Math.random() * 2 - 1) * 2.5,
+          y: originY + perpendicularY * (Math.random() * 2 - 1) * 2.5,
+        },
+        count: intensity > 1 ? 3 : 1,
+        direction: {
+          x: perpendicularX * side,
+          y: perpendicularY * side,
+        },
+        spread: 0.72,
+        speed: [32, 145] as const,
+        life: [0.2, 0.58] as const,
+        size: [0.35, 1.05] as const,
+        color: [palette.tertiary, palette.primary] as const,
+        alpha: [0.95, 0] as const,
+        gravity: { x: 0, y: 70, z: 0 },
+        drag: 1.8,
+        turbulence: 210,
+        turbulenceFrequency: 42,
+        renderMode: intensity > 1 ? 'plasma' : 'dot',
+        glow: 1.7,
+        fadeIn: 0.08,
+      })
+
+      particlePool.emit({
+        origin: {
+          x: armScene.laser.endX + (Math.random() * 2 - 1) * 2,
+          y: armScene.laser.endY + (Math.random() * 2 - 1) * 2,
+        },
+        count: intensity > 1 ? 16 : 2,
+        direction: { x: 0, y: -0.35 },
+        spread: Math.PI * 1.82,
+        speed: [55, 270] as const,
+        life: [0.18, 0.62] as const,
+        size: [0.55, 1.55] as const,
+        color: ['#fff7d0', palette.secondary] as const,
+        alpha: [1, 0] as const,
+        gravity: { x: 0, y: 620, z: 0 },
+        drag: 0.35,
+        turbulence: 150,
+        turbulenceFrequency: 31,
+        bounce: 0.5,
+        splitChance: 0.4,
+        maxSplitDepth: 1,
+        renderMode: 'streak',
+        stretch: 0.026,
+        glow: 1.5,
+        fadeIn: 0.02,
+        floorCollision: true,
+      })
+    }
+
+    const emitGroundRippleParticles = (
+      quadrupedScene: QuadrupedScene,
+    ) => {
+      const palette = vfxPaletteRef.current
+      for (let index = 0; index < quadrupedScene.ripples.length; index += 1) {
+        const ripple = quadrupedScene.ripples[index]
+        if (!ripple.active || ripple.emitted) continue
+        ripple.emitted = true
+        particlePool.emit({
+          origin: {
+            x: ripple.x,
+            y: ripple.y - 2,
+          },
+          count: reducedMotion ? 6 : 16,
+          originJitter: { x: 10, y: 4 },
+          direction: { x: 0, y: -1 },
+          spread: 0.62,
+          speed: [32, 96],
+          life: [0.42, 0.95],
+          size: [0.45, 1.15],
+          color: [palette.tertiary, palette.secondary],
+          alpha: [0.88, 0],
+          gravity: { x: 0, y: -14, z: 0 },
+          drag: 0.72,
+          turbulence: 46,
+          turbulenceFrequency: 17,
+          renderMode: 'dot',
+          glow: 1.7,
+          fadeIn: 0.08,
+        })
+        stage.dataset.hexRippleCount = String(
+          Number(stage.dataset.hexRippleCount ?? '0') + 1,
+        )
+      }
+    }
 
     const sizeCanvas = () => {
       const bounds = canvas.getBoundingClientRect()
@@ -1283,6 +1952,15 @@ export function FabrikCreature() {
         pointer.y = height * 0.42
       }
       scene = createScene(mode, { width, height }, pointer)
+      particlePool.clear()
+      particlePool.setBounds({
+        left: 0,
+        right: width,
+        top: 0,
+        floorY: height,
+      })
+      particlePool.setProjection(width * 0.5, height * 0.5, 1_400)
+      laserSpawnAccumulator = 0
       stage.dataset.ikMode = mode
       stage.dataset.fabrikError = '0.00'
       stage.dataset.fabrikIterations = '0'
@@ -1294,6 +1972,15 @@ export function FabrikCreature() {
       stage.dataset.activeRipples = '0'
       stage.dataset.laserState =
         mode === 'arm' ? 'idle' : 'unavailable'
+      stage.dataset.vfxActiveParticles = '0'
+      stage.dataset.laserVfx = '0'
+      stage.dataset.scorchCount = '0'
+      stage.dataset.scorchActive = '0'
+      stage.dataset.hexRippleCount = '0'
+      stage.dataset.vfxLightIntensity = '0'
+      stage.dataset.vfxLightColor = '0,0,0'
+      lightEnvelope = 0
+      stage.style.setProperty('--vfx-light-opacity', '0')
     }
 
     const fireLaser = () => {
@@ -1306,6 +1993,26 @@ export function FabrikCreature() {
       scene.laser.life = 1
       scene.recoil = 1
       stage.dataset.laserState = 'active'
+      const angle = Math.atan2(
+        pointer.y - endpoint.y,
+        pointer.x - endpoint.x,
+      )
+      const scorch =
+        scene.scorches[scene.scorchCursor]
+      scorch.active = true
+      scorch.x = pointer.x
+      scorch.y = pointer.y
+      scorch.age = 0
+      scorch.duration = 3
+      scorch.startedAt = performance.now() / 1_000
+      scorch.angle = angle
+      scorch.seed = Math.random() * 1_000
+      scene.scorchCursor =
+        (scene.scorchCursor + 1) % scene.scorches.length
+      scene.scorchCount += 1
+      stage.dataset.scorchCount = String(scene.scorchCount)
+      laserSpawnAccumulator = 0.04
+      emitLaserIons(scene, 1.3)
       if (soundEnabledRef.current) {
         soundEngine.playLaserPulse()
       }
@@ -1328,11 +2035,12 @@ export function FabrikCreature() {
 
     const draw = (timestamp: number) => {
       if (disposed) return
-      const delta = clamp(
+      const frameDelta = clamp(
         (timestamp - lastFrame) / 1_000,
         1 / 240,
-        1 / 30,
+        0.12,
       )
+      const delta = Math.min(frameDelta, 1 / 30)
       lastFrame = timestamp
       const time = timestamp / 1_000
       context.clearRect(0, 0, width, height)
@@ -1345,8 +2053,24 @@ export function FabrikCreature() {
           delta * reducedMotionScale,
           time,
         )
+        updateScorches(scene, time)
+        if (scene.laser.life > 0) {
+          laserSpawnAccumulator += frameDelta
+          while (laserSpawnAccumulator >= 0.028) {
+            emitLaserIons(scene, 0.72)
+            laserSpawnAccumulator -= 0.028
+          }
+        } else {
+          laserSpawnAccumulator = 0
+        }
         recordPhysicsSolveTime(performance.now() - solverStartedAt)
-        drawArm(context, scene, time, debugRef.current)
+        drawArm(
+          context,
+          scene,
+          time,
+          debugRef.current,
+          vfxPaletteRef.current,
+        )
         stage.dataset.fabrikError = scene.result.error.toFixed(2)
         stage.dataset.fabrikIterations = String(scene.result.iterations)
         stage.dataset.fabrikSpeed = Math.hypot(
@@ -1363,8 +2087,15 @@ export function FabrikCreature() {
           delta * reducedMotionScale,
           time,
         )
+        emitGroundRippleParticles(scene)
         recordPhysicsSolveTime(performance.now() - solverStartedAt)
-        drawQuadruped(context, scene, time, debugRef.current)
+        drawQuadruped(
+          context,
+          scene,
+          time,
+          debugRef.current,
+          vfxPaletteRef.current,
+        )
         stage.dataset.fabrikError = scene.maxLegError.toFixed(2)
         stage.dataset.fabrikIterations = String(
           scene.maxLegIterations,
@@ -1398,6 +2129,22 @@ export function FabrikCreature() {
         }
       }
 
+      particlePool.update(frameDelta, time)
+      updateDynamicLight(scene, frameDelta)
+      particlePool.render(context)
+      const particleStats = particlePool.getStats()
+      let activeScorches = 0
+      if (scene.kind === 'arm') {
+        for (let index = 0; index < scene.scorches.length; index += 1) {
+          if (scene.scorches[index].active) activeScorches += 1
+        }
+      }
+      stage.dataset.vfxActiveParticles = String(particleStats.active)
+      setParticleSourceCount('fabrik-vfx-particles', particleStats.active)
+      stage.dataset.laserVfx = String(
+        scene.kind === 'arm' ? particleStats.emitted : 0,
+      )
+      stage.dataset.scorchActive = String(activeScorches)
       stage.dataset.debugActive = debugRef.current ? 'true' : 'false'
       if (inViewRef.current) {
         animationFrame = window.requestAnimationFrame(draw)
@@ -1410,15 +2157,26 @@ export function FabrikCreature() {
       sizeCanvas()
       context.clearRect(0, 0, width, height)
       if (scene.kind === 'arm') {
-        drawArm(context, scene, performance.now() / 1_000, debugRef.current)
+        drawArm(
+          context,
+          scene,
+          performance.now() / 1_000,
+          debugRef.current,
+          vfxPaletteRef.current,
+        )
       } else {
         drawQuadruped(
           context,
           scene,
           performance.now() / 1_000,
           debugRef.current,
+          vfxPaletteRef.current,
         )
       }
+      particlePool.clear()
+      setParticleSourceCount('fabrik-vfx-particles', 0)
+      stage.style.setProperty('--vfx-light-opacity', '0')
+      stage.dataset.vfxLightIntensity = '0'
     }
 
     rebuildRef.current = rebuild
@@ -1445,6 +2203,12 @@ export function FabrikCreature() {
       resizeObserver.disconnect()
       canvas.removeEventListener('pointermove', handlePointerMove)
       canvas.removeEventListener('pointerdown', handlePointerDown)
+      particlePool.clear()
+      setParticleSourceCount('fabrik-vfx-particles', 0)
+      context.clearRect(0, 0, width, height)
+      canvas.width = 0
+      canvas.height = 0
+      stage.style.setProperty('--vfx-light-opacity', '0')
       rebuildRef.current = () => undefined
       resumeAnimationRef.current = () => undefined
     }
@@ -1505,12 +2269,25 @@ export function FabrikCreature() {
           data-lifting-legs=""
           data-ripple-count="0"
           data-active-ripples="0"
+          data-vfx-active-particles="0"
+          data-laser-vfx="0"
+          data-scorch-count="0"
+          data-scorch-active="0"
+          data-hex-ripple-count="0"
+          data-vfx-light-intensity="0"
+          data-vfx-light-color="0,0,0"
+          data-vfx-preset={vfxPreset}
           data-laser-state={mode === 'arm' ? 'idle' : 'unavailable'}
           className="fabrik-stage relative mt-8 h-[620px] overflow-hidden rounded-md border border-white/[0.1] bg-[#05080c]/90 shadow-[0_34px_120px_rgba(0,0,0,0.38)] sm:mt-10 sm:h-[680px]"
         >
           <div
             aria-hidden="true"
             className="fabrik-grid pointer-events-none absolute inset-0 opacity-65"
+          />
+          <div
+            aria-hidden="true"
+            data-fabrik-grid-light
+            className="vfx-grid-light fabrik-vfx-grid-light"
           />
           <div
             aria-hidden="true"
@@ -1581,7 +2358,8 @@ export function FabrikCreature() {
                     setShowDebug(event.target.checked)
                   }}
                   aria-label="Show IK Vectors"
-                  className="size-3 accent-[#72e6ff]"
+                  className="size-3"
+                  style={{ accentColor: vfxPalette.secondary }}
                 />
                 <Crosshair size={11} strokeWidth={1.6} />
                 <span className="hidden sm:inline">Show IK Vectors</span>
@@ -1612,6 +2390,11 @@ export function FabrikCreature() {
                 : '程序化步态四足 FABRIK 互动画布'
             }
             className="absolute inset-0 size-full cursor-crosshair"
+          />
+          <div
+            aria-hidden="true"
+            data-fabrik-lightfield
+            className="vfx-environment-light fabrik-vfx-light"
           />
 
           <div className="pointer-events-none absolute bottom-3 left-4 z-30 flex items-center gap-4 font-mono text-[8px] text-mist/38 sm:bottom-4 sm:left-5">

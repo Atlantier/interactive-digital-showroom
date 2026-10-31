@@ -1,11 +1,20 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
-import { Activity, Cpu, Gauge, Timer, X } from 'lucide-react'
+import {
+  Activity,
+  Cpu,
+  Gauge,
+  Layers3,
+  Palette,
+  Timer,
+  X,
+} from 'lucide-react'
 import { useEffect, useRef } from 'react'
 import {
   readMemoryHistoryWindow,
   readPerformanceTelemetry,
 } from '../../store/performanceTelemetry'
 import { useAppStore } from '../../store/useAppStore'
+import { getVfxPreset } from '../../data/vfxPresets'
 
 const GRAPH_WIDTH = 280
 const GRAPH_HEIGHT = 52
@@ -24,15 +33,18 @@ function isEditableTarget(target: EventTarget | null) {
 export function PerformanceTelemetryHud() {
   const open = useAppStore((state) => state.telemetryOpen)
   const performanceTier = useAppStore((state) => state.performanceTier)
+  const vfxPreset = useAppStore((state) => state.vfxPreset)
   const setTelemetryOpen = useAppStore((state) => state.setTelemetryOpen)
   const reducedMotion = useReducedMotion()
   const fpsRef = useRef<HTMLSpanElement>(null)
   const frameTimeRef = useRef<HTMLSpanElement>(null)
   const particlesRef = useRef<HTMLSpanElement>(null)
+  const shaderPassesRef = useRef<HTMLSpanElement>(null)
   const physicsRef = useRef<HTMLSpanElement>(null)
   const memoryRef = useRef<HTMLSpanElement>(null)
   const memoryPathRef = useRef<SVGPathElement>(null)
   const statusRef = useRef<HTMLSpanElement>(null)
+  const vfxConfig = getVfxPreset(vfxPreset)
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -63,6 +75,7 @@ export function PerformanceTelemetryHud() {
     let lastFps = -1
     let lastFrameTime = -1
     let lastParticles = -1
+    let lastShaderPasses = -1
     let lastPhysics = -1
     let lastMemory = Number.NaN
     let lastMemoryStart = -1
@@ -93,6 +106,15 @@ export function PerformanceTelemetryHud() {
         lastParticles = metrics.activeParticles
         particlesRef.current.textContent =
           metrics.activeParticles.toLocaleString('en-US')
+      }
+      if (
+        metrics.shaderPasses !== lastShaderPasses &&
+        shaderPassesRef.current
+      ) {
+        lastShaderPasses = metrics.shaderPasses
+        shaderPassesRef.current.textContent = String(
+          metrics.shaderPasses,
+        )
       }
       if (
         metrics.physicsSolveMs !== lastPhysics &&
@@ -237,7 +259,7 @@ export function PerformanceTelemetryHud() {
             </div>
             <div className="bg-[#05090f] px-4 py-3">
               <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
-                <Cpu size={9} /> GPU PARTICLES
+                <Cpu size={9} /> ACTIVE PARTICLES
               </p>
               <span
                 ref={particlesRef}
@@ -261,6 +283,38 @@ export function PerformanceTelemetryHud() {
                 </span>
                 <span className="pb-0.5 text-[8px] text-mist/40">MS</span>
               </p>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[0.8fr_1.2fr] gap-px border-t border-white/[0.06] bg-white/[0.06]">
+            <div className="bg-[#05090f] px-4 py-3">
+              <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
+                <Layers3 size={9} /> SHADER PASSES
+              </p>
+              <span
+                ref={shaderPassesRef}
+                data-telemetry-shader-passes
+                className="mt-2 block text-lg text-frost"
+              >
+                0
+              </span>
+            </div>
+            <div
+              data-telemetry-vfx-preset={vfxPreset}
+              className="min-w-0 bg-[#05090f] px-4 py-3"
+            >
+              <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
+                <Palette size={9} /> VFX SPECTRUM
+              </p>
+              <span
+                className="mt-2 block truncate text-[11px]"
+                style={{ color: vfxConfig.tertiary }}
+              >
+                {vfxConfig.label}
+              </span>
+              <span className="mt-1 block truncate font-mono text-[7px] text-mist/35">
+                {vfxConfig.subtitle}
+              </span>
             </div>
           </div>
 

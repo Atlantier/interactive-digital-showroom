@@ -12,6 +12,7 @@ import {
 } from 'lucide-react'
 import { useEffect, useState, type MouseEvent } from 'react'
 import { SHOWROOM_SECTIONS, type SectionId } from '../../data/sections'
+import { VFX_PRESETS } from '../../data/vfxPresets'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { cn } from '../../lib/cn'
 import { useAppStore } from '../../store/useAppStore'
@@ -79,6 +80,91 @@ function FpsToggle() {
     >
       <Activity size={15} strokeWidth={1.7} />
     </button>
+  )
+}
+
+function VfxPresetSwitcher({
+  expanded = false,
+}: {
+  expanded?: boolean
+}) {
+  const vfxPreset = useAppStore((state) => state.vfxPreset)
+  const setVfxPreset = useAppStore((state) => state.setVfxPreset)
+  const playSound = useInterfaceSound()
+
+  return (
+    <div
+      role="group"
+      aria-label="全站光效预设"
+      data-vfx-preset-switcher
+      data-vfx-preset-active={vfxPreset}
+      className={
+        expanded
+          ? 'grid grid-cols-3 gap-1.5'
+          : 'hidden items-center gap-1 border border-white/[0.08] bg-white/[0.025] p-1 xl:flex'
+      }
+    >
+      {VFX_PRESETS.map((preset) => {
+        const active = vfxPreset === preset.id
+        return (
+          <button
+            key={preset.id}
+            type="button"
+            data-vfx-preset-option={preset.id}
+            aria-label={`切换光效超频：${preset.label}`}
+            aria-pressed={active}
+            title={`光效超频：${preset.label}`}
+            onClick={() => {
+              setVfxPreset(preset.id)
+              playSound('toggle')
+            }}
+            className={cn(
+              'group/preset relative flex items-center gap-2 border transition-colors',
+              expanded
+                ? 'min-w-0 flex-col items-start gap-1.5 px-2.5 py-2.5 text-left'
+                : 'size-6 items-center justify-center',
+              active
+                ? 'border-white/28 bg-white/[0.08]'
+                : 'border-transparent hover:border-white/15 hover:bg-white/[0.045]',
+            )}
+          >
+            <span
+              aria-hidden="true"
+              className={
+                expanded
+                  ? 'relative h-1.5 w-full overflow-hidden rounded-full'
+                  : 'size-3 rounded-full'
+              }
+              style={{
+                background: `linear-gradient(110deg, ${preset.primary}, ${preset.secondary} 58%, ${preset.tertiary})`,
+                boxShadow: active
+                  ? `0 0 12px ${preset.primary}99`
+                  : `0 0 7px ${preset.primary}44`,
+              }}
+            >
+              {expanded ? (
+                <span className="absolute inset-0 bg-[linear-gradient(90deg,transparent,rgba(255,255,255,0.6),transparent)] opacity-0 transition-opacity group-hover/preset:opacity-100" />
+              ) : null}
+            </span>
+            {expanded ? (
+              <span className="min-w-0">
+                <span
+                  className={cn(
+                    'block truncate text-[10px]',
+                    active ? 'text-frost' : 'text-mist/70',
+                  )}
+                >
+                  {preset.label}
+                </span>
+                <span className="mt-0.5 block truncate font-mono text-[7px] text-mist/34">
+                  {preset.subtitle}
+                </span>
+              </span>
+            ) : null}
+          </button>
+        )
+      })}
+    </div>
   )
 }
 
@@ -301,6 +387,7 @@ export function Navbar() {
         </nav>
 
         <div className="flex items-center gap-2">
+          <VfxPresetSwitcher />
           <CommandPaletteToggle />
           <FpsToggle />
           <TelemetryToggle />
@@ -364,6 +451,17 @@ export function Navbar() {
                   </span>
                 </a>
               ))}
+            </div>
+            <div className="mt-4 border-t border-white/[0.07] pt-4">
+              <div className="mb-2 flex items-center justify-between">
+                <span className="font-mono text-[8px] text-mist/45">
+                  VISUAL OVERDRIVE
+                </span>
+                <span className="font-mono text-[8px] text-mist/30">
+                  光效超频
+                </span>
+              </div>
+              <VfxPresetSwitcher expanded />
             </div>
           </motion.nav>
         )}

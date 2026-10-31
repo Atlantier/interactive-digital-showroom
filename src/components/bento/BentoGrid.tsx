@@ -17,8 +17,10 @@ import {
   type FormEvent,
   type PointerEvent,
 } from 'react'
+import { useInViewAnimation } from '../../hooks/useInViewAnimation'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { cn } from '../../lib/cn'
+import { BentoDataPulse } from './BentoDataPulse'
 import { SpotlightCard } from './SpotlightCard'
 
 const GLOW_RANGE = 180
@@ -126,7 +128,7 @@ const terminalResponses: Record<TerminalCommand, TerminalResponse> = {
     description: '可用指令索引',
     notes: ['help', 'skills', 'matrix', 'clear'],
     gradient:
-      'linear-gradient(120deg, var(--color-signal), #e6f5f7 52%, #8b5cf6)',
+      'linear-gradient(120deg, var(--vfx-primary), var(--vfx-tertiary) 52%, var(--vfx-secondary))',
   },
   skills: {
     art: String.raw`
@@ -139,7 +141,7 @@ const terminalResponses: Record<TerminalCommand, TerminalResponse> = {
     description: '核心能力探针',
     notes: ['WebGL', 'React / TS', '交互系统', '生成式视觉'],
     gradient:
-      'linear-gradient(120deg, var(--color-signal), #e6f5f7 72%)',
+      'linear-gradient(120deg, var(--vfx-primary), var(--vfx-tertiary) 72%)',
   },
   matrix: {
     art: String.raw`
@@ -152,7 +154,7 @@ const terminalResponses: Record<TerminalCommand, TerminalResponse> = {
     description: '现实协议已暂时离线',
     notes: ['reality.exe is optional', 'follow the white rabbit'],
     gradient:
-      'linear-gradient(120deg, var(--color-signal), #e6f5f7 48%, #8b5cf6)',
+      'linear-gradient(120deg, var(--vfx-primary), var(--vfx-tertiary) 48%, var(--vfx-secondary))',
   },
   clear: {
     art: String.raw`
@@ -165,7 +167,7 @@ const terminalResponses: Record<TerminalCommand, TerminalResponse> = {
     description: '终端缓冲区已重置',
     notes: ['session clear', 'ready for new input'],
     gradient:
-      'linear-gradient(120deg, var(--color-signal), #f2b35e 52%, #8b5cf6)',
+      'linear-gradient(120deg, var(--vfx-primary), var(--vfx-secondary) 52%, var(--vfx-tertiary))',
   },
 }
 
@@ -740,9 +742,16 @@ function ArchiveCard() {
 export function BentoGrid() {
   const playSound = useInterfaceSound()
   const gridRef = useRef<HTMLDivElement>(null)
+  const gridInView = useInViewAnimation(gridRef, {
+    rootMargin: '160px',
+  })
   const pointerRef = useRef({ x: 0, y: 0 })
   const frameRef = useRef(0)
   const hoveredCardRef = useRef<Element | null>(null)
+  const [pulseEvent, setPulseEvent] = useState({
+    id: 0,
+    sourceIndex: -1,
+  })
 
   const updateSpotlights = () => {
     frameRef.current = 0
@@ -825,6 +834,19 @@ export function BentoGrid() {
     [],
   )
 
+  useEffect(() => {
+    if (!gridInView) return
+
+    const timer = window.setInterval(() => {
+      setPulseEvent((current) => ({
+        id: current.id + 1,
+        sourceIndex: -1,
+      }))
+    }, 4_000)
+
+    return () => window.clearInterval(timer)
+  }, [gridInView])
+
   return (
     <div
       ref={gridRef}
@@ -832,20 +854,37 @@ export function BentoGrid() {
       onPointerMove={scheduleSpotlight}
       onPointerLeave={clearSpotlights}
       onClick={(event) => {
-        if (
-          event.target instanceof Element &&
-          event.target.closest('[data-spotlight-card]')
-        ) {
+        if (event.target instanceof Element) {
+          const card = event.target.closest<HTMLElement>(
+            '[data-spotlight-card]',
+          )
+          if (!card) return
+
+          const cards = Array.from(
+            gridRef.current?.querySelectorAll<HTMLElement>(
+              '[data-spotlight-card]',
+            ) ?? [],
+          )
+          const sourceIndex = cards.indexOf(card)
+          setPulseEvent((current) => ({
+            id: current.id + 1,
+            sourceIndex,
+          }))
           playSound('navigate')
         }
       }}
-      className="mt-10 grid auto-rows-[minmax(240px,auto)] grid-cols-1 gap-3 max-md:auto-rows-auto max-md:gap-4 md:grid-cols-2 md:auto-rows-[250px] xl:mt-14 xl:auto-rows-[250px] xl:grid-cols-4"
+      className="relative isolate mt-10 grid auto-rows-[minmax(240px,auto)] grid-cols-1 gap-3 max-md:auto-rows-auto max-md:gap-4 md:grid-cols-2 md:auto-rows-[250px] xl:mt-14 xl:auto-rows-[250px] xl:grid-cols-4"
     >
       <TokenThroughputCard />
       <TopologyCard />
       <TerminalCard />
       <TelemetryCard />
       <ArchiveCard />
+      <BentoDataPulse
+        gridRef={gridRef}
+        pulseId={pulseEvent.id}
+        sourceIndex={pulseEvent.sourceIndex}
+      />
     </div>
   )
 }
