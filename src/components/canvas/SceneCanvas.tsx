@@ -65,33 +65,6 @@ function useCompactViewport() {
   return compact
 }
 
-function PerformanceProbe() {
-  const enabled = useAppStore((state) => state.fpsMonitorEnabled)
-  const setFps = useAppStore((state) => state.setFps)
-  const metrics = useRef({ frames: 0, elapsed: 0 })
-
-  useFrame((_, delta) => {
-    if (!enabled) {
-      metrics.current.frames = 0
-      metrics.current.elapsed = 0
-      return
-    }
-
-    metrics.current.frames += 1
-    metrics.current.elapsed += delta
-
-    if (metrics.current.elapsed >= 0.5) {
-      setFps(
-        Math.round(metrics.current.frames / metrics.current.elapsed),
-      )
-      metrics.current.frames = 0
-      metrics.current.elapsed = 0
-    }
-  })
-
-  return null
-}
-
 function AdaptivePerformanceMonitor() {
   const performanceTier = useAppStore((state) => state.performanceTier)
   const applyPerformanceDowngrade = useAppStore(
@@ -239,7 +212,6 @@ function SceneContent({
       <FlowFieldParticles particleCount={particleCount} />
       <CursorStardustTrail />
       <AdaptivePerformanceMonitor />
-      <PerformanceProbe />
       <CinematicPostProcessing
         performanceTier={performanceTier}
         reducedEffects={reducedEffects}
@@ -280,10 +252,10 @@ export function SceneCanvas({
   useEffect(() => {
     setShaderPassSourceCount(
       'scene-postprocessing',
-      inView ? shaderPassCount : 0,
+      shaderPassCount,
     )
     return () => setShaderPassSourceCount('scene-postprocessing', 0)
-  }, [inView, shaderPassCount])
+  }, [shaderPassCount])
 
   return (
     <div

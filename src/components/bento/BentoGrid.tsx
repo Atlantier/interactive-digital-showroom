@@ -1,6 +1,5 @@
 import {
   Activity,
-  ArrowUpRight,
   Box,
   CircleDot,
   Pause,
@@ -187,18 +186,12 @@ function CardHeader({
   detail: string
 }) {
   return (
-    <div className="flex items-start justify-between gap-4">
-      <div>
-        <div className="mb-3 flex items-center gap-2 font-mono text-[9px] text-signal/80">
-          <Icon size={13} strokeWidth={1.7} />
-          <span>{detail}</span>
-        </div>
-        <h3 className="text-xl text-frost sm:text-2xl">{title}</h3>
+    <div>
+      <div className="mb-3 flex items-center gap-2 font-mono text-[9px] text-signal/80">
+        <Icon size={13} strokeWidth={1.7} />
+        <span>{detail}</span>
       </div>
-      <ArrowUpRight
-        size={15}
-        className="mt-1 text-mist/35 transition-all duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5 group-hover:text-signal"
-      />
+      <h3 className="text-xl text-frost sm:text-2xl">{title}</h3>
     </div>
   )
 }
@@ -691,7 +684,7 @@ function TelemetryCard() {
           {[
             ['延迟', '18 ms'],
             ['请求', '2.4k'],
-            ['可用性', '99.99'],
+            ['可用性', '99.99%'],
           ].map(([label, value]) => (
             <div key={label}>
               <p className="text-[8px] text-mist/40">{label}</p>

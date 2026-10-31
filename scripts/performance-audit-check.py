@@ -80,6 +80,9 @@ with sync_playwright() as playwright:
         scene_canvas.get_attribute("data-particle-count") or "0"
     )
     assert initial_particles in (4000, 8000), initial_particles
+    bento_grid = page.locator("[data-bento-grid]")
+    expect(bento_grid.get_by_text("99.99%", exact=True)).to_have_count(1)
+    assert bento_grid.locator("svg.lucide-arrow-up-right").count() == 0
 
     if initial_tier == "high":
         expect(
@@ -163,6 +166,9 @@ with sync_playwright() as playwright:
         page.locator("[data-telemetry-physics]").inner_text()
     )
     assert physics_time >= 0, physics_time
+    assert int(
+        page.locator("[data-telemetry-shader-passes]").inner_text()
+    ) >= 2
     telemetry.get_by_role("button", name="关闭性能遥测面板").click()
 
     scroll_to(page, "#archive")

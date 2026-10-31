@@ -3,6 +3,7 @@ import {
   publishFrameTelemetry,
   recordMemoryUsage,
 } from '../store/performanceTelemetry'
+import { useAppStore } from '../store/useAppStore'
 
 type PerformanceWithMemory = Performance & {
   memory?: {
@@ -37,7 +38,11 @@ export function usePerformanceTelemetry() {
 
       const elapsed = timestamp - sampleStartedAt
       if (elapsed >= SAMPLE_INTERVAL_MS) {
-        publishFrameTelemetry((frames * 1_000) / elapsed, elapsed / frames)
+        const fps = (frames * 1_000) / elapsed
+        publishFrameTelemetry(fps, elapsed / frames)
+        if (useAppStore.getState().fpsMonitorEnabled) {
+          useAppStore.getState().setFps(Math.round(fps))
+        }
         frames = 0
         sampleStartedAt = timestamp
         sampleMemory(timestamp)

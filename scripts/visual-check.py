@@ -117,7 +117,17 @@ with sync_playwright() as playwright:
         page.locator(
             'header nav[aria-label="展厅主导航"] a[href="#works"]'
         ).click()
-        page.wait_for_timeout(140)
+        page.wait_for_function(
+            """
+            () => Math.abs(
+              parseFloat(
+                getComputedStyle(document.documentElement)
+                  .getPropertyValue('--scroll-velocity')
+              )
+            ) > 0.5
+            """,
+            timeout=3_000,
+        )
         scroll_velocity = float(
             page.evaluate(
                 "getComputedStyle(document.documentElement)"
