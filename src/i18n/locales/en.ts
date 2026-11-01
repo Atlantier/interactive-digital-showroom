@@ -486,11 +486,11 @@ export const en = {
   },
   gallery: {
     eyebrow: 'OPTICAL & ARCHITECTURE SANDBOX GALLERY',
-    liveExhibits: '8 LIVE EXHIBITS',
+    liveExhibits: '8 LOOPING EXHIBIT PREVIEWS',
     titleLineOne: 'Refract reality.',
     titleLineTwo: 'Make computation visible.',
     description:
-      'Eight directly perturbable optics benches. Move or drag a field to shift phase, then enter the darkroom and inspect how the algorithm shapes light from any angle.',
+      'Eight lightweight looping optics previews keep the gallery fluid. Open any darkroom to load its live simulation, then move, drag, and inspect how the algorithm shapes light from any angle.',
     demonstration: 'GLOBAL DEMONSTRATION',
     touring: 'Touring: {exhibit}',
     tourStandby: 'Tour demonstration on standby',
@@ -512,13 +512,13 @@ export const en = {
     },
     timeScale: 'GLOBAL TIME SCALE',
     timeScaleAria: 'Global gallery time scale',
-    sharedViews: '8 SHARED VIEWS / 1 WEBGL CONTEXT',
+    sharedViews: '8 LIGHT PREVIEWS / 1 ON-DEMAND WEBGL CONTEXT',
     footerPipeline:
-      'VIEWPORT-CLIPPED WEBGL / DARKROOM INSPECTOR / DIRECT FIELD',
+      'COMPOSITOR PREVIEWS / ON-DEMAND WEBGL / DARKROOM INSPECTOR',
     opticalBusOnline: 'OPTICAL BUS ONLINE',
     pedestal: {
-      directField: 'DIRECT FIELD',
-      dragToDeflect: 'DRAG TO DEFLECT',
+      previewField: 'LOOPING PREVIEW',
+      previewHint: 'OPEN DARKROOM TO INTERACT',
       wavelengthLive: 'λ LIVE',
       enter: 'Enter Optical Darkroom',
       enterAria: 'Enter the optical darkroom for {exhibit}',

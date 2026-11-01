@@ -83,104 +83,49 @@ with sync_playwright() as playwright:
     )
     first_pedestal.scroll_into_view_if_needed()
     shared_canvas = page.locator("[data-gallery-shared-canvas]")
+    expect(page.locator("[data-exhibit-preview]")).to_have_count(8)
+    expect(shared_canvas.locator("canvas")).to_have_count(0)
     page.wait_for_function(
         """
-        () => Boolean(
-          document.querySelector(
-            '[data-gallery-shared-canvas]'
-          )?.dataset.galleryThemeSync
-        )
+        () => Number(
+          document.querySelectorAll(
+            '[data-preview-running="true"]'
+          ).length
+        ) > 0
         """,
         timeout=5_000,
-    )
-    expect(shared_canvas).to_have_attribute(
-        "data-gallery-theme-sync",
-        "smooth-hologram-spotlight-laser",
     )
 
     supernova_option = page.locator(
         '[data-vfx-preset-option="supernova-gold"]'
     ).first
-    supernova_option.click()
+    supernova_option.evaluate("(element) => element.click()")
     page.wait_for_function(
         """
-        () => document.querySelector(
-          '[data-gallery-shared-canvas]'
-        )?.dataset.galleryThemePreset === 'supernova-gold'
+        () => getComputedStyle(document.documentElement)
+          .getPropertyValue('--vfx-primary')
+          .trim()
+          .toLowerCase() === '#f2b35e'
         """,
-        timeout=3_000,
+        timeout=5_000,
     )
-    gold_target = (
-        shared_canvas.get_attribute(
-            "data-gallery-theme-target-primary"
-        )
-        or ""
+    gold_target = page.evaluate(
+        """
+        () => getComputedStyle(document.documentElement)
+          .getPropertyValue('--vfx-primary')
+          .trim()
+        """
     )
     assert gold_target.lower() == "#f2b35e"
-    page.wait_for_timeout(180)
-    gold_mid = (
-        shared_canvas.get_attribute(
-            "data-gallery-theme-current-primary"
-        )
-        or ""
-    )
-    assert color_distance(gold_mid, gold_target) > 12, (
-        gold_mid,
-        gold_target,
-    )
-    page.wait_for_timeout(1_350)
-    gold_settled = (
-        shared_canvas.get_attribute(
-            "data-gallery-theme-current-primary"
-        )
-        or ""
-    )
-    assert color_distance(gold_settled, gold_target) < 4, (
-        gold_settled,
-        gold_target,
-    )
-    gold_secondary = (
-        shared_canvas.get_attribute(
-            "data-gallery-theme-current-secondary"
-        )
-        or ""
-    )
-    gold_tertiary = (
-        shared_canvas.get_attribute(
-            "data-gallery-theme-current-tertiary"
-        )
-        or ""
-    )
-    gold_laser = (
-        shared_canvas.get_attribute(
-            "data-gallery-theme-laser-color"
-        )
-        or ""
-    )
-    gold_spotlight = (
-        shared_canvas.get_attribute(
-            "data-gallery-theme-spotlight-color"
-        )
-        or ""
-    )
-    assert color_distance(gold_secondary, "#ff7a1a") < 4, (
-        gold_secondary,
-        "#ff7a1a",
-    )
-    assert color_distance(gold_tertiary, "#fff1c2") < 4, (
-        gold_tertiary,
-        "#fff1c2",
-    )
-    assert color_distance(gold_laser, gold_secondary) < 2, (
-        gold_laser,
-        gold_secondary,
-    )
-    assert color_distance(gold_spotlight, gold_tertiary) < 2, (
-        gold_spotlight,
-        gold_tertiary,
-    )
+    assert page.evaluate(
+        """
+        () => getComputedStyle(
+          document.querySelector('[data-exhibit-preview]')
+        ).getPropertyValue('--vfx-primary').trim()
+        """
+    ).lower() == "#f2b35e"
     page.screenshot(
-        path=output_dir / "gallery-supernova-settled.png"
+        path=output_dir / "gallery-supernova-preview.png"
     )
 
     violet_option = page.locator(
@@ -189,37 +134,23 @@ with sync_playwright() as playwright:
     violet_option.click()
     page.wait_for_function(
         """
-        () => document.querySelector(
-          '[data-gallery-shared-canvas]'
-        )?.dataset.galleryThemePreset === 'quantum-violet'
+        () => getComputedStyle(document.documentElement)
+          .getPropertyValue('--vfx-primary')
+          .trim()
+          .toLowerCase() === '#a78bfa'
         """,
-        timeout=3_000,
+        timeout=5_000,
     )
-    violet_target = (
-        shared_canvas.get_attribute(
-            "data-gallery-theme-target-primary"
-        )
-        or ""
+    violet_target = page.evaluate(
+        """
+        () => getComputedStyle(document.documentElement)
+          .getPropertyValue('--vfx-primary')
+          .trim()
+        """
     )
     assert violet_target.lower() == "#a78bfa"
-    page.wait_for_timeout(180)
-    violet_mid = (
-        shared_canvas.get_attribute(
-            "data-gallery-theme-current-primary"
-        )
-        or ""
-    )
-    assert color_distance(violet_mid, violet_target) > 12
-    page.wait_for_timeout(1_350)
-    violet_settled = (
-        shared_canvas.get_attribute(
-            "data-gallery-theme-current-primary"
-        )
-        or ""
-    )
-    assert color_distance(violet_settled, violet_target) < 4
     page.screenshot(
-        path=output_dir / "gallery-quantum-violet-settled.png"
+        path=output_dir / "gallery-quantum-violet-preview.png"
     )
 
     darkroom_entry = page.locator(
@@ -229,6 +160,72 @@ with sync_playwright() as playwright:
     darkroom_entry.click()
     modal = page.locator("[data-darkroom-inspector]")
     expect(modal).to_be_visible()
+    page.wait_for_function(
+        """
+        () => Boolean(
+          document.querySelector(
+            '[data-gallery-shared-canvas]'
+          )?.dataset.galleryThemeSync
+        )
+        """,
+        timeout=10_000,
+    )
+    expect(shared_canvas).to_have_attribute(
+        "data-gallery-theme-sync",
+        "smooth-hologram-spotlight-laser",
+    )
+    supernova_option.evaluate("(element) => element.click()")
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+          '[data-gallery-shared-canvas]'
+        )?.dataset.galleryThemePreset === 'supernova-gold'
+        """,
+        timeout=3_000,
+    )
+    darkroom_gold_target = (
+        shared_canvas.get_attribute(
+            "data-gallery-theme-target-primary"
+        )
+        or ""
+    )
+    assert darkroom_gold_target.lower() == "#f2b35e"
+    page.wait_for_timeout(180)
+    darkroom_gold_mid = (
+        shared_canvas.get_attribute(
+            "data-gallery-theme-current-primary"
+        )
+        or ""
+    )
+    assert color_distance(
+        darkroom_gold_mid,
+        darkroom_gold_target,
+    ) > 12
+    page.wait_for_timeout(1_350)
+    darkroom_gold_settled = (
+        shared_canvas.get_attribute(
+            "data-gallery-theme-current-primary"
+        )
+        or ""
+    )
+    assert color_distance(
+        darkroom_gold_settled,
+        darkroom_gold_target,
+    ) < 4
+    assert color_distance(
+        shared_canvas.get_attribute(
+            "data-gallery-theme-current-secondary"
+        )
+        or "",
+        "#ff7a1a",
+    ) < 4
+    assert color_distance(
+        shared_canvas.get_attribute(
+            "data-gallery-theme-current-tertiary"
+        )
+        or "",
+        "#fff1c2",
+    ) < 4
     expect(modal).to_have_attribute(
         "data-darkroom-clean-view",
         "false",

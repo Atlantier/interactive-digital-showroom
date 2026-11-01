@@ -105,7 +105,7 @@ stateDiagram-v2
 - FABRIK 六轴机械臂、12 节点柔性躯干和对角线 Trot 四足步态。
 - 程序化合成音效、实时五频段频谱与 Web Audio 动态压缩。
 - `AnalyserNode` 音频包络驱动的星尘、极光、体积光与架构呼吸响应。
-- 8 座光学与计算架构展台共用单一 WebGL Canvas，支持橱窗扰动、暗房轨道检视与全局巡礼。
+- 8 座光学与计算架构展台在橱窗阶段使用合成层轻量循环预览，不创建 WebGL；进入暗房时仅按需挂载当前展品的一个 Canvas / View，关闭后立即卸载并释放上下文。
 - 类型安全的 English / 中文双语系统，默认英文，支持本地持久化、动态页面元数据与全站文案切换。
 - `Cmd/Ctrl + K` 模糊命令面板、主题切换、重力环境与简历 JSON 导出。
 - 视口休眠、自适应画质、4K 首帧降级和 `Shift + D` 性能遥测。
@@ -134,8 +134,8 @@ stateDiagram-v2
 - 神经脉冲沙盘以五层 Transformer 拓扑连接 8 个输入 Token、4 组彩色多头注意力簇、两层各 16 个隐藏神经元和 8 个输出 Logit 能量塔；600 颗实例化光子沿 224 条三次贝塞尔突触递归换乘，支持正向推理与反向传播双模式，并在反传阶段以赤金/霓虹紫梯度光纤逆流展示 `Δw = -η∇L`。隐藏神经元悬停或点击后会把无关连接压至 10%，并显示 GeLU / Swish 激活曲线与实时激活值的全息隔离卡。
 - GPU 算力矩阵在暗黑硅片上铺开 360 颗 HBM / NVLink 总线粒子，以 512 个实例化光晶构成 `8 × 8 × 8` Tensor Core GEMM 魔方；翡翠 A 与赛博蓝 B 扫描面相交时逐点爆出白金结果，并汇入 128 颗累加器光子流。`10%–100%` 算力负载会同步抬高扫描频率、总线速度、硅片与魔方热场，并实时显示模拟 TFLOPS / HBM 带宽；点击任意体素可展开由单个实例化网格绘制的 32 线程 CUDA Warp。切换到 RT Core 后会改为实时遍历 15 节点 BVH 层次树，命中包围盒由冷蓝升级为高亮绿。
 - `OpticalTourDirector` 提供 8 座展台 × 6 秒的全馆电影巡礼，每站第 2 秒自动调用专属高潮动作；支持暂停、跳过、暗房连续导览和全局命令启动。底部 Quick-Dock 会在展馆或暗房中浮现 8 枚发光徽章、当前公式与瞬时切换入口。
-- Drei `View` 将 8 个展台和全屏暗房裁切到同一个 WebGL 上下文，离屏视口自动停止渲染。
-- 展台指针坐标直接驱动着色器；暗房提供左键环绕、右键平移、滚轮缩放和展品级参数滑杆。
+- 展馆橱窗不再同时创建 8 个 Drei `View`：8 个展品使用 CSS / SVG 合成层循环预览，并响应全站主题、巡礼聚焦与高潮状态；暗房只为当前展品按需挂载一个 WebGL Canvas / View。
+- 展台预览仅保留轻量指针光晕与快捷参数；真实 Shader、粒子、物理和拖拽交互在进入暗房后才加载。暗房提供左键环绕、右键平移、滚轮缩放和展品级参数滑杆。
 - 暗房支持 `380–750 nm` 物理光谱拾色、左右方向键切换展品，以及标准、高能、慢镜头三组一键预设。
 - 顶部三套全站 VFX 预设会逐帧插值到全部全息底座刻度环、环境光、追光锥体与默认激光色，不会出现硬切闪烁。
 - 暗房右上角的 Cinema Clean View 可通过按钮或 `H` 切入完全隔离的沉浸视口，隐藏导航、参数面板、巡礼 HUD 与 Quick-Dock；桌面按 `Esc` 或 `H` 返回，触屏可点右上角低干扰图标退出。
@@ -204,12 +204,12 @@ a = -k(p-p_0) - cv
 
 | Tier | DPR | Particles | Post Processing | Trigger |
 | --- | --- | --- | --- | --- |
-| High | 1-2 | 8000 flow + 4000 cursor + 1500 volumetric | Bloom + Chromatic Aberration + Vignette + Noise | 低负载桌面设备 |
+| High | 1-1.5 | 8000 flow + 4000 cursor + 1500 volumetric | Bloom + Chromatic Aberration + Vignette + Noise | 低负载桌面设备 |
 | Medium / Mobile | 1 | 4000 flow + 2000 cursor + 750 volumetric | Bloom + Vignette | 4K / 手机 / 核显 / sustained <45 FPS |
 
-物理沙盒与架构 Canvas 离开视口后立即停止 RAF 或切换为 `frameloop="demand"`。所有自定义 `BufferGeometry`、`TubeGeometry`、`ShaderMaterial`、`MeshBasicMaterial` 和 `InstancedMesh` 均在 `useEffect` 清理函数中显式释放。
+光学展馆橱窗阶段保持 `0 Canvas / 0 View`，只有浏览器视口内的轻量预览运行 CSS 动画；进入暗房后仅创建 `1 Canvas / 1 View`，关闭暗房时整个 Canvas 被卸载。物理沙盒与架构 Canvas 离开视口后立即停止 RAF 或切换为 `frameloop="demand"`。所有自定义 `BufferGeometry`、`TubeGeometry`、`ShaderMaterial`、`MeshBasicMaterial` 和 `InstancedMesh` 均在 `useEffect` 清理函数中显式释放。
 
-`Shift + D` 遥测浮层实时汇总各场景活跃粒子源、当前后期 Shader Pass 数量、物理求解耗时、JS Heap 与当前 `vfxPreset`。
+`Shift + D` 遥测浮层实时汇总各场景活跃粒子源、当前后期 Shader Pass 数量、物理求解耗时、JS Heap、当前 `vfxPreset`、正在检视的光学展台名称与活跃 WebGL 视口数。
 
 ## 快捷操作
 

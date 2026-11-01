@@ -230,7 +230,10 @@ export function SceneCanvas({
   const performanceTier = useAppStore((state) => state.performanceTier)
   const vfxPreset = useAppStore((state) => state.vfxPreset)
   const compactViewport = useCompactViewport()
-  const inView = useInViewAnimation(visibilityRef)
+  const inView = useInViewAnimation(visibilityRef, {
+    rootMargin: '-10% 0px -10% 0px',
+    threshold: 0.08,
+  })
   const reducedEffects =
     performanceTier !== 'high' || compactViewport
   const particleCount =
@@ -284,7 +287,7 @@ export function SceneCanvas({
     >
       <Canvas
         frameloop={inView ? 'always' : 'demand'}
-        dpr={performanceTier === 'high' ? [1, 2] : 1}
+        dpr={performanceTier === 'high' ? [1, 1.5] : 1}
         camera={{
           position: [0, 0, 7.2],
           fov: 47,

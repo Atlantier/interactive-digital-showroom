@@ -5,7 +5,7 @@ import sys
 from playwright.sync_api import expect, sync_playwright
 
 
-BASE_URL = os.getenv("PERFORMANCE_BASE_URL", "http://127.0.0.1:5174")
+BASE_URL = os.getenv("PERFORMANCE_BASE_URL", "http://127.0.0.1:5173")
 artifact_dir = Path(
     sys.argv[1] if len(sys.argv) > 1 else "artifacts/performance-audit"
 )

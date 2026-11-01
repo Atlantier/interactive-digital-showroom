@@ -185,6 +185,7 @@ with sync_playwright() as playwright:
         response = page.goto(BASE_URL, wait_until="networkidle")
         assert response is not None and response.ok
         page.wait_for_timeout(500)
+        page.evaluate("() => document.fonts.ready")
         assert_typography(page, "en")
         english_boxes = read_boxes(page)
         page.screenshot(
@@ -200,7 +201,8 @@ with sync_playwright() as playwright:
             / f"{viewport_name}-{width}x{height}-switching.png",
             full_page=False,
         )
-        page.wait_for_timeout(200)
+        page.wait_for_timeout(900)
+        page.evaluate("() => document.fonts.ready")
         assert_typography(page, "zh")
         chinese_boxes = read_boxes(page)
         assert_boxes_stable(
@@ -214,7 +216,7 @@ with sync_playwright() as playwright:
             page.wait_for_timeout(34)
             page.locator('[data-language-option="zh"]').click()
             page.wait_for_timeout(34)
-        page.wait_for_timeout(280)
+        page.wait_for_timeout(600)
         rapid_switch_boxes = read_boxes(page)
         assert_boxes_stable(
             english_boxes,

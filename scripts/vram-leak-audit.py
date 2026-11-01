@@ -521,14 +521,23 @@ with sync_playwright() as playwright:
         """
     )
     page.wait_for_timeout(700)
-    page.locator("[data-exhibit-pedestal]").first.scroll_into_view_if_needed()
-    page.wait_for_timeout(450)
+    page.locator("[data-exhibit-pedestal]").first.evaluate(
+        "(element) => element.scrollIntoView({ block: 'center' })"
+    )
+    page.wait_for_timeout(500)
+    expect(
+        page.locator("[data-gallery-shared-canvas] canvas")
+    ).to_have_count(0)
+    expect(
+        page.locator("[data-gallery-shared-canvas]")
+    ).to_have_attribute("data-gallery-stage-mounted", "false")
+    expect(page.locator("[data-exhibit-preview]")).to_have_count(8)
     gallery_views = int(
         page.locator(
             '[data-telemetry-active-views-value]'
         ).inner_text()
     )
-    assert gallery_views > 0, gallery_views
+    assert gallery_views == 0, gallery_views
 
     set_gallery_exhibit(page, "photonic-mesh")
     page.wait_for_function(
@@ -550,8 +559,17 @@ with sync_playwright() as playwright:
         ).inner_text()
     )
     assert darkroom_views == 1, darkroom_views
+    expect(
+        page.locator("[data-gallery-shared-canvas] canvas")
+    ).to_have_count(1)
     set_gallery_exhibit(page, None)
-    page.wait_for_timeout(350)
+    page.wait_for_timeout(500)
+    expect(
+        page.locator("[data-gallery-shared-canvas] canvas")
+    ).to_have_count(0)
+    expect(
+        page.locator("[data-gallery-shared-canvas]")
+    ).to_have_attribute("data-gallery-stage-mounted", "false")
     expect(
         page.locator('[data-telemetry-active-exhibit="none"]')
     ).to_be_visible()
@@ -566,13 +584,20 @@ with sync_playwright() as playwright:
         "quantum-lattice",
         "phase-torus",
     )
+    set_gallery_exhibit(page, gallery_exhibit_ids[0])
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+          '[data-gallery-shared-canvas]'
+        )?.dataset.galleryStageMounted === 'true'
+        """,
+        timeout=10_000,
+    )
     for exhibit_id in gallery_exhibit_ids:
         set_gallery_exhibit(page, exhibit_id)
-        page.wait_for_timeout(120)
-        set_gallery_exhibit(page, None)
-        page.wait_for_timeout(90)
-    page.locator("[data-exhibit-pedestal]").first.scroll_into_view_if_needed()
-    page.wait_for_timeout(700)
+        page.wait_for_timeout(180)
+    set_gallery_exhibit(page, gallery_exhibit_ids[0])
+    page.wait_for_timeout(500)
     page.evaluate("window.gc?.()")
     gallery_baseline = gallery_renderer_snapshot(page)
     assert gallery_baseline["geometries"] > 0, gallery_baseline
@@ -580,11 +605,9 @@ with sync_playwright() as playwright:
     for _ in range(2):
         for exhibit_id in gallery_exhibit_ids:
             set_gallery_exhibit(page, exhibit_id)
-            page.wait_for_timeout(90)
-            set_gallery_exhibit(page, None)
-            page.wait_for_timeout(70)
-    page.locator("[data-exhibit-pedestal]").first.scroll_into_view_if_needed()
-    page.wait_for_timeout(700)
+            page.wait_for_timeout(140)
+    set_gallery_exhibit(page, gallery_exhibit_ids[0])
+    page.wait_for_timeout(500)
     page.evaluate("window.gc?.()")
     after_gallery_cycles = gallery_renderer_snapshot(page)
     assert (
@@ -599,6 +622,14 @@ with sync_playwright() as playwright:
         after_gallery_cycles["programs"]
         <= gallery_baseline["programs"] + 20
     ), (gallery_baseline, after_gallery_cycles)
+    set_gallery_exhibit(page, None)
+    page.wait_for_timeout(500)
+    expect(
+        page.locator("[data-gallery-shared-canvas] canvas")
+    ).to_have_count(0)
+    expect(
+        page.locator("[data-gallery-shared-canvas]")
+    ).to_have_attribute("data-gallery-stage-mounted", "false")
 
     context.close()
 
@@ -643,8 +674,8 @@ report = {
     "afterMediumTierSwitch": medium_snapshot,
     "restoredHighTier": restored_high_snapshot,
     "afterTierCycles": after_tier_cycles,
-    "galleryAfterWarmup": gallery_baseline,
-    "galleryAfterExhibitCycles": after_gallery_cycles,
+    "darkroomAfterWarmup": gallery_baseline,
+    "darkroomAfterExhibitCycles": after_gallery_cycles,
     "galleryActiveViews": {
         "gallery": gallery_views,
         "darkroom": darkroom_views,

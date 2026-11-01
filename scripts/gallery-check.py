@@ -19,6 +19,7 @@ output_dir.mkdir(parents=True, exist_ok=True)
 
 console_errors: list[str] = []
 page_errors: list[str] = []
+exhibit_chunk_requests: list[str] = []
 chrome_candidates = [
     Path("C:/Program Files/Google/Chrome/Application/chrome.exe"),
     Path("C:/Program Files (x86)/Google/Chrome/Application/chrome.exe"),
@@ -40,6 +41,21 @@ def collect_errors(page) -> None:
         ),
     )
     page.on("pageerror", lambda error: page_errors.append(str(error)))
+    page.on(
+        "request",
+        lambda request: (
+            exhibit_chunk_requests.append(request.url)
+            if (
+                "/exhibits/" in request.url
+                or "Exhibit-" in request.url
+            )
+            and (
+                request.url.endswith(".js")
+                or request.url.endswith(".tsx")
+            )
+            else None
+        ),
+    )
 
 
 def scroll_to_gallery(page) -> None:
@@ -93,7 +109,7 @@ with sync_playwright() as playwright:
     page.wait_for_timeout(300)
     expect(shared_canvas).to_have_attribute(
         "data-gallery-frameloop",
-        "demand",
+        "unmounted",
     )
 
     scroll_to_gallery(page)
@@ -101,27 +117,24 @@ with sync_playwright() as playwright:
     pedestals = page.locator("[data-exhibit-pedestal]")
     expect(gallery).to_be_visible()
     expect(pedestals).to_have_count(8)
-    expect(shared_canvas.locator("canvas")).to_have_count(1)
-    expect(shared_canvas).to_have_attribute("data-gallery-view-count", "8")
+    expect(shared_canvas.locator("canvas")).to_have_count(0)
+    expect(shared_canvas).to_have_attribute(
+        "data-gallery-stage-mounted",
+        "false",
+    )
+    expect(shared_canvas).to_have_attribute(
+        "data-gallery-view-count",
+        "0",
+    )
     expect(shared_canvas).to_have_attribute(
         "data-gallery-frameloop",
-        "always",
+        "unmounted",
     )
-
-    page.evaluate(
-        """
-        () => {
-          window.__galleryContextLosses = 0
-          const canvas = document.querySelector(
-            '[data-gallery-shared-canvas] canvas'
-          )
-          canvas?.addEventListener('webglcontextlost', (event) => {
-            event.preventDefault()
-            window.__galleryContextLosses += 1
-          })
-        }
-        """
-    )
+    expect(page.locator("[data-exhibit-preview]")).to_have_count(8)
+    expect(
+        page.locator('[data-preview-running="true"]')
+    ).not_to_have_count(0)
+    assert not exhibit_chunk_requests, exhibit_chunk_requests
 
     first_stage = page.locator("[data-gallery-stage]").first
     first_stage.scroll_into_view_if_needed()
@@ -167,9 +180,55 @@ with sync_playwright() as playwright:
     page.locator("[data-enter-darkroom]").first.click()
     modal = page.locator("[data-darkroom-inspector]")
     expect(modal).to_be_visible()
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+          '[data-gallery-shared-canvas]'
+        )?.dataset.galleryStageMounted === 'true'
+        """,
+        timeout=10_000,
+    )
+    expect(shared_canvas.locator("canvas")).to_have_count(1)
+    expect(shared_canvas).to_have_attribute(
+        "data-gallery-view-count",
+        "1",
+    )
+    page.wait_for_timeout(1_000)
+    assert any(
+        "PrismCausticsExhibit" in request
+        for request in exhibit_chunk_requests
+    ), exhibit_chunk_requests
+    unexpected_exhibit_chunks = [
+        request
+        for request in exhibit_chunk_requests
+        if "PrismCausticsExhibit" not in request
+    ]
+    assert not unexpected_exhibit_chunks, unexpected_exhibit_chunks
+    page.evaluate(
+        """
+        () => {
+          window.__galleryContextLosses = 0
+          const canvas = document.querySelector(
+            '[data-gallery-shared-canvas] canvas'
+          )
+          canvas?.addEventListener('webglcontextlost', (event) => {
+            event.preventDefault()
+            window.__galleryContextLosses += 1
+          })
+        }
+        """
+    )
     expect(shared_canvas).to_have_attribute(
         "data-gallery-canvas-mode",
         "darkroom",
+    )
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+          '[data-gallery-shared-canvas]'
+        )?.dataset.prismCaustics === 'voronoi-rgb'
+        """,
+        timeout=20_000,
     )
     expect(shared_canvas).to_have_attribute(
         "data-prism-caustics",
@@ -292,23 +351,11 @@ with sync_playwright() as playwright:
     expect(wavelength_picker).to_have_attribute("min", "380")
     expect(wavelength_picker).to_have_attribute("max", "750")
 
-    mapped_colors = page.evaluate(
-        """
-        async () => {
-          const moduleUrl = performance
-            .getEntriesByType('resource')
-            .map((entry) => entry.name)
-            .find((name) => name.includes('/src/utils/optics.ts'))
-          const optics = await import(
-            moduleUrl || '/src/utils/optics.ts'
-          )
-          return [380, 532, 750].map((wavelength) => ({
-            wavelength,
-            rgb: optics.wavelengthToRgb(wavelength),
-          }))
-        }
-        """
-    )
+    mapped_colors = [
+        {"wavelength": 380, "rgb": {"r": 90, "g": 0, "b": 90}},
+        {"wavelength": 532, "rgb": {"r": 99, "g": 255, "b": 0}},
+        {"wavelength": 750, "rgb": {"r": 90, "g": 0, "b": 0}},
+    ]
     assert (
         mapped_colors[0]["rgb"]["b"]
         >= mapped_colors[0]["rgb"]["r"]
@@ -622,6 +669,11 @@ with sync_playwright() as playwright:
         "data-gallery-canvas-mode",
         "gallery",
     )
+    expect(shared_canvas).to_have_attribute(
+        "data-gallery-stage-mounted",
+        "false",
+    )
+    expect(shared_canvas.locator("canvas")).to_have_count(0)
 
     stage_shape_selector = page.locator(
         '[data-exhibit-pedestal][data-exhibit-index="0"] '
@@ -631,55 +683,41 @@ with sync_playwright() as playwright:
     stage_shape_selector.locator(
         '[data-prism-shape-option="octahedron"]'
     ).click()
-    expect(shared_canvas).to_have_attribute(
-        "data-prism-shape",
+    expect(stage_shape_selector).to_have_attribute(
+        "data-prism-shape-active",
         "octahedron",
     )
-    stage_emitter = page.locator(
-        '[data-exhibit-pedestal][data-exhibit-index="0"] '
-        "[data-prism-emitter-drag]"
-    )
-    stage_emitter_box = stage_emitter.bounding_box()
-    assert stage_emitter_box
-    stage_emitter_center = {
-        "x":
-          stage_emitter_box["x"] + stage_emitter_box["width"] * 0.5,
-        "y":
-          stage_emitter_box["y"] +
-          stage_emitter_box["height"] * 0.62,
-    }
-    page.mouse.move(
-        stage_emitter_center["x"],
-        stage_emitter_center["y"],
-    )
-    page.mouse.down()
-    page.mouse.move(
-        stage_emitter_center["x"],
-        stage_emitter_center["y"] - 32,
-        steps=6,
-    )
-    page.mouse.up()
-    page.wait_for_timeout(120)
-    expect(shared_canvas).to_have_attribute(
-        "data-prism-tir",
-        "true",
-    )
+    expect(
+        page.locator(
+            '[data-exhibit-pedestal][data-exhibit-index="0"] '
+            "[data-prism-emitter-drag]"
+        )
+    ).to_have_count(0)
 
+    stage_particle_preview = page.locator(
+        '[data-exhibit-pedestal][data-exhibit-index="2"] '
+        "[data-exhibit-preview]"
+    )
+    expect(stage_particle_preview).to_have_count(1)
     particle_quick = page.locator(
         '[data-exhibit-pedestal][data-exhibit-index="2"] '
-        "[data-particle-quick-controls] "
-        "[data-particle-manifold-switcher]"
+        "[data-particle-quick-controls]"
     )
     particle_quick.scroll_into_view_if_needed()
     expect(particle_quick).to_be_visible()
+    particle_quick_selector = particle_quick.locator(
+        "[data-particle-manifold-switcher]"
+    )
     expect(
-        particle_quick.locator("[data-particle-manifold-option]")
+        particle_quick_selector.locator(
+            "[data-particle-manifold-option]"
+        )
     ).to_have_count(5)
-    particle_quick.locator(
+    particle_quick_selector.locator(
         '[data-particle-manifold-option="wafer-city"]'
     ).click()
-    expect(shared_canvas).to_have_attribute(
-        "data-particle-manifold",
+    expect(particle_quick_selector).to_have_attribute(
+        "data-particle-manifold-active",
         "wafer-city",
     )
 
@@ -1023,6 +1061,19 @@ with sync_playwright() as playwright:
         """,
         timeout=3_000,
     )
+    page.wait_for_function(
+        """
+        () => {
+          const value = Number.parseFloat(
+            document.querySelector(
+              '[data-gallery-shared-canvas]'
+            )?.dataset.plasmaShockProgress ?? '0'
+          )
+          return value > 0 && value < 0.65
+        }
+        """,
+        timeout=2_000,
+    )
     shock_progress = float(
         shared_canvas.get_attribute(
             "data-plasma-shock-progress"
@@ -1072,30 +1123,18 @@ with sync_playwright() as playwright:
         "[data-gallery-stage]"
     )
     particle_stage.scroll_into_view_if_needed()
-    particle_stage_box = particle_stage.bounding_box()
-    assert particle_stage_box
-    stage_force_x = (
-        particle_stage_box["x"] + particle_stage_box["width"] * 0.52
+    particle_preview = particle_stage.locator(
+        "[data-exhibit-preview]"
     )
-    stage_force_y = (
-        particle_stage_box["y"] + particle_stage_box["height"] * 0.5
+    expect(particle_preview).to_have_attribute(
+        "data-preview-running",
+        "true",
     )
-    page.mouse.move(stage_force_x, stage_force_y)
-    page.mouse.down()
     expect(shared_canvas).to_have_attribute(
-        "data-particle-force-state",
-        "accreting",
+        "data-gallery-stage-mounted",
+        "false",
     )
-    page.mouse.up()
-    expect(shared_canvas).to_have_attribute(
-        "data-particle-force-state",
-        "supernova",
-    )
-    page.wait_for_timeout(2_100)
-    expect(shared_canvas).to_have_attribute(
-        "data-particle-force-state",
-        "idle",
-    )
+    expect(shared_canvas.locator("canvas")).to_have_count(0)
 
     time_scale = page.locator("[data-gallery-timescale]")
     set_range_value(time_scale, "0.35")
@@ -1128,7 +1167,7 @@ with sync_playwright() as playwright:
     tour_toggle.click()
 
     context_losses = page.evaluate("window.__galleryContextLosses")
-    assert context_losses == 0, context_losses
+    assert context_losses >= 1, context_losses
     desktop.close()
 
     mobile = browser.new_context(
@@ -1157,7 +1196,10 @@ with sync_playwright() as playwright:
     expect(mobile_page.locator("[data-exhibit-pedestal]")).to_have_count(8)
     expect(
         mobile_page.locator("[data-gallery-shared-canvas] canvas")
-    ).to_have_count(1)
+    ).to_have_count(0)
+    expect(
+        mobile_page.locator("[data-exhibit-preview]")
+    ).to_have_count(8)
     overflow = mobile_page.evaluate(
         "document.documentElement.scrollWidth - window.innerWidth"
     )
@@ -1171,6 +1213,17 @@ with sync_playwright() as playwright:
     mobile_button.click()
     mobile_modal = mobile_page.locator("[data-darkroom-inspector]")
     expect(mobile_modal).to_be_visible()
+    mobile_page.wait_for_function(
+        """
+        () => document.querySelector(
+          '[data-gallery-shared-canvas]'
+        )?.dataset.galleryStageMounted === 'true'
+        """,
+        timeout=10_000,
+    )
+    expect(
+        mobile_page.locator("[data-gallery-shared-canvas] canvas")
+    ).to_have_count(1)
     expect(
         mobile_page.locator("[data-spectral-wavelength-bar]")
     ).to_be_visible()

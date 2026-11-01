@@ -1,10 +1,10 @@
-import { View } from '@react-three/drei'
 import { ArrowUpRight, Crosshair, ScanLine } from 'lucide-react'
 import {
+  lazy,
+  Suspense,
   useMemo,
   useRef,
   type PointerEvent as ReactPointerEvent,
-  type RefObject,
 } from 'react'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
@@ -18,12 +18,7 @@ import {
   useGalleryStore,
 } from '../../store/useGalleryStore'
 import { HologramModelSelector } from './HologramModelSelector'
-import {
-  createGalleryPointerState,
-  OpticalExhibitScene,
-} from './OpticalExhibitScene'
 import { ParticleMorphSelector } from './ParticleMorphSelector'
-import { PrismInteractionSurface } from './PrismInteractionSurface'
 import { PrismShapeSelector } from './PrismShapeSelector'
 import { ReactorOverdriveButton } from './ReactorOverdriveButton'
 import { RayBounceMazeControls } from './RayBounceMazeControls'
@@ -31,6 +26,11 @@ import { AudioStageModeSelector } from './AudioStageModeSelector'
 import { AudioStagePlayButton } from './AudioStagePlayButton'
 import { NeuralInferenceControls } from './NeuralInferenceControls'
 import { GpuComputeModeControls } from './GpuComputeModeControls'
+
+const ExhibitPreviewLoop = lazy(async () => {
+  const module = await import('./ExhibitPreviewLoop')
+  return { default: module.ExhibitPreviewLoop }
+})
 
 const PEDESTAL_LAYOUTS = [
   'xl:col-span-6 xl:min-h-[458px]',
@@ -72,11 +72,9 @@ export function ExhibitPedestal({
       ) ?? GALLERY_EXHIBITS[index],
   )
   const stageRef = useRef<HTMLDivElement>(null)
-  const viewTrackRef = stageRef as unknown as RefObject<HTMLElement>
-  const pointerRef = useRef(createGalleryPointerState())
   const inView = useInViewAnimation(stageRef, {
-    rootMargin: '0px',
-    threshold: 0.02,
+    rootMargin: '120px 0px',
+    threshold: 0.01,
   })
   const modalOpen = useGalleryStore(
     (state) => state.activeExhibitId !== null,
@@ -90,10 +88,18 @@ export function ExhibitPedestal({
   const triggerHologramGlitch = useGalleryStore(
     (state) => state.triggerHologramGlitch,
   )
+  const tourClimaxExhibitId = useGalleryStore(
+    (state) => state.opticalTourClimaxExhibitId,
+  )
+  const tourClimaxPulse = useGalleryStore(
+    (state) => state.opticalTourClimaxPulse,
+  )
   const playSound = useInterfaceSound()
   const exhibitCopy = t.gallery.exhibits[exhibit.id]
   const layoutClass = PEDESTAL_LAYOUTS[index] ?? PEDESTAL_LAYOUTS[7]
-  const visualVisible = inView && !modalOpen
+  const previewActive = inView && !modalOpen
+  const climaxActive =
+    tourCurrent && tourClimaxExhibitId === exhibit.id
   const featuredParameters = useMemo(
     () =>
       exhibit.controls.slice(0, 3).map((control) => ({
@@ -121,9 +127,6 @@ export function ExhibitPedestal({
       -1,
       1,
     )
-    pointerRef.current.u = u
-    pointerRef.current.v = v
-    pointerRef.current.active = true
     event.currentTarget.dataset.galleryPointerU = u.toFixed(2)
     event.currentTarget.dataset.galleryPointerV = v.toFixed(2)
     event.currentTarget.style.setProperty(
@@ -134,50 +137,6 @@ export function ExhibitPedestal({
       '--gallery-pointer-y',
       `${((1 - v) * 50).toFixed(2)}%`,
     )
-  }
-
-  const handlePointerDown = (
-    event: ReactPointerEvent<HTMLDivElement>,
-  ) => {
-    if (event.button !== 0) return
-    event.preventDefault()
-    event.currentTarget.setPointerCapture(event.pointerId)
-    pointerRef.current.dragging = true
-    pointerRef.current.forceActive =
-      exhibit.id === 'particle-morph'
-    event.currentTarget.dataset.dragging = 'true'
-    updatePointer(event)
-    if (
-      exhibit.id === 'plasma-reactor' ||
-      exhibit.id === 'quantum-lattice' ||
-      exhibit.id === 'phase-torus'
-    ) {
-      pointerRef.current.impulse += 1
-    }
-  }
-
-  const handlePointerMove = (
-    event: ReactPointerEvent<HTMLDivElement>,
-  ) => {
-    updatePointer(event)
-  }
-
-  const releasePointer = (
-    event: ReactPointerEvent<HTMLDivElement>,
-  ) => {
-    if (event.currentTarget.hasPointerCapture(event.pointerId)) {
-      event.currentTarget.releasePointerCapture(event.pointerId)
-    }
-    pointerRef.current.dragging = false
-    pointerRef.current.forceActive = false
-    event.currentTarget.dataset.dragging = 'false'
-  }
-
-  const handlePointerLeave = (
-    event: ReactPointerEvent<HTMLDivElement>,
-  ) => {
-    releasePointer(event)
-    pointerRef.current.active = false
   }
 
   const openDarkroom = () => {
@@ -193,11 +152,8 @@ export function ExhibitPedestal({
       data-exhibit-index={index}
       data-tour-current={tourCurrent ? 'true' : 'false'}
       data-gallery-in-view={inView ? 'true' : 'false'}
-      data-gallery-runtime-active={
-        visualVisible ? 'true' : 'false'
-      }
-      data-gallery-view-frames={
-        visualVisible ? 'infinite' : '0'
+      data-gallery-preview-active={
+        previewActive ? 'true' : 'false'
       }
       className={cn(
         'gallery-pedestal group relative flex h-[476px] min-w-0 flex-col overflow-hidden border border-white/[0.09] bg-[#05090d]/88 md:h-[496px]',
@@ -240,48 +196,40 @@ export function ExhibitPedestal({
       <div
         ref={stageRef}
         data-gallery-stage
-        data-particle-force-control={
-          exhibit.id === 'particle-morph'
-            ? 'hold-release'
-            : undefined
-        }
-        data-gallery-pointer-u={pointerRef.current.u.toFixed(2)}
-        data-gallery-pointer-v={pointerRef.current.v.toFixed(2)}
+        data-gallery-pointer-u="0.00"
+        data-gallery-pointer-v="0.00"
         className={cn(
-          'gallery-exhibit-stage relative z-0 mx-3 h-[205px] shrink-0 touch-none overflow-hidden border border-white/[0.055] bg-[#020507]/72 sm:mx-4 sm:h-[225px]',
-          exhibit.id === 'laser-scan-hologram' &&
-            'cursor-ns-resize',
-          exhibit.id === 'particle-morph' &&
-            'cursor-crosshair',
-          exhibit.id === 'plasma-reactor' &&
-            'cursor-crosshair',
-          exhibit.id === 'photonic-mesh' &&
-            'cursor-move',
+          'gallery-exhibit-stage relative z-0 mx-3 h-[205px] shrink-0 touch-pan-y overflow-hidden border border-white/[0.055] bg-[#020507]/72 sm:mx-4 sm:h-[225px]',
         )}
-        onPointerDown={handlePointerDown}
-        onPointerMove={handlePointerMove}
-        onPointerUp={releasePointer}
-        onPointerCancel={handlePointerLeave}
-        onPointerLeave={handlePointerLeave}
-        onClick={() => {
-          if (exhibit.id !== 'laser-scan-hologram') return
+        onPointerMove={updatePointer}
+        onClick={(event) => {
+          if (
+            exhibit.id !== 'laser-scan-hologram' ||
+            (event.target instanceof HTMLElement &&
+              event.target.closest('button, input'))
+          ) {
+            return
+          }
           triggerHologramGlitch()
           playSound('toggle')
         }}
       >
-        {visualVisible ? (
-          <View
-            track={viewTrackRef}
-            visible
-            frames={Number.POSITIVE_INFINITY}
-            className="pointer-events-none absolute inset-0"
-          >
-            <OpticalExhibitScene
-              exhibit={exhibit}
-              pointerRef={pointerRef}
+        <Suspense
+          fallback={
+            <span
+              aria-hidden="true"
+              className="exhibit-preview-fallback"
             />
-          </View>
-        ) : null}
+          }
+        >
+          <ExhibitPreviewLoop
+            exhibitId={exhibit.id}
+            active={previewActive}
+            tourCurrent={tourCurrent}
+            climaxActive={climaxActive}
+            climaxPulse={tourClimaxPulse}
+          />
+        </Suspense>
 
         <div
           aria-hidden="true"
@@ -293,39 +241,16 @@ export function ExhibitPedestal({
         />
         <div className="pointer-events-none absolute left-2.5 top-2.5 flex items-center gap-1.5 font-mono text-[7px] text-[var(--vfx-secondary)]/55">
           <Crosshair size={8} strokeWidth={1.5} />
-          {t.gallery.pedestal.directField}
+          {t.gallery.pedestal.previewField}
         </div>
         <div className="pointer-events-none absolute bottom-2 left-2.5 font-mono text-[7px] text-mist/30">
-          {exhibit.id === 'prism-caustics'
-            ? t.gallery.prismInteraction.emitterHint
-            : exhibit.id === 'laser-scan-hologram'
-              ? t.gallery.hologramInteraction.hint
-              : exhibit.id === 'particle-morph'
-                ? t.gallery.particleInteraction.stageHint
-                : exhibit.id === 'plasma-reactor'
-                  ? t.gallery.reactorInteraction.stageHint
-                  : exhibit.id === 'photonic-mesh'
-                    ? t.gallery.rayMazeInteraction.stageHint
-                    : exhibit.id === 'orbital-lens'
-                      ? t.gallery.audioStageInteraction.sequenceHint
-                      : exhibit.id === 'quantum-lattice'
-                        ? t.gallery.neuralPulseInteraction.stageHint
-                        : exhibit.id === 'phase-torus'
-                          ? t.gallery.gpuComputeInteraction.stageHint
-                    : t.gallery.pedestal.dragToDeflect}
+          {t.gallery.pedestal.previewHint}
         </div>
         <div className="pointer-events-none absolute bottom-2 right-2.5 font-mono text-[7px] text-mist/30">
           {t.gallery.pedestal.wavelengthLive}
         </div>
         {exhibit.id === 'prism-caustics' ? (
-          <>
-            <PrismInteractionSurface
-              exhibit={exhibit}
-              pointerRef={pointerRef}
-              compact
-            />
-            <PrismShapeSelector />
-          </>
+          <PrismShapeSelector />
         ) : null}
         {exhibit.id === 'laser-scan-hologram' ? (
           <HologramModelSelector />
