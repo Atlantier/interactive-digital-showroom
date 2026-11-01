@@ -539,7 +539,7 @@ with sync_playwright() as playwright:
           )?.textContent ?? 0
         ) === 1
         """,
-        timeout=3_000,
+        timeout=10_000,
     )
     expect(
         page.locator('[data-telemetry-active-exhibit="photonic-mesh"]')

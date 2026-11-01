@@ -96,29 +96,31 @@ export function PerformanceTelemetryHud() {
     let lastMemoryCount = -1
     let lastHealth = ''
     let lastActiveViews = -1
-    let lastViewportSampleAt = Number.NEGATIVE_INFINITY
+    const updateActiveViews = () => {
+      if (!activeViewsRef.current) return
+      const activeViews = document.querySelectorAll(
+        '[data-gallery-runtime-active="true"]',
+      ).length
+      if (activeViews === lastActiveViews) return
+      lastActiveViews = activeViews
+      activeViewsRef.current.textContent = String(activeViews)
+      activeViewsRef.current.parentElement?.setAttribute(
+        'data-telemetry-active-views',
+        String(activeViews),
+      )
+    }
+    const viewportObserver = new MutationObserver(updateActiveViews)
+    viewportObserver.observe(document.body, {
+      subtree: true,
+      childList: true,
+      attributes: true,
+      attributeFilter: ['data-gallery-runtime-active'],
+    })
+    updateActiveViews()
+
     const draw = () => {
       const metrics = readPerformanceTelemetry()
       const memory = readMemoryHistoryWindow()
-      const now = performance.now()
-
-      if (
-        now - lastViewportSampleAt >= 250 &&
-        activeViewsRef.current
-      ) {
-        lastViewportSampleAt = now
-        const activeViews = document.querySelectorAll(
-          '[data-gallery-runtime-active="true"]',
-        ).length
-        if (activeViews !== lastActiveViews) {
-          lastActiveViews = activeViews
-          activeViewsRef.current.textContent = String(activeViews)
-          activeViewsRef.current.parentElement?.setAttribute(
-            'data-telemetry-active-views',
-            String(activeViews),
-          )
-        }
-      }
 
       if (metrics.fps !== lastFps && fpsRef.current) {
         lastFps = metrics.fps
@@ -217,7 +219,10 @@ export function PerformanceTelemetryHud() {
     }
 
     animationFrame = requestAnimationFrame(draw)
-    return () => cancelAnimationFrame(animationFrame)
+    return () => {
+      viewportObserver.disconnect()
+      cancelAnimationFrame(animationFrame)
+    }
   }, [open, unavailableLabel])
 
   return (

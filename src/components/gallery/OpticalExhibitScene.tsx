@@ -1,5 +1,7 @@
 import { useFrame, useThree } from '@react-three/fiber'
 import {
+  lazy,
+  Suspense,
   useEffect,
   useMemo,
   useRef,
@@ -13,14 +15,46 @@ import {
   useGalleryStore,
   type ExhibitMeta,
 } from '../../store/useGalleryStore'
-import { LaserScanHologramExhibit } from './exhibits/LaserScanHologramExhibit'
-import { ParticleMorphExhibit } from './exhibits/ParticleMorphExhibit'
-import { PlasmaReactorExhibit } from './exhibits/PlasmaReactorExhibit'
-import { PrismCausticsExhibit } from './exhibits/PrismCausticsExhibit'
-import { RayBounceMazeExhibit } from './exhibits/RayBounceMazeExhibit'
-import { AudioSpectrumStageExhibit } from './exhibits/AudioSpectrumStageExhibit'
-import { NeuralPulseSandboxExhibit } from './exhibits/NeuralPulseSandboxExhibit'
-import { GpuComputeMatrixExhibit } from './exhibits/GpuComputeMatrixExhibit'
+
+const PrismCausticsExhibit = lazy(async () => {
+  const module = await import('./exhibits/PrismCausticsExhibit')
+  return { default: module.PrismCausticsExhibit }
+})
+
+const LaserScanHologramExhibit = lazy(async () => {
+  const module = await import('./exhibits/LaserScanHologramExhibit')
+  return { default: module.LaserScanHologramExhibit }
+})
+
+const ParticleMorphExhibit = lazy(async () => {
+  const module = await import('./exhibits/ParticleMorphExhibit')
+  return { default: module.ParticleMorphExhibit }
+})
+
+const PlasmaReactorExhibit = lazy(async () => {
+  const module = await import('./exhibits/PlasmaReactorExhibit')
+  return { default: module.PlasmaReactorExhibit }
+})
+
+const RayBounceMazeExhibit = lazy(async () => {
+  const module = await import('./exhibits/RayBounceMazeExhibit')
+  return { default: module.RayBounceMazeExhibit }
+})
+
+const AudioSpectrumStageExhibit = lazy(async () => {
+  const module = await import('./exhibits/AudioSpectrumStageExhibit')
+  return { default: module.AudioSpectrumStageExhibit }
+})
+
+const NeuralPulseSandboxExhibit = lazy(async () => {
+  const module = await import('./exhibits/NeuralPulseSandboxExhibit')
+  return { default: module.NeuralPulseSandboxExhibit }
+})
+
+const GpuComputeMatrixExhibit = lazy(async () => {
+  const module = await import('./exhibits/GpuComputeMatrixExhibit')
+  return { default: module.GpuComputeMatrixExhibit }
+})
 
 export interface GalleryPointerState {
   u: number
@@ -988,62 +1022,64 @@ export function OpticalExhibitScene({
         palette={themePalette}
         pointerRef={pointerRef}
       />
-      {exhibit.id === 'prism-caustics' ? (
-        <PrismCausticsExhibit
-          exhibit={exhibit}
-          pointerRef={pointerRef}
-          mode={mode}
-        />
-      ) : exhibit.id === 'laser-scan-hologram' ? (
-        <LaserScanHologramExhibit
-          exhibit={exhibit}
-          pointerRef={pointerRef}
-          mode={mode}
-        />
-      ) : exhibit.id === 'particle-morph' ? (
-        <ParticleMorphExhibit
-          exhibit={exhibit}
-          pointerRef={pointerRef}
-          mode={mode}
-        />
-      ) : exhibit.id === 'plasma-reactor' ? (
-        <PlasmaReactorExhibit
-          exhibit={exhibit}
-          pointerRef={pointerRef}
-          mode={mode}
-        />
-      ) : exhibit.id === 'photonic-mesh' ? (
-        <RayBounceMazeExhibit
-          exhibit={exhibit}
-          pointerRef={pointerRef}
-          mode={mode}
-        />
-      ) : exhibit.id === 'orbital-lens' ? (
-        <AudioSpectrumStageExhibit
-          exhibit={exhibit}
-          pointerRef={pointerRef}
-          mode={mode}
-        />
-      ) : exhibit.id === 'quantum-lattice' ? (
-        <NeuralPulseSandboxExhibit
-          exhibit={exhibit}
-          pointerRef={pointerRef}
-          mode={mode}
-        />
-      ) : exhibit.id === 'phase-torus' ? (
-        <GpuComputeMatrixExhibit
-          exhibit={exhibit}
-          pointerRef={pointerRef}
-          mode={mode}
-        />
-      ) : (
-        <ArtifactRig
-          exhibit={exhibit}
-          pointerRef={pointerRef}
-          mode={mode}
-          laserColor={laserColor}
-        />
-      )}
+      <Suspense fallback={null}>
+        {exhibit.id === 'prism-caustics' ? (
+          <PrismCausticsExhibit
+            exhibit={exhibit}
+            pointerRef={pointerRef}
+            mode={mode}
+          />
+        ) : exhibit.id === 'laser-scan-hologram' ? (
+          <LaserScanHologramExhibit
+            exhibit={exhibit}
+            pointerRef={pointerRef}
+            mode={mode}
+          />
+        ) : exhibit.id === 'particle-morph' ? (
+          <ParticleMorphExhibit
+            exhibit={exhibit}
+            pointerRef={pointerRef}
+            mode={mode}
+          />
+        ) : exhibit.id === 'plasma-reactor' ? (
+          <PlasmaReactorExhibit
+            exhibit={exhibit}
+            pointerRef={pointerRef}
+            mode={mode}
+          />
+        ) : exhibit.id === 'photonic-mesh' ? (
+          <RayBounceMazeExhibit
+            exhibit={exhibit}
+            pointerRef={pointerRef}
+            mode={mode}
+          />
+        ) : exhibit.id === 'orbital-lens' ? (
+          <AudioSpectrumStageExhibit
+            exhibit={exhibit}
+            pointerRef={pointerRef}
+            mode={mode}
+          />
+        ) : exhibit.id === 'quantum-lattice' ? (
+          <NeuralPulseSandboxExhibit
+            exhibit={exhibit}
+            pointerRef={pointerRef}
+            mode={mode}
+          />
+        ) : exhibit.id === 'phase-torus' ? (
+          <GpuComputeMatrixExhibit
+            exhibit={exhibit}
+            pointerRef={pointerRef}
+            mode={mode}
+          />
+        ) : (
+          <ArtifactRig
+            exhibit={exhibit}
+            pointerRef={pointerRef}
+            mode={mode}
+            laserColor={laserColor}
+          />
+        )}
+      </Suspense>
     </>
   )
 }
