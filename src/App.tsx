@@ -133,7 +133,7 @@ function Hero({
           >
             <ScrollLink
               target="works"
-              className="group inline-flex h-11 items-center gap-8 border border-signal/45 bg-signal/[0.06] px-5 text-sm text-frost transition-colors hover:border-signal hover:bg-signal/[0.11]"
+              className="group inline-flex h-11 items-center gap-8 border border-signal/45 bg-signal/[0.06] px-5 text-xs text-frost transition-colors hover:border-signal hover:bg-signal/[0.11]"
             >
               {t.hero.primaryCta}
               <ArrowDown
@@ -143,7 +143,7 @@ function Hero({
             </ScrollLink>
             <ScrollLink
               target="archive"
-              className="group inline-flex items-center gap-2 text-sm text-mist transition-colors hover:text-frost"
+              className="group inline-flex items-center gap-2 text-xs text-mist transition-colors hover:text-frost"
             >
               {t.hero.secondaryCta}
               <ArrowUpRight
