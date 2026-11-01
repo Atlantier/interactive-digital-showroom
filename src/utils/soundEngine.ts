@@ -1,6 +1,9 @@
+import { AUDIO_STAGE_PAD_FREQUENCIES } from '../data/audioStage'
+
 export type SoundEvent =
   | 'hoverTick'
   | 'cardActivate'
+  | 'localeConfirm'
   | 'physicsCollision'
   | 'ropeSnap'
   | 'laserPulse'
@@ -15,6 +18,9 @@ export interface SoundEngineDiagnostics {
   analyserReady: boolean
   audioEnergy: number
   audioPeak: number
+  arpeggiatorRunning: boolean
+  stageAnalyserReady: boolean
+  stageAnalyserFftSize: number
 }
 
 type AudioWindow = Window & {
@@ -37,9 +43,21 @@ export class SoundEngine {
   private masterGain: GainNode | null = null
   private compressor: DynamicsCompressorNode | null = null
   private analyser: AnalyserNode | null = null
+  private stageAnalyser: AnalyserNode | null = null
+  private stageSynthBus: GainNode | null = null
+  private stageMuteGain: GainNode | null = null
   private noiseBuffer: AudioBuffer | null = null
   private frequencyData: Uint8Array<ArrayBuffer> | null = null
   private waveformData: Uint8Array<ArrayBuffer> | null = null
+  private stageFrequencyData: Uint8Array<ArrayBuffer> | null = null
+  private stageWaveformData: Uint8Array<ArrayBuffer> | null = null
+  private arpeggiatorTimer: number | null = null
+  private transientTimers = new Set<number>()
+  private arpeggiatorRunning = false
+  private arpeggiatorMuted = true
+  private arpeggiatorBpm = 104
+  private arpeggiatorStep = 0
+  private arpeggiatorNextNoteTime = 0
   private audioEnergy = 0
   private audioPeak = 0
   private lastEnergySampleAt = Number.NEGATIVE_INFINITY
@@ -47,6 +65,7 @@ export class SoundEngine {
   private lastTriggered: Record<SoundEvent, number> = {
     hoverTick: Number.NEGATIVE_INFINITY,
     cardActivate: Number.NEGATIVE_INFINITY,
+    localeConfirm: Number.NEGATIVE_INFINITY,
     physicsCollision: Number.NEGATIVE_INFINITY,
     ropeSnap: Number.NEGATIVE_INFINITY,
     laserPulse: Number.NEGATIVE_INFINITY,
@@ -54,6 +73,7 @@ export class SoundEngine {
   private triggerCounts: Record<SoundEvent, number> = {
     hoverTick: 0,
     cardActivate: 0,
+    localeConfirm: 0,
     physicsCollision: 0,
     ropeSnap: 0,
     laserPulse: 0,
@@ -103,6 +123,9 @@ export class SoundEngine {
       analyserReady: this.analyser !== null,
       audioEnergy: this.audioEnergy,
       audioPeak: this.audioPeak,
+      arpeggiatorRunning: this.arpeggiatorRunning,
+      stageAnalyserReady: this.stageAnalyser !== null,
+      stageAnalyserFftSize: this.stageAnalyser?.fftSize ?? 0,
     }
   }
 
@@ -194,6 +217,275 @@ export class SoundEngine {
     return true
   }
 
+  readStageSpectrum(
+    frequencyTarget: Uint8Array<ArrayBuffer>,
+    waveformTarget: Uint8Array<ArrayBuffer>,
+  ) {
+    const analyser = this.stageAnalyser
+    const context = this.context
+    const frequencyData = this.stageFrequencyData
+    const waveformData = this.stageWaveformData
+    if (
+      !analyser ||
+      !context ||
+      !frequencyData ||
+      !waveformData
+    ) {
+      return false
+    }
+    analyser.getByteFrequencyData(frequencyData)
+    analyser.getByteTimeDomainData(waveformData)
+    frequencyTarget.set(frequencyData.subarray(0, frequencyTarget.length))
+    waveformTarget.set(waveformData.subarray(0, waveformTarget.length))
+    return context.state === 'running'
+  }
+
+  async startArpeggiator(muted = true, bpm = 104) {
+    const context = this.ensureContext()
+    if (!context) return false
+    if (context.state === 'suspended') {
+      try {
+        await context.resume()
+      } catch {
+        return false
+      }
+    }
+    this.setArpeggiatorTempo(bpm)
+    this.setArpeggiatorMuted(muted)
+    if (this.arpeggiatorRunning) return true
+    if (!this.stageSynthBus || !this.stageAnalyser) return false
+
+    this.arpeggiatorRunning = true
+    this.arpeggiatorStep = 0
+    this.arpeggiatorNextNoteTime = context.currentTime + 0.045
+    this.stageSynthBus.gain.setTargetAtTime(
+      0.24,
+      context.currentTime,
+      0.03,
+    )
+    this.scheduleArpeggiator()
+    if (typeof window !== 'undefined') {
+      this.arpeggiatorTimer = window.setInterval(
+        () => this.scheduleArpeggiator(),
+        45,
+      )
+    }
+    return true
+  }
+
+  stopArpeggiator() {
+    this.arpeggiatorRunning = false
+    if (
+      this.arpeggiatorTimer !== null &&
+      typeof window !== 'undefined'
+    ) {
+      window.clearInterval(this.arpeggiatorTimer)
+      this.arpeggiatorTimer = null
+    } else {
+      this.arpeggiatorTimer = null
+    }
+    if (this.stageSynthBus && this.context) {
+      this.stageSynthBus.gain.setTargetAtTime(
+        0.0001,
+        this.context.currentTime,
+        0.035,
+      )
+    }
+  }
+
+  dispose() {
+    this.stopArpeggiator()
+    if (typeof window !== 'undefined') {
+      this.transientTimers.forEach((timer) =>
+        window.clearTimeout(timer),
+      )
+    }
+    this.transientTimers.clear()
+
+    const nodes: Array<AudioNode | null> = [
+      this.stageSynthBus,
+      this.stageAnalyser,
+      this.stageMuteGain,
+      this.compressor,
+      this.analyser,
+      this.masterGain,
+    ]
+    for (const node of nodes) {
+      if (!node) continue
+      try {
+        node.disconnect()
+      } catch {
+        // AudioNode.disconnect is idempotent but may throw in older engines.
+      }
+    }
+
+    const context = this.context
+    this.context = null
+    this.compressor = null
+    this.masterGain = null
+    this.analyser = null
+    this.stageAnalyser = null
+    this.stageSynthBus = null
+    this.stageMuteGain = null
+    this.noiseBuffer = null
+    this.frequencyData = null
+    this.waveformData = null
+    this.stageFrequencyData = null
+    this.stageWaveformData = null
+    this.audioEnergy = 0
+    this.audioPeak = 0
+    this.lastEnergySampleAt = Number.NEGATIVE_INFINITY
+
+    if (context && context.state !== 'closed') {
+      void context.close().catch(() => undefined)
+    }
+  }
+
+  async playStagePad(padIndex: number, muted = true) {
+    const context = this.ensureContext()
+    if (!context) return false
+    if (context.state === 'suspended') {
+      try {
+        await context.resume()
+      } catch {
+        return false
+      }
+    }
+    if (context.state !== 'running') return false
+
+    const bus = this.stageSynthBus
+    if (!bus) return false
+    const normalizedPad = Math.max(
+      0,
+      Math.min(
+        AUDIO_STAGE_PAD_FREQUENCIES.length - 1,
+        Math.round(padIndex),
+      ),
+    )
+    const root =
+      AUDIO_STAGE_PAD_FREQUENCIES[normalizedPad] ?? 261.63
+    const start = context.currentTime + 0.01
+    const duration = 0.72 + normalizedPad * 0.018
+
+    this.setArpeggiatorMuted(muted)
+    if (!this.arpeggiatorRunning) {
+      bus.gain.cancelScheduledValues(context.currentTime)
+      bus.gain.setTargetAtTime(
+        0.26,
+        context.currentTime,
+        0.012,
+      )
+    }
+
+    const padGain = context.createGain()
+    const filter = context.createBiquadFilter()
+    filter.type = 'lowpass'
+    filter.frequency.setValueAtTime(
+      4_200 + normalizedPad * 320,
+      start,
+    )
+    filter.frequency.exponentialRampToValueAtTime(
+      1_200 + normalizedPad * 110,
+      start + duration,
+    )
+    filter.Q.setValueAtTime(0.82, start)
+    padGain.gain.setValueAtTime(0.0001, start)
+    padGain.gain.exponentialRampToValueAtTime(
+      0.13,
+      start + 0.006,
+    )
+    padGain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + duration,
+    )
+    padGain.connect(filter)
+    filter.connect(bus)
+
+    const intervals = [0.5, 1, 1.25, 1.5, 2] as const
+    const oscillators: OscillatorNode[] = []
+    const voiceGains: GainNode[] = []
+    for (
+      let voiceIndex = 0;
+      voiceIndex < intervals.length;
+      voiceIndex += 1
+    ) {
+      const interval = intervals[voiceIndex]
+      const oscillator = context.createOscillator()
+      const voiceGain = context.createGain()
+      oscillator.type =
+        voiceIndex === 1 || voiceIndex === 4
+          ? 'triangle'
+          : 'sine'
+      oscillator.frequency.setValueAtTime(
+        root * interval,
+        start,
+      )
+      oscillator.detune.setValueAtTime(
+        (voiceIndex - 2) * 2.4,
+        start,
+      )
+      voiceGain.gain.setValueAtTime(
+        voiceIndex === 0 ? 0.26 : 0.2,
+        start,
+      )
+      oscillator.connect(voiceGain)
+      voiceGain.connect(padGain)
+      oscillator.start(start)
+      oscillator.stop(start + duration + 0.03)
+      oscillators.push(oscillator)
+      voiceGains.push(voiceGain)
+    }
+
+    const finalOscillator =
+      oscillators[oscillators.length - 1]
+    if (finalOscillator) {
+      this.disconnectWhenEnded(finalOscillator, [
+        ...oscillators,
+        ...voiceGains,
+        padGain,
+        filter,
+      ])
+    }
+
+    if (typeof window !== 'undefined') {
+      this.scheduleTransient(() => {
+        if (
+          !this.arpeggiatorRunning &&
+          this.stageSynthBus === bus &&
+          this.context
+        ) {
+          bus.gain.setTargetAtTime(
+            0.0001,
+            this.context.currentTime,
+            0.055,
+          )
+        }
+      }, Math.ceil((duration + 0.18) * 1_000))
+    }
+    return true
+  }
+
+  setArpeggiatorMuted(muted: boolean) {
+    this.arpeggiatorMuted = muted
+    if (!this.stageMuteGain || !this.context) return
+    this.stageMuteGain.gain.setTargetAtTime(
+      muted ? 0.0001 : 0.92,
+      this.context.currentTime,
+      0.02,
+    )
+  }
+
+  setArpeggiatorTempo(bpm: number) {
+    this.arpeggiatorBpm = Math.min(
+      160,
+      Math.max(56, Number.isFinite(bpm) ? bpm : 104),
+    )
+  }
+
+  isArpeggiatorRunning() {
+    return this.arpeggiatorRunning
+  }
+
   playHoverTick() {
     if (!this.canTrigger('hoverTick')) return false
     const context = this.ensureContext()
@@ -232,6 +524,13 @@ export class SoundEngine {
     tickGain.connect(compressor)
     tick.start(start)
     tick.stop(start + 0.016)
+    this.disconnectWhenEnded(tick, [
+      noise,
+      bandpass,
+      noiseGain,
+      tick,
+      tickGain,
+    ])
     return true
   }
 
@@ -257,6 +556,7 @@ export class SoundEngine {
       { frequency: 587.33, type: 'triangle' as OscillatorType, detune: 2 },
       { frequency: 784, type: 'sine' as OscillatorType, detune: -1 },
     ]
+    const oscillators: OscillatorNode[] = []
 
     for (let index = 0; index < voices.length; index += 1) {
       const voice = voices[index]
@@ -267,6 +567,73 @@ export class SoundEngine {
       oscillator.connect(bus)
       oscillator.start(start)
       oscillator.stop(start + duration + 0.02)
+      oscillators.push(oscillator)
+    }
+    const finalOscillator =
+      oscillators[oscillators.length - 1]
+    if (finalOscillator) {
+      this.disconnectWhenEnded(finalOscillator, [
+        bus,
+        ...oscillators,
+      ])
+    }
+    return true
+  }
+
+  playLocaleConfirm() {
+    if (!this.canTrigger('localeConfirm')) return false
+    const context = this.ensureContext()
+    if (!context) return false
+    this.resumeContext(context)
+
+    const start = context.currentTime
+    const compressor = this.compressor
+    if (!compressor) return false
+    const bus = context.createGain()
+    const duration = 0.22
+    bus.gain.setValueAtTime(0.0001, start)
+    bus.gain.exponentialRampToValueAtTime(0.042, start + 0.008)
+    bus.gain.exponentialRampToValueAtTime(0.018, start + 0.09)
+    bus.gain.exponentialRampToValueAtTime(0.0001, start + duration)
+    bus.connect(compressor)
+
+    const notes = [
+      { frequency: 880, start: 0, duration: 0.105 },
+      { frequency: 1_318.51, start: 0.072, duration: 0.14 },
+    ]
+    const oscillators: OscillatorNode[] = []
+    const gains: GainNode[] = []
+    for (const note of notes) {
+      const oscillator = context.createOscillator()
+      const gain = context.createGain()
+      const noteStart = start + note.start
+      oscillator.type = 'sine'
+      oscillator.frequency.setValueAtTime(note.frequency, noteStart)
+      oscillator.detune.setValueAtTime(-2, noteStart)
+      gain.gain.setValueAtTime(0.0001, noteStart)
+      gain.gain.exponentialRampToValueAtTime(
+        0.74,
+        noteStart + 0.004,
+      )
+      gain.gain.exponentialRampToValueAtTime(
+        0.0001,
+        noteStart + note.duration,
+      )
+      oscillator.connect(gain)
+      gain.connect(bus)
+      oscillator.start(noteStart)
+      oscillator.stop(noteStart + note.duration + 0.02)
+      oscillators.push(oscillator)
+      gains.push(gain)
+    }
+    const finalOscillator =
+      oscillators[oscillators.length - 1]
+    if (finalOscillator) {
+      this.disconnectWhenEnded(finalOscillator, [
+        bus,
+        ...oscillators,
+        ...gains,
+      ])
     }
     return true
   }
@@ -333,6 +700,13 @@ export class SoundEngine {
     clickGain.connect(compressor)
     click.start(start)
     click.stop(start + 0.05)
+    this.disconnectWhenEnded(body, [
+      body,
+      bodyGain,
+      click,
+      clickFilter,
+      clickGain,
+    ])
     return true
   }
 
@@ -375,6 +749,13 @@ export class SoundEngine {
     impactGain.connect(compressor)
     impact.start(start)
     impact.stop(start + 0.31)
+    this.disconnectWhenEnded(impact, [
+      snap,
+      snapFilter,
+      snapGain,
+      impact,
+      impactGain,
+    ])
     return true
   }
 
@@ -416,7 +797,162 @@ export class SoundEngine {
     laserGain.connect(compressor)
     laser.start(start)
     laser.stop(start + duration + 0.02)
+    this.disconnectWhenEnded(laser, [
+      laser,
+      filter,
+      laserGain,
+    ])
     return true
+  }
+
+  private scheduleArpeggiator() {
+    const context = this.context
+    const bus = this.stageSynthBus
+    if (
+      !this.arpeggiatorRunning ||
+      !context ||
+      !bus ||
+      context.state !== 'running'
+    ) {
+      return
+    }
+
+    const stepDuration = 60 / this.arpeggiatorBpm / 4
+    const scheduleAhead = 0.18
+    while (
+      this.arpeggiatorNextNoteTime <
+      context.currentTime + scheduleAhead
+    ) {
+      this.scheduleArpeggiatorStep(
+        this.arpeggiatorStep,
+        this.arpeggiatorNextNoteTime,
+        bus,
+      )
+      this.arpeggiatorStep =
+        (this.arpeggiatorStep + 1) % 16
+      this.arpeggiatorNextNoteTime += stepDuration
+    }
+  }
+
+  private scheduleArpeggiatorStep(
+    step: number,
+    start: number,
+    bus: GainNode,
+  ) {
+    const context = this.context
+    if (!context) return
+    const sequence = [
+      261.63, 329.63, 392, 493.88,
+      523.25, 659.25, 783.99, 987.77,
+      659.25, 523.25, 493.88, 392,
+      329.63, 392, 493.88, 659.25,
+    ] as const
+    const bassRoots = [65.41, 55, 43.65, 49] as const
+    const accentPattern = [1, 0.72, 0.88, 0.64] as const
+    const frequency = sequence[step] ?? 261.63
+    const accent = accentPattern[step % 4] ?? 1
+    const noteDuration = 0.34
+
+    const electricPianoGain = context.createGain()
+    const electricPianoFilter = context.createBiquadFilter()
+    electricPianoFilter.type = 'lowpass'
+    electricPianoFilter.frequency.setValueAtTime(4_600, start)
+    electricPianoFilter.Q.setValueAtTime(0.72, start)
+    electricPianoGain.gain.setValueAtTime(0.0001, start)
+    electricPianoGain.gain.exponentialRampToValueAtTime(
+      0.095 * accent,
+      start + 0.006,
+    )
+    electricPianoGain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + noteDuration,
+    )
+    electricPianoGain.connect(electricPianoFilter)
+    electricPianoFilter.connect(bus)
+
+    const bodyOscillator = context.createOscillator()
+    bodyOscillator.type = 'sine'
+    bodyOscillator.frequency.setValueAtTime(frequency, start)
+    bodyOscillator.detune.setValueAtTime(-3, start)
+    bodyOscillator.connect(electricPianoGain)
+    bodyOscillator.start(start)
+    bodyOscillator.stop(start + noteDuration + 0.02)
+
+    const tineOscillator = context.createOscillator()
+    const tineGain = context.createGain()
+    tineOscillator.type = 'triangle'
+    tineOscillator.frequency.setValueAtTime(
+      frequency * 2.005,
+      start,
+    )
+    tineOscillator.detune.setValueAtTime(4, start)
+    tineGain.gain.setValueAtTime(0.0001, start)
+    tineGain.gain.exponentialRampToValueAtTime(
+      0.025 * accent,
+      start + 0.004,
+    )
+    tineGain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + 0.18,
+    )
+    tineOscillator.connect(tineGain)
+    tineGain.connect(electricPianoFilter)
+    tineOscillator.start(start)
+    tineOscillator.stop(start + 0.2)
+    this.disconnectWhenEnded(bodyOscillator, [
+      bodyOscillator,
+      tineOscillator,
+      electricPianoGain,
+      electricPianoFilter,
+      tineGain,
+    ])
+
+    if (step % 4 !== 0) return
+    const bassFrequency =
+      bassRoots[Math.floor(step / 4) % bassRoots.length] ?? 65.41
+    const bassDuration = 0.62
+    const bassGain = context.createGain()
+    const bassFilter = context.createBiquadFilter()
+    bassFilter.type = 'lowpass'
+    bassFilter.frequency.setValueAtTime(460, start)
+    bassFilter.frequency.exponentialRampToValueAtTime(
+      210,
+      start + bassDuration,
+    )
+    bassFilter.Q.setValueAtTime(1.4, start)
+    bassGain.gain.setValueAtTime(0.0001, start)
+    bassGain.gain.exponentialRampToValueAtTime(
+      0.11,
+      start + 0.018,
+    )
+    bassGain.gain.exponentialRampToValueAtTime(
+      0.0001,
+      start + bassDuration,
+    )
+    bassGain.connect(bassFilter)
+    bassFilter.connect(bus)
+
+    const bassOscillator = context.createOscillator()
+    const bassSubOscillator = context.createOscillator()
+    bassOscillator.type = 'triangle'
+    bassSubOscillator.type = 'sine'
+    bassOscillator.frequency.setValueAtTime(bassFrequency * 2, start)
+    bassSubOscillator.frequency.setValueAtTime(
+      bassFrequency,
+      start,
+    )
+    bassOscillator.connect(bassGain)
+    bassSubOscillator.connect(bassGain)
+    bassOscillator.start(start)
+    bassSubOscillator.start(start)
+    bassOscillator.stop(start + bassDuration + 0.02)
+    bassSubOscillator.stop(start + bassDuration + 0.02)
+    this.disconnectWhenEnded(bassSubOscillator, [
+      bassGain,
+      bassFilter,
+      bassOscillator,
+      bassSubOscillator,
+    ])
   }
 
   private ensureContext() {
@@ -450,13 +986,67 @@ export class SoundEngine {
     analyser.connect(masterGain)
     masterGain.connect(context.destination)
 
+    const stageSynthBus = context.createGain()
+    stageSynthBus.gain.setValueAtTime(
+      0.0001,
+      context.currentTime,
+    )
+    const stageAnalyser = context.createAnalyser()
+    stageAnalyser.fftSize = 512
+    stageAnalyser.minDecibels = -92
+    stageAnalyser.maxDecibels = -12
+    stageAnalyser.smoothingTimeConstant = 0.76
+    const stageMuteGain = context.createGain()
+    stageMuteGain.gain.setValueAtTime(
+      this.arpeggiatorMuted ? 0.0001 : 0.92,
+      context.currentTime,
+    )
+    stageSynthBus.connect(stageAnalyser)
+    stageAnalyser.connect(stageMuteGain)
+    stageMuteGain.connect(compressor)
+
     this.context = context
     this.compressor = compressor
     this.analyser = analyser
+    this.stageAnalyser = stageAnalyser
+    this.stageSynthBus = stageSynthBus
+    this.stageMuteGain = stageMuteGain
     this.frequencyData = new Uint8Array(analyser.frequencyBinCount)
     this.waveformData = new Uint8Array(analyser.fftSize)
+    this.stageFrequencyData = new Uint8Array(
+      stageAnalyser.frequencyBinCount,
+    )
+    this.stageWaveformData = new Uint8Array(stageAnalyser.fftSize)
     this.masterGain = masterGain
     return context
+  }
+
+  private disconnectWhenEnded(
+    source: AudioScheduledSourceNode,
+    nodes: readonly AudioNode[],
+  ) {
+    source.addEventListener(
+      'ended',
+      () => {
+        for (const node of nodes) {
+          try {
+            node.disconnect()
+          } catch {
+            // A shared upstream node may already have been disconnected.
+          }
+        }
+      },
+      { once: true },
+    )
+  }
+
+  private scheduleTransient(callback: () => void, delayMs: number) {
+    if (typeof window === 'undefined') return
+    const timer = window.setTimeout(() => {
+      this.transientTimers.delete(timer)
+      callback()
+    }, delayMs)
+    this.transientTimers.add(timer)
   }
 
   private getNoiseBuffer(context: AudioContext) {

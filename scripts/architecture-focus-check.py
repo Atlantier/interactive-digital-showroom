@@ -89,7 +89,9 @@ with sync_playwright() as playwright:
         expect(hud).to_be_visible(timeout=5000)
         page.wait_for_timeout(1300)
         page.screenshot(path=output_dir / f"desktop-focus-{layer}.png")
-        hud.get_by_role("button", name="关闭技术栈详情").click()
+        hud.get_by_role(
+            "button", name="Close technology stack details"
+        ).click()
         expect(hud).to_be_hidden()
         page.wait_for_timeout(700)
 
@@ -109,14 +111,20 @@ with sync_playwright() as playwright:
         '[data-architecture-hud][data-layer="orchestration"]'
     )
     expect(mobile_hud).to_be_visible(timeout=5000)
-    expect(mobile_hud.get_by_text("多智能体编排")).to_be_visible()
+    expect(
+        mobile_hud.get_by_text(
+            "Multi-Agent Orchestration", exact=True
+        )
+    ).to_be_visible()
     mobile_page.wait_for_timeout(900)
     mobile_overflow = mobile_page.evaluate(
         "document.documentElement.scrollWidth - window.innerWidth"
     )
     assert mobile_overflow <= 1, mobile_overflow
     mobile_page.screenshot(path=output_dir / "mobile-focus-orchestration.png")
-    mobile_hud.get_by_role("button", name="关闭技术栈详情").click()
+    mobile_hud.get_by_role(
+        "button", name="Close technology stack details"
+    ).click()
     expect(mobile_hud).to_be_hidden()
 
     mobile.close()

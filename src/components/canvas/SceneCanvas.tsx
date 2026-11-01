@@ -17,6 +17,7 @@ import {
 import * as THREE from 'three'
 import type { ChromaticAberrationEffect } from 'postprocessing'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
+import { useI18n } from '../../i18n/useI18n'
 import {
   setActiveParticleCount,
   setShaderPassSourceCount,
@@ -225,6 +226,7 @@ export function SceneCanvas({
 }: {
   visibilityRef: RefObject<HTMLElement | null>
 }) {
+  const { t } = useI18n()
   const performanceTier = useAppStore((state) => state.performanceTier)
   const vfxPreset = useAppStore((state) => state.vfxPreset)
   const compactViewport = useCompactViewport()
@@ -297,7 +299,7 @@ export function SceneCanvas({
         }}
         fallback={
           <div className="grid h-full place-items-center bg-void px-6 font-mono text-sm text-mist">
-            当前浏览器无法启动 WebGL 展厅。
+            {t.fallback.webgl}
           </div>
         }
       >

@@ -94,28 +94,40 @@ with sync_playwright() as playwright:
         page.set_viewport_size({"width": 1440, "height": 1000})
         page.wait_for_timeout(350)
 
-        fps_toggle = page.get_by_role("button", name="开启实时帧率监视器")
+        page.set_viewport_size({"width": 1600, "height": 1000})
+        page.wait_for_timeout(300)
+        fps_toggle = page.get_by_role(
+            "button", name="Enable live FPS monitor"
+        )
         fps_toggle.click()
         expect(
-            page.get_by_role("button", name="关闭实时帧率监视器")
+            page.get_by_role("button", name="Disable live FPS monitor")
         ).to_have_attribute("aria-pressed", "true")
         page.wait_for_timeout(900)
-        fps_text = page.locator('[aria-label="实时帧率数据"]').inner_text()
+        fps_text = page.locator(
+            '[aria-label="Live frame rate telemetry"]'
+        ).inner_text()
         assert re.search(r"\d+\s*fps", fps_text), fps_text
         print(f"Desktop FPS sample: {fps_text}")
+        page.set_viewport_size({"width": 1440, "height": 1000})
+        page.wait_for_timeout(250)
 
         page.mouse.move(770, 330)
         page.wait_for_timeout(500)
         page.screenshot(path=output_dir / "desktop-particle-interaction.png")
 
-        sound_toggle = page.get_by_role("button", name="开启界面音效")
+        sound_toggle = page.get_by_role(
+            "button", name="Enable interface audio"
+        )
         sound_toggle.click()
         expect(
-            page.get_by_role("button", name="关闭界面音效")
+            page.get_by_role("button", name="Mute interface audio")
         ).to_have_attribute("aria-pressed", "true")
 
+        page.set_viewport_size({"width": 1600, "height": 1000})
+        page.wait_for_timeout(300)
         page.locator(
-            'header nav[aria-label="展厅主导航"] a[href="#works"]'
+            'header nav[aria-label="Showroom primary navigation"] a[href="#works"]'
         ).click()
         page.wait_for_function(
             """
@@ -146,7 +158,7 @@ with sync_playwright() as playwright:
         assert scroll_y > 300, scroll_y
         assert 0 < scroll_progress <= 1, scroll_progress
         progress_ring = page.get_by_role(
-            "progressbar", name="页面滚动进度"
+            "progressbar", name="Page scroll progress"
         )
         expect(progress_ring).to_be_visible()
         ring_offset = progress_ring.locator(
@@ -156,9 +168,11 @@ with sync_playwright() as playwright:
         assert int(progress_ring.get_attribute("aria-valuenow")) > 0
         expect(
             page.locator(
-                'header nav[aria-label="展厅主导航"] a[href="#works"]'
+                'header nav[aria-label="Showroom primary navigation"] a[href="#works"]'
             )
         ).to_have_attribute("aria-current", "location")
+        page.set_viewport_size({"width": 1440, "height": 1000})
+        page.wait_for_timeout(250)
 
         page.evaluate(
             """
@@ -253,7 +267,7 @@ with sync_playwright() as playwright:
 
         vector_button = page.get_by_role(
             "button",
-            name="向量",
+            name="Vector",
             exact=True,
         )
         pulse_overlay = page.locator("[data-bento-data-pulse]")
@@ -272,7 +286,7 @@ with sync_playwright() as playwright:
             "burst",
         )
         expect(
-            page.get_by_role("button", name="向量", exact=True)
+            page.get_by_role("button", name="Vector", exact=True)
         ).to_have_attribute("aria-pressed", "true")
         expect(pulse_overlay).not_to_have_attribute(
             "data-pulse-id",
@@ -283,19 +297,23 @@ with sync_playwright() as playwright:
         ).to_have_attribute("d", re.compile(r"^M "))
 
         terminal_pause = page.locator(
-            'button[aria-label="暂停终端模拟"]'
+            'button[aria-label="Pause terminal simulation"]'
         )
         if terminal_pause.count():
             terminal_pause.click()
             expect(
-                page.get_by_role("button", name="继续终端模拟")
+                page.get_by_role(
+                    "button", name="Resume terminal simulation"
+                )
             ).to_have_attribute("aria-pressed", "true")
 
         terminal_input = page.get_by_role(
-            "textbox", name="输入终端命令"
+            "textbox", name="Enter a terminal command"
         )
         expect(terminal_input).to_be_visible()
-        terminal_output = page.locator('[aria-label="终端命令输出"]')
+        terminal_output = page.locator(
+            '[aria-label="Terminal command output"]'
+        )
 
         for command in ("help", "skills", "matrix"):
             terminal_input.fill(command)
@@ -305,7 +323,7 @@ with sync_playwright() as playwright:
 
         terminal_input.fill("clear")
         terminal_input.press("Enter")
-        expect(terminal_output).to_contain_text("终端缓冲区已重置")
+        expect(terminal_output).to_contain_text("Terminal buffer reset")
         assert terminal_output.locator("pre").count() == 1
 
         initial_tokens = page.locator("[data-token-throughput]").inner_text()
@@ -467,7 +485,9 @@ with sync_playwright() as playwright:
         assert overflow <= 1, overflow
         mobile_page.screenshot(path=output_dir / "mobile-hero.png")
 
-        mobile_page.get_by_role("button", name="打开导航菜单").click()
+        mobile_page.get_by_role(
+            "button", name="Open navigation menu"
+        ).click()
         menu = mobile_page.locator("#mobile-navigation")
         expect(menu).to_be_visible()
         menu.locator('a[href="#works"]').click()

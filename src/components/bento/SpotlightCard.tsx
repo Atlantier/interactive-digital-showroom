@@ -85,7 +85,7 @@ export function SpotlightCard({
         transformOrigin: 'center center',
       }}
       className={cn(
-        'bento-card group relative isolate min-h-[230px] overflow-hidden rounded-lg [transform-style:preserve-3d] [will-change:transform]',
+        'bento-card group relative isolate min-h-[230px] min-w-0 overflow-hidden rounded-lg [transform-style:preserve-3d] [will-change:transform]',
         'border border-white/[0.09] bg-carbon/85',
         'shadow-[0_18px_60px_rgba(0,0,0,0.24)]',
         'focus-within:border-signal/35',
@@ -120,7 +120,7 @@ export function SpotlightCard({
       />
       <div
         data-spotlight-content
-        className="relative z-10 flex h-full flex-col [transform:translateZ(30px)]"
+        className="relative z-10 flex h-full min-w-0 flex-col [transform:translateZ(30px)]"
       >
         {children}
       </div>

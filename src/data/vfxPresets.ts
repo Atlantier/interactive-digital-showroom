@@ -1,9 +1,6 @@
 export const VFX_PRESETS = [
   {
     id: 'emerald-cyber',
-    label: '翡翠赛博',
-    subtitle: 'EMERALD CYBER',
-    description: '翡翠绿、离子青与冷白高光',
     primary: '#10b981',
     secondary: '#72e6ff',
     tertiary: '#a7f3d0',
@@ -13,9 +10,6 @@ export const VFX_PRESETS = [
   },
   {
     id: 'supernova-gold',
-    label: '黑金超新星',
-    subtitle: 'SUPERNOVA GOLD',
-    description: '熔金、琥珀与超新星暖白',
     primary: '#f2b35e',
     secondary: '#ff7a1a',
     tertiary: '#fff1c2',
@@ -25,9 +19,6 @@ export const VFX_PRESETS = [
   },
   {
     id: 'quantum-violet',
-    label: '量子幻影紫',
-    subtitle: 'QUANTUM VIOLET',
-    description: '量子紫、电光青与幻影粉',
     primary: '#a78bfa',
     secondary: '#67e8f9',
     tertiary: '#f0abfc',

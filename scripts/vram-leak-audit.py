@@ -61,12 +61,90 @@ def static_resource_audit() -> dict[str, object]:
             "material.dispose()",
             "geometry.dispose()",
         ],
+        "OpticalExhibitScene.tsx": [
+            "geometry.dispose()",
+        ],
+        "PrismCausticsExhibit.tsx": [
+            "crystalGeometry.dispose()",
+            "causticsMaterialRef.current?.dispose()",
+            "geometry.dispose()",
+            "materialRef.current?.dispose()",
+        ],
+        "LaserScanHologramExhibit.tsx": [
+            "geometry.dispose()",
+            "material.dispose()",
+            "sparkGeometry.dispose()",
+        ],
+        "ParticleMorphExhibit.tsx": [
+            "geometry.dispose()",
+            "materialRef.current?.dispose()",
+            "positionA.array.set(from.positions)",
+            "positionB.array.set(target.positions)",
+        ],
+        "PlasmaReactorExhibit.tsx": [
+            "coreMaterial.dispose()",
+            "coronaMaterial.dispose()",
+            "shieldMaterial.dispose()",
+            "shockwaveMaterial.dispose()",
+            "lightning.lineGeometry.dispose()",
+            "lightning.contactGeometry.dispose()",
+        ],
+        "AudioSpectrumStageExhibit.tsx": [
+            "waveform.ribbonGeometry.dispose()",
+            "waveform.lineGeometry.dispose()",
+            "stageGridGeometry.dispose()",
+            "terrain.geometry.dispose()",
+            "terrain.lineGeometry.dispose()",
+            "pillarRefs.current.forEach((mesh) => mesh?.dispose())",
+            "orbRefs.current.forEach((mesh) => mesh?.dispose())",
+            "sunburstRefs.current.forEach((mesh) => mesh?.dispose())",
+            "soundEngine.stopArpeggiator()",
+        ],
+        "RayBounceMazeExhibit.tsx": [
+            "gridGeometry.dispose()",
+            "beamLineGeometry.dispose()",
+            "flareGeometry.dispose()",
+            "sparkGeometry.dispose()",
+            "targetParticleGeometry.dispose()",
+            "targetPowerLabels.forEach((label) => label?.texture.dispose())",
+            "outerBeamMaterial.dispose()",
+            "mediumBeamMaterial.dispose()",
+            "coreBeamMaterial.dispose()",
+            "outerBeamRef.current?.dispose()",
+            "mediumBeamRef.current?.dispose()",
+            "coreBeamRef.current?.dispose()",
+        ],
+        "NeuralPulseSandboxExhibit.tsx": [
+            "layout.layerRailGeometry.dispose()",
+            "network.fiberGeometry.dispose()",
+            "isolationGeometry.geometry.dispose()",
+            "inspectorPanel?.texture.dispose()",
+            "network.attentionBeams.forEach((beam) =>",
+            "attentionClusterRefs.current.forEach((mesh) =>",
+            "hiddenAMeshRef.current?.dispose()",
+            "hiddenBMeshRef.current?.dispose()",
+            "photonMeshRef.current?.dispose()",
+            "photonGlowMeshRef.current?.dispose()",
+            "gradientFiberMeshRef.current?.dispose()",
+        ],
+        "GpuComputeMatrixExhibit.tsx": [
+            "circuitGeometry.dispose()",
+            "scanGridGeometry.dispose()",
+            "tensorPointGeometry.dispose()",
+            "bvhRayGeometry.dispose()",
+            "node.edgesGeometry.dispose()",
+            "tensorMeshRef.current?.dispose()",
+            "warpBeamRef.current?.dispose()",
+            "accumulatorParticlesRef.current?.dispose()",
+            "busMeshRefs.current.forEach((mesh) => mesh?.dispose())",
+        ],
     }
     raf_cleanup = {
         "BentoGrid.tsx": "cancelAnimationFrame",
         "CardParticleCanvas.tsx": "cancelAnimationFrame",
         "FabrikCreature.tsx": "cancelAnimationFrame",
         "VerletLanyard.tsx": "cancelAnimationFrame",
+        "DarkroomInspectorModal.tsx": "cancelAnimationFrame",
     }
     timer_cleanup = {
         "BentoGrid.tsx": "clearInterval",
@@ -78,6 +156,7 @@ def static_resource_audit() -> dict[str, object]:
         "FlowFieldParticles.tsx": "removeEventListener",
         "FabrikCreature.tsx": "removeEventListener",
         "VerletLanyard.tsx": "removeEventListener",
+        "DarkroomInspectorModal.tsx": "removeEventListener",
     }
     canvas_cleanup = {
         "CardParticleCanvas.tsx": [
@@ -95,6 +174,7 @@ def static_resource_audit() -> dict[str, object]:
         ],
     }
     root = Path("src/components")
+    sound_engine_path = Path("src/utils/soundEngine.ts")
 
     for filename, snippets in required_dispose.items():
         matches = list(root.rglob(filename))
@@ -131,12 +211,26 @@ def static_resource_audit() -> dict[str, object]:
         for snippet in snippets:
             assert snippet in source, f"{filename} missing {snippet}"
 
+    assert sound_engine_path.exists(), "Missing SoundEngine"
+    sound_engine_source = sound_engine_path.read_text(encoding="utf-8")
+    for snippet in (
+        "private transientTimers = new Set<number>()",
+        "dispose()",
+        "disconnectWhenEnded(",
+        "node.disconnect()",
+        "context.close()",
+    ):
+        assert snippet in sound_engine_source, (
+            f"SoundEngine missing lifecycle cleanup: {snippet}"
+        )
+
     return {
         "disposeAuditedFiles": len(required_dispose),
         "rafAuditedFiles": len(raf_cleanup),
         "timerAuditedFiles": len(timer_cleanup),
         "eventAuditedFiles": len(event_cleanup),
         "canvasContextAuditedFiles": len(canvas_cleanup),
+        "audioNodeAuditedFiles": 1,
         "explicitTextureAllocations": 0,
     }
 
@@ -191,6 +285,63 @@ def renderer_snapshot(page) -> dict[str, int]:
     )
 
 
+def gallery_renderer_snapshot(page) -> dict[str, int]:
+    return page.evaluate(
+        """
+        async () => {
+          const modules = performance
+            .getEntriesByType("resource")
+            .map((entry) => entry.name)
+          const fiberUrl = modules.find((name) =>
+            name.includes("@react-three_fiber")
+          )
+          const fiber = await import(
+            fiberUrl ||
+            "/node_modules/.vite/deps/@react-three_fiber.js"
+          )
+          const entries = Array.from(fiber._roots.entries())
+          const galleryEntry = entries.find(([canvas]) =>
+            canvas.closest("[data-gallery-shared-canvas]")
+          )
+          if (!galleryEntry) {
+            return {
+              roots: entries.length,
+              geometries: -1,
+              textures: -1,
+              programs: -1,
+            }
+          }
+          const state = galleryEntry[1].store.getState()
+          return {
+            roots: entries.length,
+            geometries: state.gl.info.memory.geometries,
+            textures: state.gl.info.memory.textures,
+            programs: state.gl.info.programs?.length ?? 0,
+          }
+        }
+        """
+    )
+
+
+def set_gallery_exhibit(page, exhibit_id: str | None) -> None:
+    page.evaluate(
+        """
+        async (exhibitId) => {
+          const storeUrl = performance
+            .getEntriesByType("resource")
+            .map((entry) => entry.name)
+            .find((name) =>
+              name.includes("/src/store/useGalleryStore.ts")
+            )
+          if (!storeUrl) throw new Error("Gallery store URL unavailable")
+          const { useGalleryStore } = await import(storeUrl)
+          useGalleryStore.getState().setActiveExhibitId(exhibitId)
+        }
+        """,
+        exhibit_id,
+    )
+
+
 def set_performance_tier(page, tier: str) -> None:
     page.evaluate(
         """
@@ -239,7 +390,13 @@ with sync_playwright() as playwright:
     expect(scene).to_have_attribute("data-volumetric-dust-count", "1500")
     expect(scene).to_have_attribute("data-shader-pass-count", "4")
 
-    for section_id in ("works", "architecture", "sandbox", "kinetics"):
+    for section_id in (
+        "works",
+        "gallery",
+        "architecture",
+        "sandbox",
+        "kinetics",
+    ):
         page.evaluate(
             """
             (id) => {
@@ -301,7 +458,9 @@ with sync_playwright() as playwright:
     expect(scene).to_have_attribute("data-postprocessing", "bloom-vignette")
     expect(scene).to_have_attribute("data-shader-pass-count", "2")
 
-    page.get_by_role("button", name="打开性能遥测面板").click()
+    page.get_by_role(
+        "button", name="Open performance telemetry panel"
+    ).click()
     hud = page.locator("[data-telemetry-hud]")
     expect(hud).to_be_visible()
     page.wait_for_timeout(550)
@@ -350,6 +509,97 @@ with sync_playwright() as playwright:
         <= baseline["textures"] + 2
     ), (baseline, after_tier_cycles)
 
+    page.evaluate(
+        """
+        () => {
+          const section = document.getElementById("gallery")
+          window.scrollTo(
+            0,
+            section.getBoundingClientRect().top + window.scrollY - 76
+          )
+        }
+        """
+    )
+    page.wait_for_timeout(700)
+    page.locator("[data-exhibit-pedestal]").first.scroll_into_view_if_needed()
+    page.wait_for_timeout(450)
+    gallery_views = int(
+        page.locator(
+            '[data-telemetry-active-views-value]'
+        ).inner_text()
+    )
+    assert gallery_views > 0, gallery_views
+
+    set_gallery_exhibit(page, "photonic-mesh")
+    page.wait_for_function(
+        """
+        () => Number(
+          document.querySelector(
+            '[data-telemetry-active-views-value]'
+          )?.textContent ?? 0
+        ) === 1
+        """,
+        timeout=3_000,
+    )
+    expect(
+        page.locator('[data-telemetry-active-exhibit="photonic-mesh"]')
+    ).to_be_visible()
+    darkroom_views = int(
+        page.locator(
+            '[data-telemetry-active-views-value]'
+        ).inner_text()
+    )
+    assert darkroom_views == 1, darkroom_views
+    set_gallery_exhibit(page, None)
+    page.wait_for_timeout(350)
+    expect(
+        page.locator('[data-telemetry-active-exhibit="none"]')
+    ).to_be_visible()
+
+    gallery_exhibit_ids = (
+        "prism-caustics",
+        "laser-scan-hologram",
+        "particle-morph",
+        "plasma-reactor",
+        "photonic-mesh",
+        "orbital-lens",
+        "quantum-lattice",
+        "phase-torus",
+    )
+    for exhibit_id in gallery_exhibit_ids:
+        set_gallery_exhibit(page, exhibit_id)
+        page.wait_for_timeout(120)
+        set_gallery_exhibit(page, None)
+        page.wait_for_timeout(90)
+    page.locator("[data-exhibit-pedestal]").first.scroll_into_view_if_needed()
+    page.wait_for_timeout(700)
+    page.evaluate("window.gc?.()")
+    gallery_baseline = gallery_renderer_snapshot(page)
+    assert gallery_baseline["geometries"] > 0, gallery_baseline
+
+    for _ in range(2):
+        for exhibit_id in gallery_exhibit_ids:
+            set_gallery_exhibit(page, exhibit_id)
+            page.wait_for_timeout(90)
+            set_gallery_exhibit(page, None)
+            page.wait_for_timeout(70)
+    page.locator("[data-exhibit-pedestal]").first.scroll_into_view_if_needed()
+    page.wait_for_timeout(700)
+    page.evaluate("window.gc?.()")
+    after_gallery_cycles = gallery_renderer_snapshot(page)
+    assert (
+        after_gallery_cycles["geometries"]
+        <= gallery_baseline["geometries"] + 4
+    ), (gallery_baseline, after_gallery_cycles)
+    assert (
+        after_gallery_cycles["textures"]
+        <= gallery_baseline["textures"] + 6
+    ), (gallery_baseline, after_gallery_cycles)
+    assert (
+        after_gallery_cycles["programs"]
+        <= gallery_baseline["programs"] + 20
+    ), (gallery_baseline, after_gallery_cycles)
+
     context.close()
 
     mobile = browser.new_context(
@@ -393,6 +643,12 @@ report = {
     "afterMediumTierSwitch": medium_snapshot,
     "restoredHighTier": restored_high_snapshot,
     "afterTierCycles": after_tier_cycles,
+    "galleryAfterWarmup": gallery_baseline,
+    "galleryAfterExhibitCycles": after_gallery_cycles,
+    "galleryActiveViews": {
+        "gallery": gallery_views,
+        "darkroom": darkroom_views,
+    },
     "mediumBindings": {
         "flowParticles": 4000,
         "cursorParticles": 2000,

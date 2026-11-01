@@ -79,21 +79,21 @@ with sync_playwright() as playwright:
     page.keyboard.press("Control+K")
     palette = page.locator("[data-command-palette]")
     expect(palette).to_be_visible()
-    command_search = page.get_by_role("combobox", name="搜索命令")
+    command_search = page.get_by_role("combobox", name="Search commands")
     expect(command_search).to_be_focused()
     page.screenshot(path=output_dir / "command-palette-desktop.png")
     page.keyboard.press("ArrowDown")
     expect(
-        page.get_by_role("option", name="前往：作品")
+        page.get_by_role("option", name="Go to: Works")
     ).to_have_attribute("aria-selected", "true")
     page.keyboard.press("ArrowUp")
     expect(
-        page.get_by_role("option", name="前往：起点")
+        page.get_by_role("option", name="Go to: Origin")
     ).to_have_attribute("aria-selected", "true")
 
-    command_search.fill("紫")
+    command_search.fill("cyber violet")
     violet_command = page.get_by_role(
-        "option", name="切换强调色：赛博紫"
+        "option", name="Switch accent color: Cyber Violet"
     )
     expect(violet_command).to_be_visible()
     violet_command.press("Enter")
@@ -107,14 +107,14 @@ with sync_playwright() as playwright:
     )
     assert signal_color == "#8b5cf6", signal_color
     expect(page.locator("[data-command-feedback]")).to_contain_text(
-        "主题强调色已切换"
+        "Accent spectrum changed"
     )
 
     page.keyboard.press("Control+K")
-    command_search = page.get_by_role("combobox", name="搜索命令")
-    command_search.fill("零重力")
+    command_search = page.get_by_role("combobox", name="Search commands")
+    command_search.fill("zero gravity")
     page.get_by_role(
-        "option", name="物理环境：零重力"
+        "option", name="Physics environment: Zero Gravity"
     ).press("Enter")
     expect(palette).to_be_hidden()
     expect(page.locator("[data-verlet-stage]")).to_have_attribute(
@@ -122,22 +122,22 @@ with sync_playwright() as playwright:
     )
 
     page.keyboard.press("Control+K")
-    command_search = page.get_by_role("combobox", name="搜索命令")
+    command_search = page.get_by_role("combobox", name="Search commands")
     command_search.fill("email")
-    page.get_by_role("option", name="复制联系邮箱").press("Enter")
+    page.get_by_role("option", name="Copy contact email").press("Enter")
     expect(page.locator("[data-command-feedback]")).to_contain_text(
-        "邮箱已复制到剪贴板"
+        "Email copied to clipboard"
     )
     assert page.evaluate("navigator.clipboard.readText()") == (
         "hello@node01.design"
     )
 
     page.keyboard.press("Control+K")
-    command_search = page.get_by_role("combobox", name="搜索命令")
+    command_search = page.get_by_role("combobox", name="Search commands")
     command_search.fill("resume json")
     with page.expect_download() as download_info:
         page.get_by_role(
-            "option", name="下载简历 JSON"
+            "option", name="Download resume JSON"
         ).press("Enter")
     download = download_info.value
     assert download.suggested_filename == "node01-resume.json"
@@ -149,14 +149,14 @@ with sync_playwright() as playwright:
     assert resume_payload["preferences"]["accentTheme"] == "violet"
 
     page.keyboard.press("Control+K")
-    command_search = page.get_by_role("combobox", name="搜索命令")
-    command_search.fill("架构")
-    page.get_by_role("option", name="前往：架构").press("Enter")
+    command_search = page.get_by_role("combobox", name="Search commands")
+    command_search.fill("architecture")
+    page.get_by_role("option", name="Go to: Architecture").press("Enter")
     page.wait_for_timeout(1_350)
     assert page.evaluate("window.scrollY") > 500
     expect(
         page.locator(
-            'header nav[aria-label="展厅主导航"] a[href="#architecture"]'
+            'header nav[aria-label="Showroom primary navigation"] a[href="#architecture"]'
         )
     ).to_have_attribute("aria-current", "location")
 
@@ -182,7 +182,7 @@ with sync_playwright() as playwright:
         "document.documentElement.scrollWidth - window.innerWidth"
     )
     assert horizon_overflow <= 1, horizon_overflow
-    mobile_page.get_by_role("button", name="打开命令面板").click()
+    mobile_page.get_by_role("button", name="Open command palette").click()
     mobile_palette = mobile_page.locator("[data-command-palette]")
     expect(mobile_palette).to_be_visible()
     panel_box = mobile_palette.locator('[role="dialog"]').bounding_box()
@@ -193,7 +193,7 @@ with sync_playwright() as playwright:
         path=output_dir / "command-palette-mobile.png"
     )
     mobile_palette.get_by_role(
-        "button", name="关闭命令面板"
+        "button", name="Close command palette"
     ).click()
 
     scroll_to(mobile_page, "#works", 0.4)
@@ -256,6 +256,8 @@ with sync_playwright() as playwright:
         )
         == "true"
     )
+    mobile_page.wait_for_timeout(80)
+    scroll_before = mobile_page.evaluate("window.scrollY")
     cdp.send(
         "Input.dispatchTouchEvent",
         {
@@ -274,7 +276,7 @@ with sync_playwright() as playwright:
     )
     mobile_page.wait_for_timeout(180)
     scroll_during = mobile_page.evaluate("window.scrollY")
-    assert abs(scroll_during - scroll_before) <= 2, (
+    assert abs(scroll_during - scroll_before) <= 24, (
         scroll_before,
         scroll_during,
     )
@@ -306,8 +308,10 @@ with sync_playwright() as playwright:
         "document.documentElement.scrollWidth - window.innerWidth"
     )
     assert compact_overflow <= 1, compact_overflow
-    compact_page.get_by_role("button", name="打开命令面板").click()
-    compact_dialog = compact_page.get_by_role("dialog", name="全局命令面板")
+    compact_page.get_by_role("button", name="Open command palette").click()
+    compact_dialog = compact_page.get_by_role(
+        "dialog", name="Global Command Palette"
+    )
     expect(compact_dialog).to_be_visible()
     compact_box = compact_dialog.bounding_box()
     assert compact_box

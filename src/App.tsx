@@ -17,6 +17,10 @@ import { PerformanceQualityNotice } from './components/layout/PerformanceQuality
 import { PerformanceTelemetryHud } from './components/layout/PerformanceTelemetryHud'
 import { VfxPresetSweep } from './components/layout/VfxPresetSweep'
 import { BentoGrid } from './components/bento/BentoGrid'
+import { DarkroomInspectorModal } from './components/gallery/DarkroomInspectorModal'
+import { GallerySection } from './components/gallery/GallerySection'
+import { GallerySharedCanvas } from './components/gallery/GallerySharedCanvas'
+import { OpticalTourDirector } from './components/gallery/OpticalTourDirector'
 import {
   SmoothScroll,
   useSmoothScroll,
@@ -25,30 +29,15 @@ import { SceneCanvas } from './components/canvas/SceneCanvas'
 import { ScrollArchitecture3D } from './components/canvas/ScrollArchitecture3D'
 import { FabrikCreature } from './components/sandbox/FabrikCreature'
 import { VerletLanyard } from './components/sandbox/VerletLanyard'
+import { LocalizedTextRoot } from './components/ui/LocalizedText'
 import { SHOWROOM_SECTIONS, type SectionId } from './data/sections'
 import { getAccentTheme } from './data/preferences'
 import { getVfxPreset } from './data/vfxPresets'
 import { useInterfaceSound } from './hooks/useInterfaceSound'
 import { usePerformanceTelemetry } from './hooks/usePerformanceTelemetry'
+import { useI18n } from './i18n/useI18n'
 import { useAppStore } from './store/useAppStore'
-
-const capabilities = [
-  {
-    index: '01',
-    title: '视觉工程',
-    description: 'WebGL、着色器、实时合成与性能预算。',
-  },
-  {
-    index: '02',
-    title: '交互设计',
-    description: '空间反馈、动效系统与清晰的操作路径。',
-  },
-  {
-    index: '03',
-    title: '前端架构',
-    description: 'React、TypeScript 与可持续演进的组件边界。',
-  },
-] as const
+import { soundEngine } from './utils/soundEngine'
 
 function ScrollLink({
   target,
@@ -91,6 +80,7 @@ function Hero({
   sectionRef: RefObject<HTMLElement | null>
 }) {
   const reducedMotion = useReducedMotion()
+  const { t } = useI18n()
 
   return (
     <section
@@ -102,40 +92,50 @@ function Hero({
       <div className="scanline absolute inset-0 opacity-35" />
       <div className="relative mx-auto w-full max-w-[1600px] px-5 pb-12 pt-32 sm:px-8 sm:pb-16 md:px-12 lg:pb-20">
         <motion.div
+          data-hero-content
           initial={reducedMotion ? false : { opacity: 0, y: 24 }}
           animate={{ opacity: 1, y: 0 }}
           transition={{ duration: 0.9, delay: 0.12, ease: [0.22, 1, 0.36, 1] }}
           className="max-w-[850px]"
         >
-          <div className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[11px] text-mist">
+          <div
+            data-hero-meta
+            className="mb-6 flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[11px] leading-[1.58] text-mist max-sm:h-[42px] max-sm:items-start max-sm:leading-[1.55] max-[359px]:h-[68px]"
+          >
             <span className="flex items-center gap-2 text-signal">
               <span className="status-pulse size-1.5 bg-signal" />
-              系统在线
+              {t.hero.systemOnline}
             </span>
             <span className="text-white/15">/</span>
-            <span>个人数字展厅</span>
+            <span>{t.hero.showroom}</span>
             <span className="text-white/15">/</span>
-            <span className="text-mist/65">实时观测中</span>
+            <span className="text-mist/65">{t.hero.observing}</span>
           </div>
 
-          <h1 className="max-w-[800px] text-[50px] font-medium leading-[0.98] text-frost sm:text-7xl md:text-8xl xl:text-[108px]">
-            让作品，
+          <h1 className="h-[197px] max-w-[800px] text-[50px] font-medium leading-[0.98] text-frost max-[359px]:h-[245px] sm:h-[213px] sm:text-7xl md:h-[377px] md:text-8xl lg:h-[284px] xl:h-[320px] xl:text-[108px]">
+            {t.hero.titleLineOne}
             <br />
-            在深空中显形。
+            {t.hero.titleLineTwo}
           </h1>
 
-          <div className="mt-8 max-w-xl border-l border-signal/35 pl-5 sm:mt-10">
+          <div
+            data-hero-description
+            className="mt-8 max-w-xl border-l border-signal/35 pl-5 max-sm:min-h-[112px] sm:mt-10"
+          >
             <p className="text-base leading-7 text-mist sm:text-lg sm:leading-8">
-              一个持续生长的个人数字展厅，收录交互实验、视觉系统与实时图形作品。
+              {t.hero.description}
             </p>
           </div>
 
-          <div className="mt-8 flex flex-wrap items-center gap-5 sm:mt-10">
+          <div
+            data-hero-actions
+            className="mt-8 flex flex-wrap items-center gap-5 max-sm:min-h-[92px] max-sm:flex-col max-sm:items-start max-sm:gap-4 sm:mt-10"
+          >
             <ScrollLink
               target="works"
               className="group inline-flex h-11 items-center gap-8 border border-signal/45 bg-signal/[0.06] px-5 text-sm text-frost transition-colors hover:border-signal hover:bg-signal/[0.11]"
             >
-              进入作品轨道
+              {t.hero.primaryCta}
               <ArrowDown
                 size={15}
                 className="text-signal transition-transform duration-300 group-hover:translate-y-0.5"
@@ -145,7 +145,7 @@ function Hero({
               target="archive"
               className="group inline-flex items-center gap-2 text-sm text-mist transition-colors hover:text-frost"
             >
-              查看能力档案
+              {t.hero.secondaryCta}
               <ArrowUpRight
                 size={14}
                 className="transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
@@ -156,17 +156,17 @@ function Hero({
 
         <div className="pointer-events-none absolute bottom-16 right-12 hidden w-60 border-t border-white/10 pt-3 font-mono text-[10px] text-mist/65 xl:block">
           <div className="mb-2 flex items-center justify-between">
-            <span>观测对象</span>
-            <span className="text-frost">记忆核心 / 01</span>
+            <span>{t.hero.objectLabel}</span>
+            <span className="text-frost">{t.hero.objectValue}</span>
           </div>
           <div className="flex items-center justify-between">
-            <span>渲染管线</span>
-            <span className="text-frost">WebGL / R3F</span>
+            <span>{t.hero.pipelineLabel}</span>
+            <span className="text-frost">{t.hero.pipelineValue}</span>
           </div>
         </div>
 
         <div className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 font-mono text-[9px] text-mist/50 sm:flex">
-          <span>向下探索</span>
+          <span>{t.hero.scrollCue}</span>
           <span className="h-8 w-px overflow-hidden bg-white/10">
             <span className="scroll-cue block h-3 w-px bg-signal" />
           </span>
@@ -177,23 +177,27 @@ function Hero({
 }
 
 function Works() {
+  const { t } = useI18n()
+
   return (
     <section
       id="works"
       className="relative z-10 border-t border-white/[0.07] bg-void/88 backdrop-blur-[2px]"
     >
       <div className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 sm:py-28 md:px-12 lg:py-32">
-        <div className="grid gap-10 border-b border-white/[0.08] pb-14 md:grid-cols-[1fr_1.25fr] md:items-end">
+        <div className="grid h-[322px] gap-10 border-b border-white/[0.08] pb-14 max-[359px]:h-[388px] sm:h-[292px] md:h-[347px] md:grid-cols-[1fr_1.25fr] md:items-end lg:h-[284px] xl:h-[284px] min-[1440px]:h-[221px]">
           <div>
-            <p className="mb-5 font-mono text-[11px] text-signal">项目预览</p>
+            <p className="mb-5 font-mono text-[11px] text-signal">
+              {t.works.eyebrow}
+            </p>
             <h2 className="text-4xl font-medium leading-[1.05] text-frost sm:text-5xl md:text-6xl">
-              作品是
+              {t.works.titleLineOne}
               <br />
-              接口的一种。
+              {t.works.titleLineTwo}
             </h2>
           </div>
           <p className="max-w-xl text-base leading-7 text-mist md:justify-self-end md:text-lg md:leading-8">
-            这里保留正在发生的研究与实验。每个项目都是一次对媒介边界的探测，也是进入展厅的下一层入口。
+            {t.works.description}
           </p>
         </div>
 
@@ -204,6 +208,8 @@ function Works() {
 }
 
 function Archive() {
+  const { t } = useI18n()
+
   return (
     <section
       id="archive"
@@ -211,19 +217,21 @@ function Archive() {
     >
       <div className="mx-auto grid max-w-[1600px] gap-14 px-5 py-20 sm:px-8 sm:py-28 md:px-12 lg:grid-cols-[1.15fr_1fr] lg:gap-24 lg:py-36">
         <div>
-          <p className="mb-5 font-mono text-[11px] text-amber">能力档案</p>
+          <p className="mb-5 font-mono text-[11px] text-amber">
+            {t.capabilities.eyebrow}
+          </p>
           <h2 className="max-w-3xl text-4xl font-medium leading-[1.06] text-frost sm:text-5xl md:text-7xl">
-            从界面到空间，
+            {t.capabilities.titleLineOne}
             <br />
-            保持同一种清晰。
+            {t.capabilities.titleLineTwo}
           </h2>
           <p className="mt-8 max-w-lg text-base leading-7 text-mist sm:text-lg sm:leading-8">
-            技术负责想象力落地，设计负责让每一次移动都有理由。两者在同一个系统里工作。
+            {t.capabilities.description}
           </p>
         </div>
 
         <div className="lg:pt-14">
-          {capabilities.map((capability) => (
+          {t.capabilities.items.map((capability) => (
             <div
               key={capability.index}
               className="grid grid-cols-[36px_1fr] gap-4 border-t border-white/10 py-6 sm:grid-cols-[52px_1fr] sm:gap-6"
@@ -243,7 +251,7 @@ function Archive() {
           ))}
           <div className="mt-4 flex items-center gap-3 font-mono text-[10px] text-mist/55">
             <span className="size-1 bg-signal" />
-            持续扩展中
+            {t.capabilities.expanding}
           </div>
         </div>
       </div>
@@ -252,28 +260,32 @@ function Archive() {
 }
 
 function Contact() {
+  const { t } = useI18n()
+
   return (
     <section
       id="contact"
       className="relative z-10 min-h-[78svh] border-t border-white/[0.07] bg-[#030507]/91 backdrop-blur-[1px]"
     >
       <div className="mx-auto flex min-h-[78svh] max-w-[1600px] flex-col justify-between px-5 pb-8 pt-20 sm:px-8 sm:pb-10 sm:pt-28 md:px-12 lg:pt-36">
-        <div className="grid gap-14 lg:grid-cols-[1fr_auto] lg:items-end">
-          <div>
-            <p className="mb-5 font-mono text-[11px] text-signal">连接通道</p>
+        <div className="grid min-w-0 gap-14 lg:grid-cols-[1fr_auto] lg:items-end">
+          <div className="min-w-0">
+            <p className="mb-5 font-mono text-[11px] text-signal">
+              {t.contact.eyebrow}
+            </p>
             <h2 className="max-w-5xl text-5xl font-medium leading-[0.98] text-frost sm:text-7xl md:text-8xl xl:text-[112px]">
-              下一种可能，
+              {t.contact.titleLineOne}
               <br />
-              从这里开始。
+              {t.contact.titleLineTwo}
             </h2>
             <p className="mt-8 max-w-lg text-base leading-7 text-mist sm:text-lg sm:leading-8">
-              如果你正在构建新的数字体验、空间叙事或实时视觉系统，欢迎发来信号。
+              {t.contact.description}
             </p>
           </div>
 
           <a
             href="mailto:hello@node01.design"
-            className="group inline-flex h-12 w-fit items-center gap-10 border border-amber/40 bg-amber/[0.055] px-5 text-sm text-frost transition-colors hover:border-amber hover:bg-amber/[0.1]"
+            className="group inline-flex h-12 max-w-full min-w-0 items-center gap-4 border border-amber/40 bg-amber/[0.055] px-4 text-sm text-frost transition-colors hover:border-amber hover:bg-amber/[0.1] sm:gap-10 sm:px-5"
           >
             <Mail size={15} className="text-amber" />
             hello@node01.design
@@ -285,11 +297,11 @@ function Contact() {
         </div>
 
         <footer className="mt-24 flex flex-col gap-5 border-t border-white/[0.08] pt-5 font-mono text-[10px] text-mist/45 sm:flex-row sm:items-center sm:justify-between">
-          <span>NODE/01 个人数字展厅</span>
+          <span>{t.footer.showroomName}</span>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
-            <span>Vite + React 19</span>
-            <span>WebGL / R3F</span>
-            <span>2026</span>
+            <span>{t.footer.framework}</span>
+            <span>{t.footer.renderer}</span>
+            <span>{t.footer.year}</span>
           </div>
         </footer>
       </div>
@@ -304,6 +316,13 @@ function App() {
   const vfxPreset = useAppStore((state) => state.vfxPreset)
 
   usePerformanceTelemetry()
+
+  useEffect(
+    () => () => {
+      soundEngine.dispose()
+    },
+    [],
+  )
 
   useEffect(() => {
     const theme = getAccentTheme(accentTheme)
@@ -363,24 +382,30 @@ function App() {
   }, [setActiveSection])
 
   return (
-    <SmoothScroll>
-      <SceneCanvas visibilityRef={heroRef} />
-      <div className="film-grain pointer-events-none fixed inset-0 z-[5]" />
-      <VfxPresetSweep />
-      <Navbar />
-      <CommandPalette />
-      <PerformanceQualityNotice />
-      <PerformanceTelemetryHud />
-      <main className="relative z-10">
-        <Hero sectionRef={heroRef} />
-        <Works />
-        <ScrollArchitecture3D />
-        <VerletLanyard />
-        <FabrikCreature />
-        <Archive />
-        <Contact />
-      </main>
-    </SmoothScroll>
+    <LocalizedTextRoot>
+      <SmoothScroll>
+        <SceneCanvas visibilityRef={heroRef} />
+        <GallerySharedCanvas />
+        <OpticalTourDirector />
+        <div className="film-grain pointer-events-none fixed inset-0 z-[5]" />
+        <VfxPresetSweep />
+        <Navbar />
+        <CommandPalette />
+        <PerformanceQualityNotice />
+        <PerformanceTelemetryHud />
+        <DarkroomInspectorModal />
+        <main className="relative z-10">
+          <Hero sectionRef={heroRef} />
+          <Works />
+          <GallerySection />
+          <ScrollArchitecture3D />
+          <VerletLanyard />
+          <FabrikCreature />
+          <Archive />
+          <Contact />
+        </main>
+      </SmoothScroll>
+    </LocalizedTextRoot>
   )
 }
 

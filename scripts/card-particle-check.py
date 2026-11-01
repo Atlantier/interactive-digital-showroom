@@ -60,7 +60,7 @@ with sync_playwright() as playwright:
     assert response is not None and response.ok
 
     page.locator(
-        'header nav[aria-label="展厅主导航"] a[href="#works"]'
+        'header nav[aria-label="Showroom primary navigation"] a[href="#works"]'
     ).click()
     page.wait_for_timeout(1_300)
     page.mouse.wheel(0, 320)
@@ -114,7 +114,7 @@ with sync_playwright() as playwright:
 
     vector_button = topology_card.get_by_role(
         "button",
-        name="向量",
+        name="Vector",
         exact=True,
     )
     pulse_overlay = page.locator("[data-bento-data-pulse]")

@@ -46,7 +46,7 @@ with sync_playwright() as playwright:
         args=["--autoplay-policy=user-gesture-required"],
     )
     context = browser.new_context(
-        viewport={"width": 1440, "height": 1000},
+        viewport={"width": 1600, "height": 1000},
         device_scale_factor=1,
     )
     page = context.new_page()
@@ -74,10 +74,12 @@ with sync_playwright() as playwright:
     page.goto(BASE_URL, wait_until="domcontentloaded")
     expect(page.locator("h1")).to_be_visible()
 
-    sound_toggle = page.get_by_role("button", name="开启界面音效")
+    sound_toggle = page.get_by_role(
+        "button", name="Enable interface audio"
+    )
     sound_toggle.click()
     expect(
-        page.get_by_role("button", name="关闭界面音效")
+        page.get_by_role("button", name="Mute interface audio")
     ).to_have_attribute("aria-pressed", "true")
     spectrum = page.locator("[data-audio-spectrum]")
     spectrum_bars = spectrum.locator("[data-spectrum-bar]")
@@ -195,7 +197,7 @@ with sync_playwright() as playwright:
     )
     assert all("scaleY" in transform for transform in bar_transforms)
     assert len(set(bar_transforms)) > 1, bar_transforms
-    page.locator("header").screenshot(
+    page.get_by_role("banner").screenshot(
         path=output_dir / "spectrum-active-header.png"
     )
 
@@ -283,10 +285,32 @@ with sync_playwright() as playwright:
     ).to_be_visible()
     page.screenshot(path=output_dir / "sound-architecture-trigger.png")
 
-    page.get_by_role("button", name="关闭界面音效").click()
+    page.get_by_role("button", name="Mute interface audio").click()
     page.wait_for_timeout(220)
     muted_level = float(spectrum.get_attribute("data-audio-level") or "1")
     assert muted_level == 0, muted_level
+
+    disposed_diagnostics = page.evaluate(
+        """
+        async () => {
+          const engineUrl = performance
+            .getEntriesByType("resource")
+            .map((entry) => entry.name)
+            .find((name) => name.includes("/src/utils/soundEngine.ts"))
+          const { soundEngine } = await import(
+            engineUrl || "/src/utils/soundEngine.ts"
+          )
+          soundEngine.dispose()
+          await new Promise((resolve) => setTimeout(resolve, 80))
+          return soundEngine.getDiagnostics()
+        }
+        """
+    )
+    assert disposed_diagnostics["initialized"] is False
+    assert disposed_diagnostics["state"] == "uninitialized"
+    assert disposed_diagnostics["analyserReady"] is False
+    assert disposed_diagnostics["stageAnalyserReady"] is False
+    assert disposed_diagnostics["arpeggiatorRunning"] is False
 
     context.close()
     browser.close()

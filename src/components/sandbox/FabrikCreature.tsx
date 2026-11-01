@@ -18,6 +18,11 @@ import {
 import { getVfxPreset } from '../../data/vfxPresets'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
 import {
+  formatTranslation,
+  useI18n,
+  type TranslationDictionary,
+} from '../../i18n/useI18n'
+import {
   recordPhysicsSolveTime,
   setParticleSourceCount,
 } from '../../store/performanceTelemetry'
@@ -44,6 +49,8 @@ type VfxPalette = Pick<
   ReturnType<typeof getVfxPreset>,
   'primary' | 'secondary' | 'tertiary'
 >
+type FabrikDrawCopy =
+  TranslationDictionary['sandbox']['fabrik']['draw']
 
 interface LaserState {
   startX: number
@@ -1057,6 +1064,7 @@ function drawArm(
   time: number,
   debug: boolean,
   palette: VfxPalette,
+  copy: FabrikDrawCopy,
 ) {
   const { base, joints } = scene
   drawScorchMarks(context, scene.scorches, time)
@@ -1287,19 +1295,28 @@ function drawArm(
       const joint = joints[index]
       context.fillStyle = 'rgba(230, 245, 247, 0.5)'
       context.font = '8px "JetBrains Mono Variable", monospace'
-      context.fillText(`J${index}`, joint.x + 13, joint.y - 9)
+      context.fillText(
+        formatTranslation(copy.joint, { index }),
+        joint.x + 13,
+        joint.y - 9,
+      )
     }
 
     context.fillStyle = palette.primary
     context.font = '9px "JetBrains Mono Variable", monospace'
     context.fillText(
-      `FABRIK ERROR ${scene.result.error.toFixed(2)} PX`,
+      formatTranslation(copy.error, {
+        error: scene.result.error.toFixed(2),
+      }),
       22,
       118,
     )
     context.fillStyle = 'rgba(230, 245, 247, 0.42)'
     context.fillText(
-      `${scene.result.iterations} / 12 ITERATIONS`,
+      formatTranslation(copy.iterations, {
+        current: scene.result.iterations,
+        max: 12,
+      }),
       22,
       133,
     )
@@ -1308,7 +1325,12 @@ function drawArm(
   context.fillStyle = 'rgba(230, 245, 247, 0.36)'
   context.font = '8px "JetBrains Mono Variable", monospace'
   context.fillText(
-    `ARM-06  ${Math.sin(time * 1.4) > 0 ? 'TRACKING' : 'LOCKED'}`,
+    formatTranslation(copy.armState, {
+      state:
+        Math.sin(time * 1.4) > 0
+          ? copy.tracking
+          : copy.locked,
+    }),
     base.x - 34,
     base.y + 48,
   )
@@ -1556,6 +1578,7 @@ function drawQuadruped(
   time: number,
   debug: boolean,
   palette: VfxPalette,
+  copy: FabrikDrawCopy,
 ) {
   drawGroundRipples(context, scene, palette)
   drawSpine(context, scene.spine, scene.bodyRadius, time, palette)
@@ -1666,19 +1689,28 @@ function drawQuadruped(
     context.fillStyle = palette.primary
     context.font = '9px "JetBrains Mono Variable", monospace'
     context.fillText(
-      `2-BONE IK ERROR ${scene.maxLegError.toFixed(2)} PX`,
+      formatTranslation(copy.legError, {
+        error: scene.maxLegError.toFixed(2),
+      }),
       22,
       118,
     )
     context.fillStyle = 'rgba(230, 245, 247, 0.42)'
     context.fillText(
-      `${scene.maxLegIterations} / 9 ITERATIONS`,
+      formatTranslation(copy.legIterations, {
+        current: scene.maxLegIterations,
+        max: 9,
+      }),
       22,
       133,
     )
     context.fillStyle = 'rgba(230, 245, 247, 0.34)'
     context.fillText(
-      `SPINE ${SPINE_NODE_COUNT}  TROT ${scene.gaitGroup === 0 ? 'A' : 'B'}  ${scene.gaitPhase.toUpperCase()}`,
+      formatTranslation(copy.gait, {
+        spine: SPINE_NODE_COUNT,
+        group: scene.gaitGroup === 0 ? 'A' : 'B',
+        phase: copy.gaitStates[scene.gaitPhase],
+      }),
       22,
       148,
     )
@@ -1686,6 +1718,7 @@ function drawQuadruped(
 }
 
 export function FabrikCreature() {
+  const { t } = useI18n()
   const [mode, setMode] = useState<IKMode>('arm')
   const [showDebug, setShowDebug] = useState(false)
   const soundEnabled = useAppStore((state) => state.soundEnabled)
@@ -1699,6 +1732,7 @@ export function FabrikCreature() {
   const debugRef = useRef(showDebug)
   const soundEnabledRef = useRef(soundEnabled)
   const vfxPaletteRef = useRef<VfxPalette>(vfxPalette)
+  const fabrikCopyRef = useRef(t.sandbox.fabrik)
   const rebuildRef = useRef<() => void>(() => undefined)
   const resumeAnimationRef = useRef<() => void>(() => undefined)
   const reducedMotion = Boolean(useReducedMotion())
@@ -1707,6 +1741,7 @@ export function FabrikCreature() {
   debugRef.current = showDebug
   soundEnabledRef.current = soundEnabled
   vfxPaletteRef.current = vfxPalette
+  fabrikCopyRef.current = t.sandbox.fabrik
 
   useEffect(() => {
     inViewRef.current = inView
@@ -2070,6 +2105,7 @@ export function FabrikCreature() {
           time,
           debugRef.current,
           vfxPaletteRef.current,
+          fabrikCopyRef.current.draw,
         )
         stage.dataset.fabrikError = scene.result.error.toFixed(2)
         stage.dataset.fabrikIterations = String(scene.result.iterations)
@@ -2095,6 +2131,7 @@ export function FabrikCreature() {
           time,
           debugRef.current,
           vfxPaletteRef.current,
+          fabrikCopyRef.current.draw,
         )
         stage.dataset.fabrikError = scene.maxLegError.toFixed(2)
         stage.dataset.fabrikIterations = String(
@@ -2163,6 +2200,7 @@ export function FabrikCreature() {
           performance.now() / 1_000,
           debugRef.current,
           vfxPaletteRef.current,
+          fabrikCopyRef.current.draw,
         )
       } else {
         drawQuadruped(
@@ -2171,6 +2209,7 @@ export function FabrikCreature() {
           performance.now() / 1_000,
           debugRef.current,
           vfxPaletteRef.current,
+          fabrikCopyRef.current.draw,
         )
       }
       particlePool.clear()
@@ -2228,28 +2267,28 @@ export function FabrikCreature() {
       className="relative z-10 overflow-hidden border-t border-white/[0.07] bg-[#04070a]/93 backdrop-blur-[2px]"
     >
       <div className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:py-28">
-        <div className="grid gap-8 border-b border-white/[0.08] pb-10 md:grid-cols-[1.1fr_0.9fr] md:items-end md:pb-12">
+        <div className="grid h-[386px] gap-8 border-b border-white/[0.08] pb-10 max-[359px]:h-[469px] sm:h-[423px] md:h-[453px] md:grid-cols-[1.1fr_0.9fr] md:items-end md:pb-12 lg:h-[391px] xl:h-[453px] min-[1360px]:h-[379px]">
           <div>
             <p className="mb-5 font-mono text-[10px] tracking-[0.16em] text-signal">
-              程序化运动实验室 / 05
+              {t.sandbox.fabrik.eyebrow}
             </p>
             <h2
               id="fabrik-title"
               className="max-w-4xl text-4xl font-medium leading-[1.02] text-frost sm:text-5xl md:text-6xl xl:text-7xl"
             >
-              骨架不是形状，
+              {t.sandbox.fabrik.titleLineOne}
               <br />
-              是一组求解结果。
+              {t.sandbox.fabrik.titleLineTwo}
             </h2>
           </div>
           <div className="max-w-xl md:justify-self-end">
             <p className="text-sm leading-6 text-mist sm:text-base sm:leading-7">
-              FABRIK 将目标反推为骨骼姿态，角度锥限制非自然折叠。四足形态在此之上叠加转向、落脚阈值与交替步态。
+              {t.sandbox.fabrik.description}
             </p>
             <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[9px] text-mist/45">
-              <span>FABRIK / 12 ITERATIONS</span>
-              <span>ANGLE CONES</span>
-              <span>2-BONE GAIT</span>
+              {t.sandbox.fabrik.techTags.map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
             </div>
           </div>
         </div>
@@ -2295,14 +2334,14 @@ export function FabrikCreature() {
           />
 
           <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex flex-wrap items-start justify-between gap-3 sm:inset-x-5 sm:top-4">
-            <div className="flex items-center gap-2 rounded border border-white/[0.08] bg-black/25 px-2.5 py-2 font-mono text-[8px] text-mist/55 backdrop-blur-md">
+            <div className="flex min-w-[180px] items-center gap-2 rounded border border-white/[0.08] bg-black/25 px-2.5 py-2 font-mono text-[8px] text-mist/55 backdrop-blur-md sm:min-w-[220px]">
               {mode === 'arm' ? (
                 <Cpu size={12} strokeWidth={1.5} className="text-signal" />
               ) : (
                 <Box size={12} strokeWidth={1.5} className="text-amber" />
               )}
-              <span className="text-frost/80">
-                {mode === 'arm' ? 'SIX-AXIS KINEMATICS' : 'QUADRUPED GAIT'}
+              <span data-localized-motion className="text-frost/80">
+                {t.sandbox.fabrik.state[mode]}
               </span>
               <span className="hidden size-1 bg-signal sm:block" />
             </div>
@@ -2310,7 +2349,7 @@ export function FabrikCreature() {
             <div className="pointer-events-auto flex flex-wrap items-center justify-end gap-2">
               <div
                 role="group"
-                aria-label="IK 形态切换"
+                aria-label={t.sandbox.fabrik.modeGroupAria}
                 className="flex rounded border border-white/10 bg-black/30 p-1 backdrop-blur-md"
               >
                 <button
@@ -2321,14 +2360,14 @@ export function FabrikCreature() {
                     playActivate()
                     setMode('arm')
                   }}
-                  className={`inline-flex h-7 items-center gap-1.5 rounded-[3px] px-2.5 font-mono text-[8px] transition-colors ${
+                  className={`inline-flex h-7 min-w-[64px] items-center justify-center gap-1.5 rounded-[3px] px-2.5 font-mono text-[8px] transition-colors ${
                     mode === 'arm'
                       ? 'bg-signal/12 text-signal'
                       : 'text-mist/55 hover:text-frost'
                   }`}
                 >
                   <Cpu size={11} strokeWidth={1.6} />
-                  6-AXIS
+                  {t.sandbox.fabrik.modes.arm}
                 </button>
                 <button
                   type="button"
@@ -2338,18 +2377,18 @@ export function FabrikCreature() {
                     playActivate()
                     setMode('quadruped')
                   }}
-                  className={`inline-flex h-7 items-center gap-1.5 rounded-[3px] px-2.5 font-mono text-[8px] transition-colors ${
+                  className={`inline-flex h-7 min-w-[64px] items-center justify-center gap-1.5 rounded-[3px] px-2.5 font-mono text-[8px] transition-colors ${
                     mode === 'quadruped'
                       ? 'bg-amber/12 text-amber'
                       : 'text-mist/55 hover:text-frost'
                   }`}
                 >
                   <Box size={11} strokeWidth={1.6} />
-                  4-LEG
+                  {t.sandbox.fabrik.modes.quadruped}
                 </button>
               </div>
 
-              <label className="flex h-9 cursor-pointer items-center gap-2 rounded border border-white/10 bg-black/30 px-2.5 font-mono text-[8px] text-mist/65 backdrop-blur-md transition-colors hover:text-frost">
+              <label className="flex h-9 min-w-[96px] cursor-pointer items-center justify-center gap-2 rounded border border-white/10 bg-black/30 px-2.5 font-mono text-[8px] text-mist/65 backdrop-blur-md transition-colors hover:text-frost sm:min-w-[128px]">
                 <input
                   type="checkbox"
                   checked={showDebug}
@@ -2357,19 +2396,23 @@ export function FabrikCreature() {
                     playActivate()
                     setShowDebug(event.target.checked)
                   }}
-                  aria-label="Show IK Vectors"
+                  aria-label={t.sandbox.fabrik.debug.aria}
                   className="size-3"
                   style={{ accentColor: vfxPalette.secondary }}
                 />
                 <Crosshair size={11} strokeWidth={1.6} />
-                <span className="hidden sm:inline">Show IK Vectors</span>
-                <span className="sm:hidden">Vectors</span>
+                <span className="hidden sm:inline">
+                  {t.sandbox.fabrik.debug.long}
+                </span>
+                <span className="sm:hidden">
+                  {t.sandbox.fabrik.debug.short}
+                </span>
               </label>
 
               <button
                 type="button"
-                aria-label="重置 IK 场景"
-                title="重置 IK 场景"
+                aria-label={t.sandbox.fabrik.reset.aria}
+                title={t.sandbox.fabrik.reset.title}
                 onClick={() => {
                   playActivate()
                   rebuildRef.current()
@@ -2384,10 +2427,11 @@ export function FabrikCreature() {
           <canvas
             ref={canvasRef}
             data-fabrik-canvas
+            data-locale-canvas
             aria-label={
               mode === 'arm'
-                ? '六轴机械臂 FABRIK 互动画布，点击发射激光'
-                : '程序化步态四足 FABRIK 互动画布'
+                ? t.sandbox.fabrik.canvasAria.arm
+                : t.sandbox.fabrik.canvasAria.quadruped
             }
             className="absolute inset-0 size-full cursor-crosshair"
           />
@@ -2400,8 +2444,10 @@ export function FabrikCreature() {
           <div className="pointer-events-none absolute bottom-3 left-4 z-30 flex items-center gap-4 font-mono text-[8px] text-mist/38 sm:bottom-4 sm:left-5">
             <span className="flex items-center gap-1.5">
               <Gauge size={10} strokeWidth={1.5} />
-              FABRIK
-              <span className="text-frost/65">12×</span>
+              {t.sandbox.fabrik.telemetry.solver}
+              <span className="text-frost/65">
+                {t.sandbox.fabrik.telemetry.solverPasses}
+              </span>
             </span>
             <span className="hidden items-center gap-1.5 sm:flex">
               {mode === 'arm' ? (
@@ -2409,11 +2455,11 @@ export function FabrikCreature() {
               ) : (
                 <MousePointer2 size={10} strokeWidth={1.5} />
               )}
-              {mode === 'arm' ? 'CLICK TO PULSE' : 'STEERING ACTIVE'}
+              {t.sandbox.fabrik.action[mode]}
             </span>
           </div>
           <span className="pointer-events-none absolute bottom-3 right-4 z-30 font-mono text-[8px] text-mist/30 sm:bottom-4 sm:right-5">
-            KINETIC CORE / 05
+            {t.sandbox.fabrik.action.core}
           </span>
         </div>
       </div>

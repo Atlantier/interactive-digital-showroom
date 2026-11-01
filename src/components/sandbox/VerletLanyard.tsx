@@ -22,6 +22,10 @@ import { getVfxPreset } from '../../data/vfxPresets'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
 import { getGravityMode } from '../../data/preferences'
 import {
+  formatTranslation,
+  useI18n,
+} from '../../i18n/useI18n'
+import {
   recordPhysicsSolveTime,
   setParticleSourceCount,
 } from '../../store/performanceTelemetry'
@@ -68,10 +72,11 @@ type VfxPalette = Pick<
 >
 
 interface BadgeSpec {
-  id: string
-  eyebrow: string
-  title: string
-  subtitle: string
+  id:
+    | 'ai-architecture'
+    | 'rust-systems'
+    | 'webgl-shaders'
+    | 'distributed-cloud'
   accent: string
   icon: LucideIcon
 }
@@ -79,33 +84,21 @@ interface BadgeSpec {
 const BADGE_SPECS: readonly BadgeSpec[] = [
   {
     id: 'ai-architecture',
-    eyebrow: 'SYSTEMS / 01',
-    title: 'AI Architecture',
-    subtitle: 'Inference topology',
     accent: '#72e6ff',
     icon: Network,
   },
   {
     id: 'rust-systems',
-    eyebrow: 'SYSTEMS / 02',
-    title: 'Rust & Systems',
-    subtitle: 'Zero-cost runtime',
     accent: '#f2b35e',
     icon: Cpu,
   },
   {
     id: 'webgl-shaders',
-    eyebrow: 'SYSTEMS / 03',
-    title: 'WebGL Shaders',
-    subtitle: 'Realtime graphics',
     accent: '#a78bfa',
     icon: Box,
   },
   {
     id: 'distributed-cloud',
-    eyebrow: 'SYSTEMS / 04',
-    title: 'Distributed Cloud',
-    subtitle: 'Elastic fabric',
     accent: '#10b981',
     icon: Cloud,
   },
@@ -422,6 +415,7 @@ function setSandboxDragLock(stage: HTMLDivElement, active: boolean) {
 }
 
 export function VerletLanyard() {
+  const { t } = useI18n()
   const soundEnabled = useAppStore((state) => state.soundEnabled)
   const gravityMode = useAppStore((state) => state.gravityMode)
   const vfxPreset = useAppStore((state) => state.vfxPreset)
@@ -458,6 +452,7 @@ export function VerletLanyard() {
   const gravityRef = useRef(gravitySetting.gravity)
   const lenisRef = useRef(lenis)
   const vfxPaletteRef = useRef<VfxPalette>(vfxPalette)
+  const verletCopyRef = useRef(t.sandbox.verlet)
   const reducedMotion = Boolean(useReducedMotion())
   const windAmplitude = reducedMotion ? 8 : WIND_AMPLITUDE
   const inView = useInViewAnimation(stageRef)
@@ -466,6 +461,7 @@ export function VerletLanyard() {
   gravityRef.current = gravitySetting.gravity
   lenisRef.current = lenis
   vfxPaletteRef.current = vfxPalette
+  verletCopyRef.current = t.sandbox.verlet
 
   useEffect(() => {
     inViewRef.current = inView
@@ -901,13 +897,13 @@ export function VerletLanyard() {
       }
 
       if (detachedCount > 0) {
-        setStatus('RUPTURE DETECTED')
+        setStatus(verletCopyRef.current.status.ruptureDetected)
       } else if (maximumTension > 0.62) {
-        setStatus('TENSION OVERLOAD')
+        setStatus(verletCopyRef.current.status.tensionOverload)
       } else if (activeDragRef.current) {
-        setStatus('TENSION APPLIED')
+        setStatus(verletCopyRef.current.status.tensionApplied)
       } else {
-        setStatus('SYSTEM NOMINAL')
+        setStatus(verletCopyRef.current.status.nominal)
       }
     }
 
@@ -1055,7 +1051,7 @@ export function VerletLanyard() {
         'data-dragging',
         'false',
       )
-      setStatus('RUPTURE DETECTED')
+      setStatus(verletCopyRef.current.status.ruptureDetected)
       if (soundEnabledRef.current) {
         soundEngine.playRopeSnap()
       }
@@ -1577,7 +1573,10 @@ export function VerletLanyard() {
         ]
       endpoint.pinned = true
     }
-    if (statusRef.current) statusRef.current.textContent = 'TENSION APPLIED'
+    if (statusRef.current) {
+      statusRef.current.textContent =
+        t.sandbox.verlet.status.tensionApplied
+    }
   }
 
   const handlePointerMove = (
@@ -1654,29 +1653,28 @@ export function VerletLanyard() {
       className="relative z-10 overflow-hidden border-t border-white/[0.07] bg-[#04070a]/92 backdrop-blur-[2px]"
     >
       <div className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:py-28">
-        <div className="grid gap-8 border-b border-white/[0.08] pb-10 md:grid-cols-[1.15fr_0.85fr] md:items-end md:pb-12">
+        <div className="grid h-[325px] gap-8 border-b border-white/[0.08] pb-10 max-[359px]:h-[372px] md:h-[391px] md:grid-cols-[1.15fr_0.85fr] md:items-end md:pb-12 lg:h-[306px] min-[1600px]:h-[232px]">
           <div>
             <p className="mb-5 font-mono text-[10px] tracking-[0.16em] text-signal">
-              交互物理沙盒 / 04
+              {t.sandbox.verlet.eyebrow}
             </p>
             <h2
               id="sandbox-title"
               className="max-w-4xl text-4xl font-medium leading-[1.02] text-frost sm:text-5xl md:text-6xl xl:text-7xl"
             >
-              把身份，
+              {t.sandbox.verlet.titleLineOne}
               <br />
-              交给约束求解。
+              {t.sandbox.verlet.titleLineTwo}
             </h2>
           </div>
           <div className="max-w-xl md:justify-self-end">
             <p className="text-sm leading-6 text-mist sm:text-base sm:leading-7">
-              四组工牌共享同一套 Verlet 绳链、角动量与 OBB
-              碰撞场。每一次拉伸都会累积真实张力，直到结构失效。
+              {t.sandbox.verlet.description}
             </p>
             <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[9px] text-mist/45">
-              <span>12 SOLVER PASSES</span>
-              <span>FRAME-LOCKED PHYSICS</span>
-              <span>OBB CONTACT</span>
+              {t.sandbox.verlet.techTags.map((tag) => (
+                <span key={tag}>{tag}</span>
+              ))}
             </div>
           </div>
         </div>
@@ -1732,7 +1730,7 @@ export function VerletLanyard() {
           />
 
           <div className="pointer-events-none absolute inset-x-3 top-3 z-40 flex items-start justify-between gap-3 sm:inset-x-5 sm:top-4">
-            <div className="flex min-w-0 items-center gap-2 rounded border border-white/[0.08] bg-black/20 px-2.5 py-2 font-mono text-[8px] text-mist/55 backdrop-blur-md">
+            <div className="flex min-w-[160px] items-center gap-2 rounded border border-white/[0.08] bg-black/20 px-2.5 py-2 font-mono text-[8px] text-mist/55 backdrop-blur-md sm:min-w-[240px]">
               <Wind
                 size={12}
                 strokeWidth={1.5}
@@ -1741,13 +1739,14 @@ export function VerletLanyard() {
               <span
                 ref={statusRef}
                 data-sandbox-status
+                data-localized-motion
                 className="truncate text-frost/80"
               >
-                SYSTEM NOMINAL
+                {t.sandbox.verlet.status.nominal}
               </span>
               <span className="h-3 w-px bg-white/10" />
               <span className="hidden text-signal/65 md:inline">
-                {gravitySetting.subtitle}
+                {t.gravityModes[gravityMode].subtitle}
               </span>
               <span
                 data-sandbox-status-dot
@@ -1757,8 +1756,8 @@ export function VerletLanyard() {
             <button
               type="button"
               data-reforge-lanyards
-              aria-label="一键重连恢复（Re-forge Lanyards）"
-              title="一键重连恢复（Re-forge Lanyards）"
+              aria-label={t.sandbox.verlet.reforge.aria}
+              title={t.sandbox.verlet.reforge.title}
               onClick={() => {
                 if (soundEnabled) {
                   void soundEngine.unlock()
@@ -1766,11 +1765,15 @@ export function VerletLanyard() {
                 }
                 rebuildRef.current()
               }}
-              className="pointer-events-auto inline-flex h-9 shrink-0 items-center gap-2 rounded border border-signal/30 bg-signal/[0.07] px-3 font-mono text-[9px] text-frost transition-colors hover:border-signal/55 hover:bg-signal/[0.12]"
+              className="pointer-events-auto inline-flex h-9 min-w-[82px] shrink-0 items-center justify-center gap-2 rounded border border-signal/30 bg-signal/[0.07] px-3 font-mono text-[9px] text-frost transition-colors hover:border-signal/55 hover:bg-signal/[0.12] sm:min-w-[142px]"
             >
               <RefreshCw size={12} strokeWidth={1.7} />
-              <span className="hidden sm:inline">Re-forge Lanyards</span>
-              <span className="sm:hidden">Re-forge</span>
+              <span className="hidden sm:inline">
+                {t.sandbox.verlet.reforge.long}
+              </span>
+              <span className="sm:hidden">
+                {t.sandbox.verlet.reforge.short}
+              </span>
             </button>
           </div>
 
@@ -2009,6 +2012,7 @@ export function VerletLanyard() {
 
           {BADGE_SPECS.map((spec, index) => {
             const Icon = spec.icon
+            const badgeCopy = t.sandbox.verlet.badges[spec.id]
             return (
               <button
                 key={spec.id}
@@ -2019,8 +2023,14 @@ export function VerletLanyard() {
                 data-verlet-badge={spec.id}
                 data-dragging="false"
                 data-detached="false"
-                aria-label={`拖拽 ${spec.title} 工牌`}
-                title={`拖拽 ${spec.title} 工牌`}
+                aria-label={formatTranslation(
+                  t.sandbox.verlet.dragBadge,
+                  { badge: badgeCopy.title },
+                )}
+                title={formatTranslation(
+                  t.sandbox.verlet.dragBadge,
+                  { badge: badgeCopy.title },
+                )}
                 onPointerDown={(event) =>
                   handleBadgePointerDown(index, event)
                 }
@@ -2053,16 +2063,16 @@ export function VerletLanyard() {
                     />
                   </span>
                   <span className="font-mono text-[5px] text-mist/35 sm:text-[7px]">
-                    {spec.eyebrow}
+                    {badgeCopy.eyebrow}
                   </span>
                 </span>
 
                 <span className="mt-auto min-w-0">
                   <span className="block text-[9px] font-medium leading-[1.05] text-frost sm:text-[13px]">
-                    {spec.title}
+                    {badgeCopy.title}
                   </span>
                   <span className="mt-1 hidden font-mono text-[6px] text-mist/45 sm:block">
-                    {spec.subtitle}
+                    {badgeCopy.subtitle}
                   </span>
                 </span>
 
@@ -2084,21 +2094,21 @@ export function VerletLanyard() {
           <div className="pointer-events-none absolute bottom-2 left-3 z-40 flex items-center gap-4 font-mono text-[8px] text-mist/38 sm:left-5">
             <span className="flex items-center gap-1.5">
               <Gauge size={10} strokeWidth={1.5} />
-              STRAIN
+              {t.sandbox.verlet.telemetry.strain}
               <span ref={strainRef} data-sandbox-strain className="text-frost/65">
                 0.00x
               </span>
             </span>
             <span className="hidden items-center gap-1.5 sm:flex">
               <Link2Off size={10} strokeWidth={1.5} />
-              CONTACTS
+              {t.sandbox.verlet.telemetry.contacts}
               <span ref={contactRef} className="text-frost/65">
                 0
               </span>
             </span>
           </div>
           <span className="pointer-events-none absolute bottom-2 right-3 z-40 font-mono text-[8px] text-mist/30 sm:right-5">
-            VERLET / 12×
+            {t.sandbox.verlet.telemetry.solver}
           </span>
         </div>
       </div>

@@ -3,6 +3,7 @@ import { useEffect, useState, type RefObject } from 'react'
 interface UseInViewAnimationOptions {
   rootMargin?: string
   threshold?: number
+  enabled?: boolean
 }
 
 export function useInViewAnimation<T extends HTMLElement>(
@@ -10,11 +11,16 @@ export function useInViewAnimation<T extends HTMLElement>(
   {
     rootMargin = '0px',
     threshold = 0.01,
+    enabled = true,
   }: UseInViewAnimationOptions = {},
 ) {
   const [inView, setInView] = useState(false)
 
   useEffect(() => {
+    if (!enabled) {
+      setInView(false)
+      return
+    }
     const element = ref.current
     if (!element) return
 
@@ -38,7 +44,7 @@ export function useInViewAnimation<T extends HTMLElement>(
       observer.disconnect()
       delete element.dataset.inViewAnimation
     }
-  }, [ref, rootMargin, threshold])
+  }, [enabled, ref, rootMargin, threshold])
 
   return inView
 }

@@ -1,10 +1,17 @@
 import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Gauge, X } from 'lucide-react'
 import { useEffect } from 'react'
+import { useI18n } from '../../i18n/useI18n'
 import { useAppStore } from '../../store/useAppStore'
+import { useGalleryStore } from '../../store/useGalleryStore'
 
 export function PerformanceQualityNotice() {
+  const { t } = useI18n()
   const visible = useAppStore((state) => state.qualityNoticeVisible)
+  const tourActive = useGalleryStore((state) => state.isTourActive)
+  const cinemaCleanView = useGalleryStore(
+    (state) => state.cinemaCleanView,
+  )
   const dismiss = useAppStore((state) => state.dismissQualityNotice)
   const reducedMotion = useReducedMotion()
 
@@ -16,7 +23,7 @@ export function PerformanceQualityNotice() {
 
   return (
     <AnimatePresence>
-      {visible ? (
+      {visible && !tourActive && !cinemaCleanView ? (
         <motion.aside
           data-performance-quality-notice
           role="status"
@@ -32,19 +39,19 @@ export function PerformanceQualityNotice() {
           </span>
           <div className="min-w-0">
             <p className="text-[9px] tracking-[0.15em] text-amber">
-              ADAPTIVE QUALITY
+              {t.qualityNotice.eyebrow}
             </p>
             <p className="mt-1.5 text-[11px] leading-5 text-frost/85">
-              渲染负载持续低于 45 FPS，已切换至平衡画质。
+              {t.qualityNotice.message}
             </p>
             <p className="mt-1 text-[8px] leading-4 text-mist/40">
-              DPR 1.0 / 4,000 PARTICLES / POST FX REDUCED
+              {t.qualityNotice.details}
             </p>
           </div>
           <button
             type="button"
-            aria-label="关闭画质提示"
-            title="关闭画质提示"
+            aria-label={t.qualityNotice.close}
+            title={t.qualityNotice.close}
             onClick={dismiss}
             className="ml-1 grid size-6 shrink-0 place-items-center text-mist/40 transition-colors hover:text-frost"
           >

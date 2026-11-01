@@ -2,7 +2,7 @@ import { useCallback } from 'react'
 import { useAppStore } from '../store/useAppStore'
 import { soundEngine } from '../utils/soundEngine'
 
-type SoundKind = 'hover' | 'navigate' | 'toggle'
+type SoundKind = 'hover' | 'navigate' | 'toggle' | 'localeConfirm'
 
 export function useInterfaceSound() {
   const soundEnabled = useAppStore((state) => state.soundEnabled)
@@ -15,6 +15,8 @@ export function useInterfaceSound() {
       void soundEngine.unlock()
       if (kind === 'hover') {
         soundEngine.playHoverTick()
+      } else if (kind === 'localeConfirm') {
+        soundEngine.playLocaleConfirm()
       } else {
         soundEngine.playCardActivate()
       }

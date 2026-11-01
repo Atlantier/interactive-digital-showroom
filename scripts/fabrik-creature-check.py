@@ -79,7 +79,7 @@ with sync_playwright() as playwright:
     collect_errors(page)
     page.goto(BASE_URL, wait_until="domcontentloaded")
     expect(page.locator("h1")).to_be_visible()
-    page.get_by_role("button", name="开启界面音效").click()
+    page.get_by_role("button", name="Enable interface audio").click()
     page.wait_for_timeout(120)
     scroll_to_kinetics(page)
 

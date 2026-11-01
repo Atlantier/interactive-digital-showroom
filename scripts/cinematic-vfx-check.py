@@ -181,8 +181,8 @@ with sync_playwright() as playwright:
 
     page.keyboard.press("Control+K")
     expect(page.locator("[data-command-palette]")).to_be_visible()
-    search = page.get_by_role("combobox", name="搜索命令")
-    search.fill("量子幻影")
+    search = page.get_by_role("combobox", name="Search commands")
+    search.fill("quantum violet")
     command = page.locator(
         '[data-command-id="vfx-quantum-violet"]'
     )
@@ -256,7 +256,7 @@ with sync_playwright() as playwright:
     page.set_viewport_size({"width": 390, "height": 844})
     page.evaluate("window.scrollTo(0, 0)")
     page.wait_for_timeout(350)
-    page.get_by_role("button", name="打开导航菜单").click()
+    page.get_by_role("button", name="Open navigation menu").click()
     mobile_preset = page.locator(
         '#mobile-navigation [data-vfx-preset-option="emerald-cyber"]'
     )

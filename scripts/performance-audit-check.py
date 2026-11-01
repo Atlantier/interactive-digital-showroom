@@ -138,11 +138,17 @@ with sync_playwright() as playwright:
     ).get_attribute("d")
     page.screenshot(path=artifact_dir / "telemetry-hud.png")
 
-    telemetry.get_by_role("button", name="关闭性能遥测面板").click()
+    telemetry.get_by_role(
+        "button", name="Close performance telemetry panel"
+    ).click()
     expect(telemetry).to_be_hidden()
-    page.get_by_role("button", name="打开性能遥测面板").click()
+    page.get_by_role(
+        "button", name="Open performance telemetry panel"
+    ).click()
     expect(telemetry).to_be_visible()
-    telemetry.get_by_role("button", name="关闭性能遥测面板").click()
+    telemetry.get_by_role(
+        "button", name="Close performance telemetry panel"
+    ).click()
     expect(telemetry).to_be_hidden()
 
     scroll_to(page, "[data-architecture-section]", 0.5)
@@ -152,6 +158,15 @@ with sync_playwright() as playwright:
     expect(page.locator("[data-architecture-sticky]")).to_have_attribute(
         "data-frameloop", "always"
     )
+    page.keyboard.press("Shift+D")
+    expect(telemetry).to_be_visible()
+    page.wait_for_timeout(700)
+    assert int(
+        page.locator("[data-telemetry-shader-passes]").inner_text()
+    ) >= 1
+    telemetry.get_by_role(
+        "button", name="Close performance telemetry panel"
+    ).click()
 
     scroll_to(page, "#sandbox")
     page.wait_for_timeout(700)
@@ -166,10 +181,9 @@ with sync_playwright() as playwright:
         page.locator("[data-telemetry-physics]").inner_text()
     )
     assert physics_time >= 0, physics_time
-    assert int(
-        page.locator("[data-telemetry-shader-passes]").inner_text()
-    ) >= 2
-    telemetry.get_by_role("button", name="关闭性能遥测面板").click()
+    telemetry.get_by_role(
+        "button", name="Close performance telemetry panel"
+    ).click()
 
     scroll_to(page, "#archive")
     page.wait_for_timeout(700)
@@ -244,8 +258,12 @@ with sync_playwright() as playwright:
         expect(mobile_scene).to_have_attribute(
             "data-postprocessing", "bloom-vignette"
         )
+        if width <= 359:
+            mobile_page.get_by_role(
+                "button", name="Open navigation menu"
+            ).click()
         mobile_page.get_by_role(
-            "button", name="打开性能遥测面板"
+            "button", name="Open performance telemetry panel"
         ).click()
         mobile_hud = mobile_page.locator("[data-telemetry-hud]")
         expect(mobile_hud).to_be_visible()

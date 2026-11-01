@@ -4,7 +4,9 @@ import {
   Cpu,
   Gauge,
   Layers3,
+  Orbit,
   Palette,
+  ScanEye,
   Timer,
   X,
 } from 'lucide-react'
@@ -14,7 +16,9 @@ import {
   readPerformanceTelemetry,
 } from '../../store/performanceTelemetry'
 import { useAppStore } from '../../store/useAppStore'
+import { useGalleryStore } from '../../store/useGalleryStore'
 import { getVfxPreset } from '../../data/vfxPresets'
+import { useI18n } from '../../i18n/useI18n'
 
 const GRAPH_WIDTH = 280
 const GRAPH_HEIGHT = 52
@@ -31,10 +35,14 @@ function isEditableTarget(target: EventTarget | null) {
 }
 
 export function PerformanceTelemetryHud() {
+  const { t } = useI18n()
   const open = useAppStore((state) => state.telemetryOpen)
   const performanceTier = useAppStore((state) => state.performanceTier)
   const vfxPreset = useAppStore((state) => state.vfxPreset)
   const setTelemetryOpen = useAppStore((state) => state.setTelemetryOpen)
+  const activeExhibitId = useGalleryStore(
+    (state) => state.activeExhibitId,
+  )
   const reducedMotion = useReducedMotion()
   const fpsRef = useRef<HTMLSpanElement>(null)
   const frameTimeRef = useRef<HTMLSpanElement>(null)
@@ -42,9 +50,15 @@ export function PerformanceTelemetryHud() {
   const shaderPassesRef = useRef<HTMLSpanElement>(null)
   const physicsRef = useRef<HTMLSpanElement>(null)
   const memoryRef = useRef<HTMLSpanElement>(null)
+  const activeViewsRef = useRef<HTMLSpanElement>(null)
   const memoryPathRef = useRef<SVGPathElement>(null)
   const statusRef = useRef<HTMLSpanElement>(null)
   const vfxConfig = getVfxPreset(vfxPreset)
+  const vfxCopy = t.vfxPresets[vfxPreset]
+  const unavailableLabel = t.telemetry.units.unavailable
+  const activeExhibitLabel = activeExhibitId
+    ? t.gallery.exhibits[activeExhibitId].name
+    : t.telemetry.noActiveExhibit
 
   useEffect(() => {
     const handleKeyDown = (event: KeyboardEvent) => {
@@ -81,9 +95,30 @@ export function PerformanceTelemetryHud() {
     let lastMemoryStart = -1
     let lastMemoryCount = -1
     let lastHealth = ''
+    let lastActiveViews = -1
+    let lastViewportSampleAt = Number.NEGATIVE_INFINITY
     const draw = () => {
       const metrics = readPerformanceTelemetry()
       const memory = readMemoryHistoryWindow()
+      const now = performance.now()
+
+      if (
+        now - lastViewportSampleAt >= 250 &&
+        activeViewsRef.current
+      ) {
+        lastViewportSampleAt = now
+        const activeViews = document.querySelectorAll(
+          '[data-gallery-runtime-active="true"]',
+        ).length
+        if (activeViews !== lastActiveViews) {
+          lastActiveViews = activeViews
+          activeViewsRef.current.textContent = String(activeViews)
+          activeViewsRef.current.parentElement?.setAttribute(
+            'data-telemetry-active-views',
+            String(activeViews),
+          )
+        }
+      }
 
       if (metrics.fps !== lastFps && fpsRef.current) {
         lastFps = metrics.fps
@@ -130,7 +165,7 @@ export function PerformanceTelemetryHud() {
         lastMemory = metrics.memoryMb ?? Number.NaN
         memoryRef.current.textContent = metrics.memorySupported
           ? `${(metrics.memoryMb ?? 0).toFixed(1)} MB`
-          : 'N/A'
+          : unavailableLabel
       }
 
       if (
@@ -183,14 +218,14 @@ export function PerformanceTelemetryHud() {
 
     animationFrame = requestAnimationFrame(draw)
     return () => cancelAnimationFrame(animationFrame)
-  }, [open])
+  }, [open, unavailableLabel])
 
   return (
     <AnimatePresence>
       {open ? (
         <motion.aside
           data-telemetry-hud
-          aria-label="开发者性能遥测面板"
+          aria-label={t.telemetry.panelAria}
           initial={reducedMotion ? false : { opacity: 0, y: -10, scale: 0.98 }}
           animate={{ opacity: 1, y: 0, scale: 1 }}
           exit={{ opacity: 0, y: -8, scale: 0.985 }}
@@ -208,17 +243,17 @@ export function PerformanceTelemetryHud() {
               </span>
               <div>
                 <p className="text-[9px] tracking-[0.18em] text-signal">
-                  RUNTIME TELEMETRY
+                  {t.telemetry.eyebrow}
                 </p>
                 <p className="mt-1 text-[8px] text-mist/38">
-                  SHIFT + D / LIVE 500 MS SAMPLE
+                  {t.telemetry.cadence}
                 </p>
               </div>
             </div>
             <button
               type="button"
-              aria-label="关闭性能遥测面板"
-              title="关闭性能遥测面板"
+              aria-label={t.telemetry.close}
+              title={t.telemetry.close}
               onClick={() => setTelemetryOpen(false)}
               className="grid size-7 place-items-center border border-white/10 text-mist/55 transition-colors hover:border-white/25 hover:text-frost"
             >
@@ -229,7 +264,7 @@ export function PerformanceTelemetryHud() {
           <div className="grid grid-cols-2 gap-px bg-white/[0.06]">
             <div className="bg-[#05090f] px-4 py-3">
               <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
-                <Activity size={9} /> CURRENT FPS
+                <Activity size={9} /> {t.telemetry.fps}
               </p>
               <p className="mt-2 flex items-end gap-1.5">
                 <span
@@ -239,12 +274,14 @@ export function PerformanceTelemetryHud() {
                 >
                   --
                 </span>
-                <span className="pb-0.5 text-[8px] text-mist/40">FPS</span>
+                <span className="pb-0.5 text-[8px] text-mist/40">
+                  {t.telemetry.units.fps}
+                </span>
               </p>
             </div>
             <div className="bg-[#05090f] px-4 py-3">
               <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
-                <Timer size={9} /> FRAME TIME
+                <Timer size={9} /> {t.telemetry.frameTime}
               </p>
               <p className="mt-2 flex items-end gap-1.5">
                 <span
@@ -254,12 +291,14 @@ export function PerformanceTelemetryHud() {
                 >
                   --
                 </span>
-                <span className="pb-0.5 text-[8px] text-mist/40">MS</span>
+                <span className="pb-0.5 text-[8px] text-mist/40">
+                  {t.telemetry.units.ms}
+                </span>
               </p>
             </div>
             <div className="bg-[#05090f] px-4 py-3">
               <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
-                <Cpu size={9} /> ACTIVE PARTICLES
+                <Cpu size={9} /> {t.telemetry.activeParticles}
               </p>
               <span
                 ref={particlesRef}
@@ -271,7 +310,7 @@ export function PerformanceTelemetryHud() {
             </div>
             <div className="bg-[#05090f] px-4 py-3">
               <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
-                <Timer size={9} /> PHYSICS SOLVE
+                <Timer size={9} /> {t.telemetry.physicsSolve}
               </p>
               <p className="mt-2 flex items-end gap-1.5">
                 <span
@@ -281,7 +320,9 @@ export function PerformanceTelemetryHud() {
                 >
                   0.00
                 </span>
-                <span className="pb-0.5 text-[8px] text-mist/40">MS</span>
+                <span className="pb-0.5 text-[8px] text-mist/40">
+                  {t.telemetry.units.ms}
+                </span>
               </p>
             </div>
           </div>
@@ -289,7 +330,7 @@ export function PerformanceTelemetryHud() {
           <div className="grid grid-cols-[0.8fr_1.2fr] gap-px border-t border-white/[0.06] bg-white/[0.06]">
             <div className="bg-[#05090f] px-4 py-3">
               <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
-                <Layers3 size={9} /> SHADER PASSES
+                <Layers3 size={9} /> {t.telemetry.shaderPasses}
               </p>
               <span
                 ref={shaderPassesRef}
@@ -304,16 +345,50 @@ export function PerformanceTelemetryHud() {
               className="min-w-0 bg-[#05090f] px-4 py-3"
             >
               <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
-                <Palette size={9} /> VFX SPECTRUM
+                <Palette size={9} /> {t.telemetry.vfxSpectrum}
               </p>
               <span
                 className="mt-2 block truncate text-[11px]"
                 style={{ color: vfxConfig.tertiary }}
               >
-                {vfxConfig.label}
+                {vfxCopy.label}
               </span>
               <span className="mt-1 block truncate font-mono text-[7px] text-mist/35">
-                {vfxConfig.subtitle}
+                {vfxCopy.subtitle}
+              </span>
+            </div>
+          </div>
+
+          <div className="grid grid-cols-[1.35fr_0.65fr] gap-px border-t border-white/[0.06] bg-white/[0.06]">
+            <div
+              data-telemetry-active-exhibit={
+                activeExhibitId ?? 'none'
+              }
+              className="min-w-0 bg-[#05090f] px-4 py-3"
+            >
+              <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
+                <Orbit size={9} /> {t.telemetry.activeExhibit}
+              </p>
+              <span
+                data-telemetry-active-exhibit-name
+                className="mt-2 block truncate text-[11px] text-frost/82"
+              >
+                {activeExhibitLabel}
+              </span>
+            </div>
+            <div
+              data-telemetry-active-views="0"
+              className="min-w-0 bg-[#05090f] px-4 py-3"
+            >
+              <p className="flex items-center gap-1.5 text-[8px] text-mist/42">
+                <ScanEye size={9} /> {t.telemetry.activeViewports}
+              </p>
+              <span
+                ref={activeViewsRef}
+                data-telemetry-active-views-value
+                className="mt-2 block text-lg text-signal"
+              >
+                0
               </span>
             </div>
           </div>
@@ -321,14 +396,14 @@ export function PerformanceTelemetryHud() {
           <div className="border-t border-white/[0.07] px-4 py-3">
             <div className="flex items-center justify-between gap-3">
               <span className="text-[8px] text-mist/42">
-                JS HEAP / 64 SAMPLES
+                {t.telemetry.memory}
               </span>
               <span
                 ref={memoryRef}
                 data-telemetry-memory
                 className="text-[9px] text-frost/75"
               >
-                N/A
+                {t.telemetry.units.unavailable}
               </span>
             </div>
             <svg
@@ -376,10 +451,10 @@ export function PerformanceTelemetryHud() {
                 data-health="limited"
                 className="size-1.5 bg-signal data-[health=guarded]:bg-amber data-[health=limited]:bg-red-400"
               />
-              RENDER GOVERNOR ACTIVE
+              {t.telemetry.renderGovernor}
             </span>
             <span className="border border-white/10 px-2 py-1 text-[8px] uppercase text-mist/55">
-              {performanceTier} TIER
+              {t.telemetry.tier.replace('{tier}', performanceTier)}
             </span>
           </footer>
         </motion.aside>

@@ -14,6 +14,10 @@ import { useEffect, useMemo, useRef, useState } from 'react'
 import * as THREE from 'three'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
+import {
+  formatTranslation,
+  useI18n,
+} from '../../i18n/useI18n'
 import { getVfxPreset } from '../../data/vfxPresets'
 import {
   setParticleSourceCount,
@@ -32,61 +36,25 @@ import { VolumetricStageLights } from './VolumetricStageLights'
 type Progress = MotionValue<number>
 type LayerId = 'infrastructure' | 'orchestration' | 'spatial'
 
-interface LayerTechDetails {
+interface LayerTechMeta {
   index: string
-  eyebrow: string
-  title: string
-  subtitle: string
-  description: string
-  stack: readonly string[]
-  metrics: readonly [string, string][]
   icon: LucideIcon
   accent: string
 }
 
-const LAYER_TECH_DETAILS: Record<LayerId, LayerTechDetails> = {
+const LAYER_TECH_META: Record<LayerId, LayerTechMeta> = {
   infrastructure: {
     index: '01',
-    eyebrow: '基础层',
-    title: 'CUDA 内核层',
-    subtitle: 'Infrastructure & CUDA Kernel',
-    description:
-      '以并行计算、显存拓扑和高速互连为底座，为上层智能体提供稳定、可预测的算力吞吐。',
-    stack: ['CUDA', 'Triton', 'NCCL', 'RDMA', '分布式存储'],
-    metrics: [
-      ['GPU 利用率', '92.4%'],
-      ['显存带宽', '3.2 TB/s'],
-    ],
     icon: Cpu,
     accent: '#10b981',
   },
   orchestration: {
     index: '02',
-    eyebrow: '编排层',
-    title: '多智能体编排',
-    subtitle: 'Multi-Agent Orchestration',
-    description:
-      '在上下文路由、工具调用和状态同步之间维持低延迟协作，让多个智能体共享同一套可观测运行状态。',
-    stack: ['LangGraph', 'MCP', 'Ray', 'Vector DB', 'Event Streams'],
-    metrics: [
-      ['活跃智能体', '128'],
-      ['编排延迟', '8.4 ms'],
-    ],
     icon: Network,
     accent: '#f2b35e',
   },
   spatial: {
     index: '03',
-    eyebrow: '体验层',
-    title: '空间 Web 与界面',
-    subtitle: 'Spatial Web & UI',
-    description:
-      '将实时算力和智能决策转译为可感知的空间界面，在浏览器中保持高质量渲染与低延迟交互。',
-    stack: ['WebGPU', 'R3F', 'Shader Graph', 'WebXR', 'Edge Render'],
-    metrics: [
-      ['交互帧率', '120 fps'],
-      ['首帧响应', '16 ms'],
-    ],
     icon: Box,
     accent: '#72e6ff',
   },
@@ -1106,12 +1074,16 @@ function LayerFocusHud({
   selectedLayer: LayerId | null
   onClose: () => void
 }) {
-  const details = selectedLayer ? LAYER_TECH_DETAILS[selectedLayer] : null
-  const Icon = details?.icon
+  const { t } = useI18n()
+  const meta = selectedLayer ? LAYER_TECH_META[selectedLayer] : null
+  const details = selectedLayer
+    ? t.architecture.layers[selectedLayer]
+    : null
+  const Icon = meta?.icon
 
   return (
     <AnimatePresence mode="wait">
-      {details && Icon ? (
+      {details && meta && Icon ? (
         <motion.aside
           key={selectedLayer}
           data-architecture-hud
@@ -1123,15 +1095,15 @@ function LayerFocusHud({
           transition={{ duration: 0.28, ease: [0.22, 1, 0.36, 1] }}
           className="pointer-events-auto absolute right-4 top-[16%] z-40 max-h-[58svh] w-[calc(100%-2rem)] max-w-[390px] overflow-y-auto rounded-md border bg-carbon/90 p-4 shadow-[0_24px_90px_rgba(0,0,0,0.55)] backdrop-blur-2xl sm:p-5 md:right-10 md:top-[18%] lg:right-14 lg:w-[380px]"
           style={{
-            borderColor: `${details.accent}38`,
-            boxShadow: `0 24px 90px rgba(0, 0, 0, 0.55), inset 0 1px 0 ${details.accent}20`,
+            borderColor: `${meta.accent}38`,
+            boxShadow: `0 24px 90px rgba(0, 0, 0, 0.55), inset 0 1px 0 ${meta.accent}20`,
           }}
         >
           <div
             aria-hidden="true"
             className="pointer-events-none absolute inset-x-0 top-0 h-px"
             style={{
-              background: `linear-gradient(90deg, transparent, ${details.accent}aa, transparent)`,
+              background: `linear-gradient(90deg, transparent, ${meta.accent}aa, transparent)`,
             }}
           />
 
@@ -1140,16 +1112,18 @@ function LayerFocusHud({
               <span
                 className="grid size-10 shrink-0 place-items-center rounded-md border"
                 style={{
-                  color: details.accent,
-                  borderColor: `${details.accent}38`,
-                  backgroundColor: `${details.accent}14`,
+                  color: meta.accent,
+                  borderColor: `${meta.accent}38`,
+                  backgroundColor: `${meta.accent}14`,
                 }}
               >
                 <Icon size={18} strokeWidth={1.5} />
               </span>
               <div className="min-w-0">
                 <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-mist/45">
-                  Layer {details.index}
+                  {formatTranslation(t.architecture.layerLabel, {
+                    index: meta.index,
+                  })}
                 </p>
                 <p className="mt-1 truncate text-lg text-frost">
                   {details.title}
@@ -1159,7 +1133,7 @@ function LayerFocusHud({
             <button
               type="button"
               onClick={onClose}
-              aria-label="关闭技术栈详情"
+              aria-label={t.architecture.closeDetails}
               className="grid size-8 shrink-0 place-items-center rounded-md border border-white/10 text-mist/55 transition-colors hover:border-white/20 hover:bg-white/[0.05] hover:text-frost focus-visible:outline-2 focus-visible:outline-offset-2 focus-visible:outline-signal"
             >
               <X size={15} strokeWidth={1.6} />
@@ -1169,7 +1143,7 @@ function LayerFocusHud({
           <div className="mt-5 border-t border-white/[0.08] pt-4">
             <p
               className="font-mono text-[9px] uppercase tracking-[0.18em]"
-              style={{ color: details.accent }}
+              style={{ color: meta.accent }}
             >
               {details.eyebrow} / {details.subtitle}
             </p>
@@ -1190,7 +1164,7 @@ function LayerFocusHud({
           </div>
 
           <div className="mt-4 grid grid-cols-2 gap-2">
-            {details.metrics.map(([label, value]) => (
+            {details.metrics.map(({ label, value }) => (
               <div
                 key={label}
                 className="rounded border border-white/[0.08] bg-black/20 px-3 py-2.5"
@@ -1215,6 +1189,7 @@ function ArchitectureNarrativeOverlay({
   selectedLayer: LayerId | null
   onCloseLayer: () => void
 }) {
+  const { t } = useI18n()
   const phaseOneOpacity = useTransform(
     progress,
     [0, 0.22, 0.31],
@@ -1264,15 +1239,15 @@ function ArchitectureNarrativeOverlay({
           <div className="flex items-start justify-between gap-5">
             <div>
               <p className="font-mono text-[10px] text-signal">
-                三层核心技术架构
+                {t.architecture.headerTitle}
               </p>
               <p className="mt-2 max-w-xs text-xs leading-5 text-mist/60">
-                基础设施、智能编排与空间界面在同一个运行时中协同。
+                {t.architecture.headerDescription}
               </p>
             </div>
             <div className="hidden items-center gap-3 sm:flex">
               <span className="font-mono text-[9px] text-mist/45">
-                架构展开
+                {t.architecture.expanding}
               </span>
               <div className="h-px w-24 overflow-hidden bg-white/10">
                 <motion.div
@@ -1290,12 +1265,12 @@ function ArchitectureNarrativeOverlay({
               className="absolute inset-x-0 bottom-8 max-w-[720px]"
             >
               <h3 className="text-4xl font-medium leading-[1.02] text-frost sm:text-5xl md:text-6xl xl:text-7xl">
-                三层咬合，
+                {t.architecture.phaseOne.titleLineOne}
                 <br />
-                成为一枚核心。
+                {t.architecture.phaseOne.titleLineTwo}
               </h3>
               <p className="mt-5 max-w-lg text-sm leading-6 text-mist sm:text-base sm:leading-7">
-                底层承载算力，中层组织智能体，顶层让空间与界面共享同一套感知。
+                {t.architecture.phaseOne.description}
               </p>
             </motion.div>
 
@@ -1305,12 +1280,12 @@ function ArchitectureNarrativeOverlay({
               className="absolute inset-x-0 bottom-8 max-w-[720px]"
             >
               <h3 className="text-4xl font-medium leading-[1.02] text-frost sm:text-5xl md:text-6xl xl:text-7xl">
-                张力向外，
+                {t.architecture.phaseTwo.titleLineOne}
                 <br />
-                智能向内汇流。
+                {t.architecture.phaseTwo.titleLineTwo}
               </h3>
               <p className="mt-5 max-w-lg text-sm leading-6 text-mist sm:text-base sm:leading-7">
-                三层沿纵轴展开，CUDA 网格、智能体路由和空间界面显露出真实的连接关系。
+                {t.architecture.phaseTwo.description}
               </p>
             </motion.div>
 
@@ -1320,12 +1295,12 @@ function ArchitectureNarrativeOverlay({
               className="absolute inset-x-0 bottom-8 max-w-[720px]"
             >
               <h3 className="text-4xl font-medium leading-[1.02] text-frost sm:text-5xl md:text-6xl xl:text-7xl">
-                再次聚合，
+                {t.architecture.phaseThree.titleLineOne}
                 <br />
-                系统开始思考。
+                {t.architecture.phaseThree.titleLineTwo}
               </h3>
               <p className="mt-5 max-w-lg text-sm leading-6 text-mist sm:text-base sm:leading-7">
-                计算、编排与体验重新收敛，成为可感知、可扩展、可持续演进的统一架构。
+                {t.architecture.phaseThree.description}
               </p>
             </motion.div>
           </div>
@@ -1334,19 +1309,19 @@ function ArchitectureNarrativeOverlay({
             <div className="flex flex-wrap gap-x-8 gap-y-3 font-mono text-[9px] text-mist/55">
               <span className="flex items-center gap-2">
                 <span className="size-1.5 bg-signal" />
-                空间界面
+                {t.architecture.legend.spatial}
               </span>
               <span className="flex items-center gap-2">
                 <span className="size-1.5 bg-amber" />
-                智能体编排
+                {t.architecture.legend.orchestration}
               </span>
               <span className="flex items-center gap-2">
                 <span className="size-1.5 bg-emerald-400" />
-                基础设施与内核
+                {t.architecture.legend.infrastructure}
               </span>
             </div>
             <span className="font-mono text-[9px] text-mist/35">
-              分布式核心 / 01
+              {t.architecture.coreLabel}
             </span>
           </div>
         </div>
@@ -1361,21 +1336,15 @@ function ArchitectureNarrativeOverlay({
         >
           {[
             {
-              label: '层间延迟',
-              value: '8.4 ms',
-              note: 'p99 fabric latency',
+              ...t.architecture.metrics.latency,
               opacity: metricsOpacity,
             },
             {
-              label: '并发智能体',
-              value: '128',
-              note: 'active orchestration',
+              ...t.architecture.metrics.agents,
               opacity: metricTwoOpacity,
             },
             {
-              label: '跨层吞吐',
-              value: '2.7 TB/s',
-              note: 'shared memory fabric',
+              ...t.architecture.metrics.throughput,
               opacity: metricThreeOpacity,
             },
           ].map((metric, index) => (
@@ -1413,6 +1382,7 @@ function ArchitectureNarrativeOverlay({
 }
 
 export function ScrollArchitecture3D() {
+  const { t } = useI18n()
   const sectionRef = useRef<HTMLElement>(null)
   const [selectedLayer, setSelectedLayer] = useState<LayerId | null>(null)
   const performanceTier = useAppStore((state) => state.performanceTier)
@@ -1438,7 +1408,7 @@ export function ScrollArchitecture3D() {
       className="relative z-10 h-[300vh] bg-void"
     >
       <h2 id="architecture-title" className="sr-only">
-        全栈 AI 与分布式计算三层核心技术架构
+        {t.architecture.srTitle}
       </h2>
       <div
         data-architecture-sticky
@@ -1469,7 +1439,7 @@ export function ScrollArchitecture3D() {
             }}
             fallback={
               <div className="grid h-full place-items-center bg-void font-mono text-sm text-mist">
-                当前浏览器无法启动架构场景。
+                {t.architecture.fallback}
               </div>
             }
           >

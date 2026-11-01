@@ -105,6 +105,8 @@ stateDiagram-v2
 - FABRIK 六轴机械臂、12 节点柔性躯干和对角线 Trot 四足步态。
 - 程序化合成音效、实时五频段频谱与 Web Audio 动态压缩。
 - `AnalyserNode` 音频包络驱动的星尘、极光、体积光与架构呼吸响应。
+- 8 座光学与计算架构展台共用单一 WebGL Canvas，支持橱窗扰动、暗房轨道检视与全局巡礼。
+- 类型安全的 English / 中文双语系统，默认英文，支持本地持久化、动态页面元数据与全站文案切换。
 - `Cmd/Ctrl + K` 模糊命令面板、主题切换、重力环境与简历 JSON 导出。
 - 视口休眠、自适应画质、4K 首帧降级和 `Shift + D` 性能遥测。
 
@@ -115,6 +117,36 @@ stateDiagram-v2
 3. **Bento 双彗星流光与萤火**：双层环绕流光、卡片粒子池、数据脉冲路径与音频响应。
 4. **物理碰撞切向火花与分形电弧**：速度拉伸金属火花、二次弹跳分裂、绳索断裂分形电弧与灼烧等离子。
 5. **电影级动态色散与数字极光**：五阶 fBm 极光、mipmap Bloom、动态色差、暗角、胶片颗粒与三套 VFX 光谱预设。
+
+### Optical & Computing Sandbox Gallery（八大交互式光学与硬核算法发光沙盘）
+
+- 8 个独立展品覆盖递归弹射、分束、色散、焦散、偏振、衍射、量子发射与相位拓扑。
+- 1. **色散棱镜焦散（Prism Caustics）**：旋转晶体折射白光，实时生成 RGB 色散扇、曲面接收屏、伏罗诺伊焦散和可拖拽发射器；越过临界角后会进入全内反射路径。
+- 2. **全息激光扫描（Laser Scan Hologram）**：四轴扫描门架驱动全息切片，可在陀螺核心、赛博头骨与涡轮转子之间切换，并通过点击触发故障重构。
+- 3. **万级粒子流形凝聚（Particle Morph）**：20,000 个 GPU 粒子在莫比乌斯环、双螺旋、三叶结、斐波那契球和晶圆城市之间连续形变，支持引力吸积与超新星冲击反馈。
+- 4. **托卡马克聚变电弧核心（Plasma Reactor）**：三轴万向节磁环、分形电弧与六边形力场护盾共同构成聚变核心；点击护盾产生球面蜂窝涟漪，临界超频会释放等离子冲击波。
+- 5. **递归光线追踪迷宫（Ray Bounce Maze）**：双平面镜、50/50 分束立方、色散棱镜与三座量子接收靶组成可拖拽光学沙盘，10 层递归求解器实时生成体积光束、分束树和锁定功率。
+- 6. **声光律动频谱舞台（Audio Spectrum Stage）**：内置五声音阶琶音器与 `AnalyserNode`，以 256 根实例化光子柱、环形日冕频谱和 3D 瀑布地形响应音频，并提供八枚交互光琴键。
+- 7. **3D 神经网络脉冲与反向传播沙盘（Neural Pulse Transformer）**：五层 Transformer 拓扑、600 颗贝塞尔突触光子和多头注意力光束支持正向推理、反向梯度波与单神经元隔离检视。
+- 8. **GPU Tensor/RT Core 算力矩阵（GPU Compute Matrix）**：512 体素 GEMM 魔方、HBM/NVLink 流光总线、实时热力光谱、CUDA Warp 展开与 15 节点 BVH 光线遍历共同展示张量计算和光追加速管线。
+- 光线弹射迷宫使用最大 10 层的 CPU 递归求解器，以实例化体积光柱、流动光子脉冲和星芒反馈实时重构整棵光路树；靶心锁定会换算实时接收功率并触发庆贺粒子，三套拓扑可在 0.9 秒内平滑重排。
+- 声光频谱舞台内置五声音阶 / 大七和弦琶音器与 `fftSize: 512` 分析链，可在 16 × 16 矩阵光柱、环形极坐标日冕和滚动的 3D 频谱瀑布地形间切换；暗房八度光琴键会实时合成和弦，并把对应色彩的径向冲击波送过整个舞台。
+- 神经脉冲沙盘以五层 Transformer 拓扑连接 8 个输入 Token、4 组彩色多头注意力簇、两层各 16 个隐藏神经元和 8 个输出 Logit 能量塔；600 颗实例化光子沿 224 条三次贝塞尔突触递归换乘，支持正向推理与反向传播双模式，并在反传阶段以赤金/霓虹紫梯度光纤逆流展示 `Δw = -η∇L`。隐藏神经元悬停或点击后会把无关连接压至 10%，并显示 GeLU / Swish 激活曲线与实时激活值的全息隔离卡。
+- GPU 算力矩阵在暗黑硅片上铺开 360 颗 HBM / NVLink 总线粒子，以 512 个实例化光晶构成 `8 × 8 × 8` Tensor Core GEMM 魔方；翡翠 A 与赛博蓝 B 扫描面相交时逐点爆出白金结果，并汇入 128 颗累加器光子流。`10%–100%` 算力负载会同步抬高扫描频率、总线速度、硅片与魔方热场，并实时显示模拟 TFLOPS / HBM 带宽；点击任意体素可展开由单个实例化网格绘制的 32 线程 CUDA Warp。切换到 RT Core 后会改为实时遍历 15 节点 BVH 层次树，命中包围盒由冷蓝升级为高亮绿。
+- `OpticalTourDirector` 提供 8 座展台 × 6 秒的全馆电影巡礼，每站第 2 秒自动调用专属高潮动作；支持暂停、跳过、暗房连续导览和全局命令启动。底部 Quick-Dock 会在展馆或暗房中浮现 8 枚发光徽章、当前公式与瞬时切换入口。
+- Drei `View` 将 8 个展台和全屏暗房裁切到同一个 WebGL 上下文，离屏视口自动停止渲染。
+- 展台指针坐标直接驱动着色器；暗房提供左键环绕、右键平移、滚轮缩放和展品级参数滑杆。
+- 暗房支持 `380–750 nm` 物理光谱拾色、左右方向键切换展品，以及标准、高能、慢镜头三组一键预设。
+- 顶部三套全站 VFX 预设会逐帧插值到全部全息底座刻度环、环境光、追光锥体与默认激光色，不会出现硬切闪烁。
+- 暗房右上角的 Cinema Clean View 可通过按钮或 `H` 切入完全隔离的沉浸视口，隐藏导航、参数面板、巡礼 HUD 与 Quick-Dock；桌面按 `Esc` 或 `H` 返回，触屏可点右上角低干扰图标退出。
+
+**全屏暗房调参台使用说明**
+
+1. 在任意展台底部点击 `Enter Optical Darkroom`，或使用底部 Quick-Dock 切换展品。
+2. 在 3D 视口中左键环绕、右键平移、滚轮缩放；方向键可切换上一件或下一件展品。
+3. 右侧参数矩阵实时驱动当前展品的 Shader、粒子、音频或算法状态，标准 / 高能 / 慢镜头预设可一键恢复计算节奏。
+4. 光谱滑杆提供 `380–750 nm` 物理波长映射；展品专属控制区提供反应堆超频、光路拓扑、八度光琴键、神经网络推理和 GPU 负载等交互。
+5. 按 `H` 或点击右上角眼睛按钮进入 Cinema Clean View，按 `Esc` 先退出纯享模式，再次按 `Esc` 关闭暗房。
 
 ## 核心物理模型
 
@@ -206,6 +238,13 @@ interactive-showroom/
 │  ├─ sandbox-vfx-check.py
 │  ├─ cursor-stardust-check.py
 │  ├─ card-particle-check.py
+│  ├─ gallery-check.py
+│  ├─ ray-bounce-maze-check.py
+│  ├─ audio-spectrum-stage-check.py
+│  ├─ neural-pulse-sandbox-check.py
+│  ├─ gpu-compute-matrix-check.py
+│  ├─ optical-tour-director-check.py
+│  ├─ optical-theme-clean-view-check.py
 │  ├─ sound-engine-check.py
 │  ├─ verlet-sandbox-check.py
 │  └─ visual-check.py
@@ -214,10 +253,13 @@ interactive-showroom/
 │  │  ├─ bento/
 │  │  ├─ canvas/
 │  │  ├─ command/
+│  │  ├─ gallery/
 │  │  ├─ layout/
-│  │  └─ sandbox/
+│  │  ├─ sandbox/
+│  │  └─ ui/
 │  ├─ data/
 │  ├─ hooks/
+│  ├─ i18n/
 │  ├─ store/
 │  ├─ styles/
 │  └─ utils/
@@ -270,7 +312,15 @@ python scripts/cinematic-vfx-check.py artifacts/cinematic-vfx
 python scripts/sandbox-vfx-check.py artifacts/sandbox-vfx
 python scripts/cursor-stardust-check.py artifacts/cursor-stardust
 python scripts/card-particle-check.py artifacts/card-particle
+python scripts/gallery-check.py artifacts/gallery
+python scripts/ray-bounce-maze-check.py artifacts/ray-bounce-maze
+python scripts/audio-spectrum-stage-check.py artifacts/audio-spectrum-stage
+python scripts/neural-pulse-sandbox-check.py artifacts/neural-pulse-sandbox
+python scripts/gpu-compute-matrix-check.py artifacts/gpu-compute-matrix
+python scripts/optical-tour-director-check.py artifacts/optical-tour-director
+python scripts/optical-theme-clean-view-check.py artifacts/optical-theme-clean-view
 python scripts/sound-engine-check.py artifacts/sound
+python scripts/i18n-check.py artifacts/i18n
 ```
 
 ## GitHub Pages 部署

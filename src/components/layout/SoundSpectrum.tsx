@@ -1,4 +1,5 @@
 import { useEffect, useRef } from 'react'
+import { useI18n } from '../../i18n/useI18n'
 import { useAppStore } from '../../store/useAppStore'
 import { soundEngine } from '../../utils/soundEngine'
 
@@ -6,6 +7,7 @@ const BAR_HEIGHTS = [7, 11, 15, 10, 6] as const
 const BAND_COUNT = BAR_HEIGHTS.length
 
 export function SoundSpectrum() {
+  const { t } = useI18n()
   const soundEnabled = useAppStore((state) => state.soundEnabled)
   const spectrumRef = useRef<HTMLDivElement>(null)
   const barRefs = useRef<Array<HTMLSpanElement | null>>([])
@@ -73,8 +75,8 @@ export function SoundSpectrum() {
       data-audio-energy="0"
       data-active="false"
       role="img"
-      aria-label="实时音频频谱"
-      title="实时音频频谱"
+      aria-label={t.soundSpectrum.aria}
+      title={t.soundSpectrum.aria}
       className="audio-spectrum flex h-9 w-8 shrink-0 items-end justify-center gap-[2px] border border-white/10 bg-white/[0.025] px-[5px] py-[7px]"
     >
       {BAR_HEIGHTS.map((height, index) => (

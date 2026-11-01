@@ -1,9 +1,15 @@
 import { memo, useEffect, useRef } from 'react'
+import {
+  formatTranslation,
+  useI18n,
+} from '../../i18n/useI18n'
 import { readTransientState } from '../../store/useAppStore'
 
 export const ScrollProgressRing = memo(function ScrollProgressRing() {
+  const { t } = useI18n()
   const hostRef = useRef<HTMLDivElement>(null)
   const arcRef = useRef<SVGCircleElement>(null)
+  const progressLabel = t.scrollProgress.valueText
 
   useEffect(() => {
     let animationFrame = 0
@@ -31,7 +37,7 @@ export const ScrollProgressRing = memo(function ScrollProgressRing() {
         hostRef.current?.setAttribute('aria-valuenow', String(ariaValue))
         hostRef.current?.setAttribute(
           'aria-valuetext',
-          `页面已滚动 ${ariaValue}%`,
+          formatTranslation(progressLabel, { value: ariaValue }),
         )
       }
 
@@ -40,17 +46,17 @@ export const ScrollProgressRing = memo(function ScrollProgressRing() {
 
     animationFrame = requestAnimationFrame(updateProgress)
     return () => cancelAnimationFrame(animationFrame)
-  }, [])
+  }, [progressLabel])
 
   return (
     <div
       ref={hostRef}
       role="progressbar"
-      aria-label="页面滚动进度"
+      aria-label={t.scrollProgress.aria}
       aria-valuemin={0}
       aria-valuemax={100}
       aria-valuenow={0}
-      title="页面滚动进度"
+      title={t.scrollProgress.aria}
       className="scroll-progress-ring relative grid size-9 place-items-center border border-white/10 bg-white/[0.025]"
     >
       <svg

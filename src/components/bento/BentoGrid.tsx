@@ -18,6 +18,10 @@ import {
 } from 'react'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
+import {
+  formatTranslation,
+  useI18n,
+} from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
 import { BentoDataPulse } from './BentoDataPulse'
 import { SpotlightCard } from './SpotlightCard'
@@ -29,15 +33,11 @@ type TopologyMode = 'edge' | 'vector' | 'agent'
 const topologyModes: Record<
   TopologyMode,
   {
-    label: string
-    detail: string
     nodes: Array<[number, number]>
     links: Array<[number, number]>
   }
 > = {
   edge: {
-    label: '边缘',
-    detail: '6 个边缘节点',
     nodes: [
       [34, 83],
       [96, 36],
@@ -56,8 +56,6 @@ const topologyModes: Record<
     ],
   },
   vector: {
-    label: '向量',
-    detail: '16 条索引通道',
     nodes: [
       [34, 83],
       [104, 40],
@@ -77,8 +75,6 @@ const topologyModes: Record<
     ],
   },
   agent: {
-    label: '代理',
-    detail: '4 个自治回路',
     nodes: [
       [30, 42],
       [30, 122],
@@ -98,24 +94,14 @@ const topologyModes: Record<
   },
 }
 
-const terminalLines = [
-  '$ node agent.runtime',
-  '> mounting context mesh...',
-  '> linked 128 tools / 4 regions',
-  '> inference ready in 84ms',
-  '✓ listening on :5174',
-] as const
-
 type TerminalCommand = 'help' | 'skills' | 'matrix' | 'clear'
 
 interface TerminalResponse {
   art: string
-  description: string
-  notes: readonly string[]
   gradient: string
 }
 
-const terminalResponses: Record<TerminalCommand, TerminalResponse> = {
+const terminalArtwork: Record<TerminalCommand, TerminalResponse> = {
   help: {
     art: String.raw`
  _   _ ______ _      ____
@@ -124,8 +110,6 @@ const terminalResponses: Record<TerminalCommand, TerminalResponse> = {
 |  _  |  __| | |    |  __/
 |_| |_|_|    |_____ |_|
 `,
-    description: '可用指令索引',
-    notes: ['help', 'skills', 'matrix', 'clear'],
     gradient:
       'linear-gradient(120deg, var(--vfx-primary), var(--vfx-tertiary) 52%, var(--vfx-secondary))',
   },
@@ -137,8 +121,6 @@ const terminalResponses: Record<TerminalCommand, TerminalResponse> = {
  ___) | . \ | || |___| |___ ___) |
 |____/|_|\_\___|_____|_____|____/
 `,
-    description: '核心能力探针',
-    notes: ['WebGL', 'React / TS', '交互系统', '生成式视觉'],
     gradient:
       'linear-gradient(120deg, var(--vfx-primary), var(--vfx-tertiary) 72%)',
   },
@@ -150,8 +132,6 @@ const terminalResponses: Record<TerminalCommand, TerminalResponse> = {
 | |  | |/ ___ \  | | | |___|  _ <  | |
 |_|  |_/_/   \_\ |_| |_____|_| \_\ |_|
 `,
-    description: '现实协议已暂时离线',
-    notes: ['reality.exe is optional', 'follow the white rabbit'],
     gradient:
       'linear-gradient(120deg, var(--vfx-primary), var(--vfx-tertiary) 48%, var(--vfx-secondary))',
   },
@@ -163,8 +143,6 @@ const terminalResponses: Record<TerminalCommand, TerminalResponse> = {
 | |___| |___| |___ / ___ \|  _ <
  \____|_____|_____/_/   \_\_| \_\
 `,
-    description: '终端缓冲区已重置',
-    notes: ['session clear', 'ready for new input'],
     gradient:
       'linear-gradient(120deg, var(--vfx-primary), var(--vfx-secondary) 52%, var(--vfx-tertiary))',
   },
@@ -186,12 +164,16 @@ function CardHeader({
   detail: string
 }) {
   return (
-    <div>
+    <div className="min-w-0">
       <div className="mb-3 flex items-center gap-2 font-mono text-[9px] text-signal/80">
         <Icon size={13} strokeWidth={1.7} />
-        <span>{detail}</span>
+        <span data-localized-motion className="min-w-0 truncate">
+          {detail}
+        </span>
       </div>
-      <h3 className="text-xl text-frost sm:text-2xl">{title}</h3>
+      <h3 className="break-words text-xl text-frost sm:text-2xl">
+        {title}
+      </h3>
     </div>
   )
 }
@@ -211,6 +193,7 @@ function buildLinePath(values: number[], width: number, height: number) {
 }
 
 function TokenThroughputCard() {
+  const { t } = useI18n()
   const [series, setSeries] = useState(() =>
     Array.from({ length: 28 }, (_, index) =>
       Math.round(11200 + Math.sin(index * 0.62) * 1350 + Math.random() * 900),
@@ -239,12 +222,12 @@ function TokenThroughputCard() {
   const areaPath = `${linePath} L 480 150 L 0 150 Z`
 
   return (
-    <SpotlightCard className="min-h-[430px] md:col-span-2 md:min-h-0 xl:col-span-2 xl:row-span-2">
+    <SpotlightCard className="min-h-[430px] max-[359px]:h-[440px] md:col-span-2 md:min-h-0 xl:col-span-2 xl:row-span-2">
       <div className="flex h-full flex-col p-5 sm:p-6">
         <CardHeader
           icon={Activity}
-          title="实时推理管线"
-          detail="模型基础设施 / 2026"
+          title={t.bento.tokenThroughput.title}
+          detail={t.bento.tokenThroughput.detail}
         />
 
         <div className="mt-7 flex items-end justify-between gap-4">
@@ -256,7 +239,7 @@ function TokenThroughputCard() {
               {current.toLocaleString('en-US')}
             </p>
             <p className="mt-2 font-mono text-[10px] text-mist/60">
-              tokens / second
+              {t.bento.tokenThroughput.tokensPerSecond}
             </p>
           </div>
           <span
@@ -276,7 +259,7 @@ function TokenThroughputCard() {
             viewBox="0 0 480 150"
             preserveAspectRatio="none"
             className="absolute inset-0 h-full w-full overflow-visible"
-            aria-label="实时 Token 吞吐量折线图"
+            aria-label={t.bento.tokenThroughput.chartAria}
             role="img"
           >
             <defs>
@@ -303,18 +286,14 @@ function TokenThroughputCard() {
             />
           </svg>
           <div className="absolute bottom-2 left-0 flex w-full justify-between font-mono text-[8px] text-mist/35">
-            <span>−28s</span>
-            <span>−14s</span>
-            <span>now</span>
+            <span>{t.bento.tokenThroughput.timelinePast}</span>
+            <span>{t.bento.tokenThroughput.timelineMid}</span>
+            <span>{t.bento.tokenThroughput.timelineNow}</span>
           </div>
         </div>
 
         <div className="mt-5 grid grid-cols-3 gap-3">
-          {[
-            ['上下文', '68%'],
-            ['解码', '21ms'],
-            ['队列', '04'],
-          ].map(([label, value]) => (
+          {t.bento.tokenThroughput.metrics.map(({ label, value }) => (
             <div
               key={label}
               className="border-l border-white/10 pl-3 font-mono"
@@ -330,13 +309,19 @@ function TokenThroughputCard() {
 }
 
 function TopologyCard() {
+  const { t } = useI18n()
   const [mode, setMode] = useState<TopologyMode>('edge')
   const topology = topologyModes[mode]
+  const topologyCopy = t.bento.topology.modes[mode]
 
   return (
-    <SpotlightCard>
+    <SpotlightCard className="max-md:min-h-[247px]">
       <div className="flex h-full flex-col p-5">
-        <CardHeader icon={Waypoints} title="上下文拓扑" detail="可组合架构" />
+        <CardHeader
+          icon={Waypoints}
+          title={t.bento.topology.title}
+          detail={t.bento.topology.detail}
+        />
 
         <div className="mt-4 grid grid-cols-3 gap-1 rounded-sm border border-white/[0.07] bg-black/20 p-1">
           {(Object.keys(topologyModes) as TopologyMode[]).map((item) => (
@@ -352,7 +337,7 @@ function TopologyCard() {
                   : 'text-mist/55 hover:text-frost',
               )}
             >
-              {topologyModes[item].label}
+              {t.bento.topology.modes[item].label}
             </button>
           ))}
         </div>
@@ -361,7 +346,13 @@ function TopologyCard() {
           <svg
             viewBox="0 0 280 168"
             className="absolute inset-0 h-full w-full"
-            aria-label={`${topology.label}拓扑图，${topology.detail}`}
+            aria-label={formatTranslation(
+              t.bento.topology.chartAria,
+              {
+                mode: topologyCopy.label,
+                detail: topologyCopy.detail,
+              },
+            )}
             role="img"
           >
             {topology.links.map(([from, to]) => {
@@ -408,7 +399,7 @@ function TopologyCard() {
           </svg>
           <div className="absolute bottom-0 right-0 flex items-center gap-2 font-mono text-[8px] text-mist/45">
             <span className="size-1 bg-signal" />
-            {topology.detail}
+            {topologyCopy.detail}
           </div>
         </div>
       </div>
@@ -417,8 +408,11 @@ function TopologyCard() {
 }
 
 function TerminalCard() {
+  const { t } = useI18n()
   const reducedMotion = useReducedMotion()
   const playSound = useInterfaceSound()
+  const terminalCopy = t.bento.terminal
+  const terminalLines = terminalCopy.bootLines
   const outputRef = useRef<HTMLDivElement>(null)
   const commandIdRef = useRef(0)
   const [running, setRunning] = useState(true)
@@ -454,7 +448,13 @@ function TerminalCard() {
       setCharacterIndex(0)
     }, 520)
     return () => window.clearTimeout(timer)
-  }, [characterIndex, lineIndex, reducedMotion, running])
+  }, [
+    characterIndex,
+    lineIndex,
+    reducedMotion,
+    running,
+    terminalLines,
+  ])
 
   useEffect(() => {
     const output = outputRef.current
@@ -482,7 +482,7 @@ function TerminalCard() {
       return
     }
 
-    const response = command in terminalResponses
+    const response = command in terminalArtwork
       ? (command as TerminalCommand)
       : null
 
@@ -511,22 +511,22 @@ function TerminalCard() {
   }
 
   return (
-    <SpotlightCard>
+    <SpotlightCard className="max-md:h-[265px]">
       <div className="flex h-full flex-col p-5">
         <div className="flex items-start justify-between gap-3">
           <CardHeader
             icon={CircleDot}
-            title="本地智能体"
-            detail="实时终端 / zsh"
+            title={terminalCopy.title}
+            detail={terminalCopy.detail}
           />
           <button
             type="button"
             aria-label={
               bootComplete
-                ? '重播终端模拟'
+                ? terminalCopy.replay
                 : running
-                  ? '暂停终端模拟'
-                  : '继续终端模拟'
+                  ? terminalCopy.pause
+                  : terminalCopy.resume
             }
             aria-pressed={!running}
             onClick={toggleAnimation}
@@ -545,7 +545,9 @@ function TerminalCard() {
             <span className="size-1.5 rounded-full bg-[#ff6b6b]/70" />
             <span className="size-1.5 rounded-full bg-amber/70" />
             <span className="size-1.5 rounded-full bg-signal/70" />
-            <span className="ml-auto text-[8px] text-mist/35">agent.ts</span>
+            <span className="ml-auto text-[8px] text-mist/35">
+              {terminalCopy.fileName}
+            </span>
           </div>
 
           <div
@@ -581,11 +583,14 @@ function TerminalCard() {
               <div
                 className="mt-2 space-y-2"
                 aria-live="polite"
-                aria-label="终端命令输出"
+                aria-label={terminalCopy.outputAria}
               >
                 {history.slice(-1).map((entry) => {
                   const response = entry.response
-                    ? terminalResponses[entry.response]
+                    ? {
+                        ...terminalArtwork[entry.response],
+                        ...terminalCopy.responses[entry.response],
+                      }
                     : null
 
                   return (
@@ -614,7 +619,7 @@ function TerminalCard() {
                         </>
                       ) : (
                         <p className="mt-1 text-[8px] text-red-300/80">
-                          command not found. 输入 help 查看可用指令。
+                          {terminalCopy.unknownCommand}
                         </p>
                       )}
                     </div>
@@ -632,8 +637,8 @@ function TerminalCard() {
             <input
               value={commandInput}
               onChange={(event) => setCommandInput(event.target.value)}
-              aria-label="输入终端命令"
-              placeholder="help / skills / matrix / clear"
+              aria-label={terminalCopy.inputAria}
+              placeholder={terminalCopy.commandPlaceholder}
               autoComplete="off"
               autoCapitalize="off"
               autoCorrect="off"
@@ -648,6 +653,7 @@ function TerminalCard() {
 }
 
 function TelemetryCard() {
+  const { t } = useI18n()
   const [pulse, setPulse] = useState(0)
 
   useEffect(() => {
@@ -660,9 +666,13 @@ function TelemetryCard() {
   const bars = [42, 68, 54, 86, 61, 76, 48, 92, 58, 72]
 
   return (
-    <SpotlightCard>
+    <SpotlightCard className="max-md:min-h-[247px]">
       <div className="flex h-full flex-col p-5">
-        <CardHeader icon={Radio} title="信号矩阵" detail="实时遥测" />
+        <CardHeader
+          icon={Radio}
+          title={t.bento.telemetry.title}
+          detail={t.bento.telemetry.detail}
+        />
 
         <div className="mt-5 flex flex-1 items-end gap-1.5">
           {bars.map((height, index) => (
@@ -681,11 +691,7 @@ function TelemetryCard() {
         </div>
 
         <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.07] pt-3 font-mono">
-          {[
-            ['延迟', '18 ms'],
-            ['请求', '2.4k'],
-            ['可用性', '99.99%'],
-          ].map(([label, value]) => (
+          {t.bento.telemetry.metrics.map(({ label, value }) => (
             <div key={label}>
               <p className="text-[8px] text-mist/40">{label}</p>
               <p className="mt-1 text-[10px] text-frost">{value}</p>
@@ -698,10 +704,16 @@ function TelemetryCard() {
 }
 
 function ArchiveCard() {
+  const { t } = useI18n()
+
   return (
-    <SpotlightCard>
+    <SpotlightCard className="max-md:min-h-[247px]">
       <div className="flex h-full flex-col p-5">
-        <CardHeader icon={Box} title="空间档案" detail="持续归档" />
+        <CardHeader
+          icon={Box}
+          title={t.bento.archive.title}
+          detail={t.bento.archive.detail}
+        />
 
         <div className="relative mt-5 flex flex-1 items-center justify-center">
           <div className="absolute size-24 rounded-full border border-white/[0.07]" />
@@ -718,7 +730,7 @@ function ArchiveCard() {
         </div>
 
         <div className="mt-3 flex flex-wrap gap-1.5">
-          {['WebGL', 'Agents', 'Audio', 'Systems'].map((tag) => (
+          {t.bento.archive.tags.map((tag) => (
             <span
               key={tag}
               className="border border-white/[0.08] px-2 py-1 font-mono text-[8px] text-mist/55"

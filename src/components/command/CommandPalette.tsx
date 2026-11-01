@@ -4,6 +4,7 @@ import {
   ArrowUp,
   Check,
   ChevronRight,
+  Clapperboard,
   Command,
   Copy,
   Download,
@@ -35,16 +36,23 @@ import {
 } from '../../data/sections'
 import { VFX_PRESETS } from '../../data/vfxPresets'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
+import {
+  formatTranslation,
+  useI18n,
+  type TranslationDictionary,
+} from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
 import { useAppStore } from '../../store/useAppStore'
+import { useGalleryStore } from '../../store/useGalleryStore'
 import { useSmoothScroll } from '../layout/SmoothScroll'
 
 type CommandGroup =
-  | '章节跳转'
-  | '物理环境'
-  | '光效预设'
-  | '主题强调色'
-  | '工具'
+  | 'showcase'
+  | 'sections'
+  | 'gravity'
+  | 'vfx'
+  | 'accent'
+  | 'tools'
 
 interface PaletteCommand {
   id: string
@@ -60,11 +68,12 @@ interface PaletteCommand {
 
 const EMAIL = 'hello@node01.design'
 const GROUP_ORDER: readonly CommandGroup[] = [
-  '章节跳转',
-  '物理环境',
-  '光效预设',
-  '主题强调色',
-  '工具',
+  'showcase',
+  'sections',
+  'gravity',
+  'vfx',
+  'accent',
+  'tools',
 ]
 
 function normalizeSearch(value: string) {
@@ -128,24 +137,20 @@ async function copyText(value: string) {
   if (!copied) throw new Error('Clipboard unavailable')
 }
 
-function downloadResumeJson() {
+function downloadResumeJson(
+  resume: TranslationDictionary['command']['resume'],
+) {
   const state = useAppStore.getState()
   const payload = {
     schema: 'node01.resume.v1',
     generatedAt: new Date().toISOString(),
     profile: {
       name: 'NODE/01',
-      role: 'Creative Engineer / Interactive Systems',
+      role: resume.role,
       email: EMAIL,
-      location: 'Shanghai, China',
+      location: resume.location,
     },
-    capabilities: [
-      'Realtime WebGL / R3F',
-      'React architecture',
-      'Creative interaction design',
-      'Physics and procedural systems',
-      'AI-native product engineering',
-    ],
+    capabilities: resume.capabilities,
     preferences: {
       accentTheme: state.accentTheme,
       vfxPreset: state.vfxPreset,
@@ -169,6 +174,7 @@ function downloadResumeJson() {
 }
 
 export function CommandPalette() {
+  const { t } = useI18n()
   const open = useAppStore((state) => state.commandPaletteOpen)
   const setOpen = useAppStore((state) => state.setCommandPaletteOpen)
   const activeSection = useAppStore((state) => state.activeSection)
@@ -179,6 +185,15 @@ export function CommandPalette() {
   const setAccentTheme = useAppStore((state) => state.setAccentTheme)
   const setVfxPreset = useAppStore((state) => state.setVfxPreset)
   const setGravityMode = useAppStore((state) => state.setGravityMode)
+  const opticalTourActive = useGalleryStore(
+    (state) => state.isTourActive,
+  )
+  const startOpticalTour = useGalleryStore(
+    (state) => state.startOpticalTour,
+  )
+  const toggleOpticalTourPaused = useGalleryStore(
+    (state) => state.toggleOpticalTourPaused,
+  )
   const lenis = useSmoothScroll()
   const playSound = useInterfaceSound()
   const reducedMotion = useReducedMotion()
@@ -221,10 +236,17 @@ export function CommandPalette() {
   const commands = useMemo<PaletteCommand[]>(() => {
     const sectionCommands = SHOWROOM_SECTIONS.map((section) => ({
       id: `section-${section.id}`,
-      group: '章节跳转' as const,
-      title: `前往：${section.label}`,
+      group: 'sections' as const,
+      title: formatTranslation(t.command.titles.section, {
+        label: t.nav.sections[section.id],
+      }),
       subtitle: `#${section.id}`,
-      keywords: [section.id, section.label, 'navigate', 'jump'],
+      keywords: [
+        section.id,
+        t.nav.sections[section.id],
+        'navigate',
+        'jump',
+      ],
       icon: Hash,
       active: activeSection === section.id,
       run: () => navigateToSection(section.id),
@@ -232,10 +254,16 @@ export function CommandPalette() {
 
     const gravityCommands = GRAVITY_MODES.map((mode) => ({
       id: `gravity-${mode.id}`,
-      group: '物理环境' as const,
-      title: `物理环境：${mode.label}`,
-      subtitle: mode.subtitle,
-      keywords: ['gravity', mode.id, mode.description],
+      group: 'gravity' as const,
+      title: formatTranslation(t.command.titles.gravity, {
+        label: t.gravityModes[mode.id].label,
+      }),
+      subtitle: t.gravityModes[mode.id].subtitle,
+      keywords: [
+        'gravity',
+        mode.id,
+        t.gravityModes[mode.id].description,
+      ],
       icon: Gauge,
       active: gravityMode === mode.id,
       run: () => setGravityMode(mode.id),
@@ -243,10 +271,18 @@ export function CommandPalette() {
 
     const accentCommands = ACCENT_THEMES.map((theme) => ({
       id: `accent-${theme.id}`,
-      group: '主题强调色' as const,
-      title: `切换强调色：${theme.label}`,
-      subtitle: theme.subtitle,
-      keywords: ['theme', 'accent', 'color', theme.id, theme.label],
+      group: 'accent' as const,
+      title: formatTranslation(t.command.titles.accent, {
+        label: t.accentThemes[theme.id].label,
+      }),
+      subtitle: t.accentThemes[theme.id].subtitle,
+      keywords: [
+        'theme',
+        'accent',
+        'color',
+        theme.id,
+        t.accentThemes[theme.id].label,
+      ],
       icon: Palette,
       swatch: theme.color,
       active: accentTheme === theme.id,
@@ -255,17 +291,19 @@ export function CommandPalette() {
 
     const vfxCommands = VFX_PRESETS.map((preset) => ({
       id: `vfx-${preset.id}`,
-      group: '光效预设' as const,
-      title: `光效超频：${preset.label}`,
-      subtitle: preset.subtitle,
+      group: 'vfx' as const,
+      title: formatTranslation(t.command.titles.vfx, {
+        label: t.vfxPresets[preset.id].label,
+      }),
+      subtitle: t.vfxPresets[preset.id].subtitle,
       keywords: [
         'vfx',
         'visual',
         'overdrive',
         'preset',
         preset.id,
-        preset.label,
-        preset.description,
+        t.vfxPresets[preset.id].label,
+        t.vfxPresets[preset.id].description,
       ],
       icon: Sparkles,
       swatch: preset.secondary,
@@ -274,14 +312,37 @@ export function CommandPalette() {
     }))
 
     return [
+      {
+        id: 'tour-light-show',
+        group: 'showcase' as const,
+        title: t.command.titles.lightShow,
+        subtitle: t.gallery.tourDirector.commandSubtitle,
+        keywords: [
+          'tour',
+          'light',
+          'show',
+          'gallery',
+          'cinema',
+          'optical',
+        ],
+        icon: Clapperboard,
+        active: opticalTourActive,
+        run: () => {
+          if (opticalTourActive) {
+            toggleOpticalTourPaused()
+          } else {
+            startOpticalTour()
+          }
+        },
+      },
       ...sectionCommands,
       ...gravityCommands,
       ...vfxCommands,
       ...accentCommands,
       {
         id: 'copy-email',
-        group: '工具',
-        title: '复制联系邮箱',
+        group: 'tools',
+        title: t.command.titles.copyEmail,
         subtitle: EMAIL,
         keywords: ['copy', 'email', 'mail', 'contact', EMAIL],
         icon: Copy,
@@ -289,12 +350,12 @@ export function CommandPalette() {
       },
       {
         id: 'download-resume',
-        group: '工具',
-        title: '下载简历 JSON',
+        group: 'tools',
+        title: t.command.titles.downloadResume,
         subtitle: 'node01-resume.json',
-        keywords: ['download', 'resume', 'json', 'cv', '档案'],
+        keywords: ['download', 'resume', 'json', 'cv', 'profile'],
         icon: Download,
-        run: downloadResumeJson,
+        run: () => downloadResumeJson(t.command.resume),
       },
     ]
   }, [
@@ -302,9 +363,13 @@ export function CommandPalette() {
     activeSection,
     gravityMode,
     navigateToSection,
+    opticalTourActive,
     setAccentTheme,
     setVfxPreset,
     setGravityMode,
+    startOpticalTour,
+    t,
+    toggleOpticalTourPaused,
     vfxPreset,
   ])
 
@@ -345,20 +410,20 @@ export function CommandPalette() {
       void Promise.resolve(command.run())
         .then(() => {
           if (command.id.startsWith('copy-')) {
-            showNotice('邮箱已复制到剪贴板')
+            showNotice(t.command.toasts.copied)
           } else if (command.id.startsWith('download-')) {
-            showNotice('简历 JSON 已生成')
+            showNotice(t.command.toasts.resumeReady)
           } else if (command.id.startsWith('gravity-')) {
-            showNotice('物理重力环境已切换')
+            showNotice(t.command.toasts.gravityChanged)
           } else if (command.id.startsWith('vfx-')) {
-            showNotice('全站光效超频预设已切换')
+            showNotice(t.command.toasts.vfxChanged)
           } else if (command.id.startsWith('accent-')) {
-            showNotice('主题强调色已切换')
+            showNotice(t.command.toasts.accentChanged)
           }
         })
-        .catch(() => showNotice('操作未完成，请重试'))
+        .catch(() => showNotice(t.command.toasts.failed))
     },
-    [playSound, setOpen, showNotice],
+    [playSound, setOpen, showNotice, t],
   )
 
   useEffect(() => {
@@ -496,7 +561,7 @@ export function CommandPalette() {
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
               transition={{ duration: 0.16 }}
-              className="fixed inset-0 z-[100] flex items-start justify-center bg-black/68 px-3 pt-[78px] backdrop-blur-[10px] sm:px-5 sm:pt-[12vh]"
+              className="fixed inset-0 z-[170] flex items-start justify-center bg-black/68 px-3 pt-[78px] backdrop-blur-[10px] sm:px-5 sm:pt-[12vh]"
               onPointerDown={(event) => {
                 if (event.target === event.currentTarget) setOpen(false)
               }}
@@ -526,7 +591,7 @@ export function CommandPalette() {
                   className="pointer-events-none absolute inset-x-0 top-0 h-px bg-gradient-to-r from-transparent via-signal/65 to-transparent"
                 />
                 <h2 id="command-palette-title" className="sr-only">
-                  全局命令面板
+                  {t.command.dialogTitle}
                 </h2>
 
                 <div className="relative flex h-[64px] items-center gap-3 border-b border-white/[0.08] px-4 sm:px-5">
@@ -551,8 +616,8 @@ export function CommandPalette() {
                         : undefined
                     }
                     aria-autocomplete="list"
-                    aria-label="搜索命令"
-                    placeholder="搜索章节、光效、物理环境或工具"
+                    aria-label={t.command.searchAria}
+                    placeholder={t.command.searchPlaceholder}
                     autoComplete="off"
                     autoCapitalize="off"
                     autoCorrect="off"
@@ -561,8 +626,8 @@ export function CommandPalette() {
                   />
                   <button
                     type="button"
-                    aria-label="关闭命令面板"
-                    title="关闭命令面板"
+                    aria-label={t.command.close}
+                    title={t.command.close}
                     onClick={() => setOpen(false)}
                     className="grid size-8 shrink-0 place-items-center border border-white/10 text-mist/55 transition-colors hover:border-white/25 hover:text-frost"
                   >
@@ -572,18 +637,20 @@ export function CommandPalette() {
 
                 <div className="relative flex items-center justify-between border-b border-white/[0.055] px-4 py-2 font-mono text-[8px] text-mist/38 sm:px-5">
                   <span>
-                    {filteredCommands.length} ACTIONS / FUZZY INDEX
+                    {formatTranslation(t.command.actionCount, {
+                      count: filteredCommands.length,
+                    })}
                   </span>
                   <span className="flex items-center gap-1.5 text-signal/65">
                     <Command size={9} strokeWidth={1.7} />
-                    NODE/01
+                    {t.common.brand}
                   </span>
                 </div>
 
                 <div
                   id="command-palette-results"
                   role="listbox"
-                  aria-label="命令搜索结果"
+                  aria-label={t.command.resultsAria}
                   className="terminal-scrollbar relative max-h-[min(56svh,470px)] overflow-y-auto overscroll-contain p-2 sm:p-2.5"
                 >
                   {groupedCommands.length > 0 ? (
@@ -597,7 +664,7 @@ export function CommandPalette() {
                           id={`command-group-${groupName}`}
                           className="px-2 pb-1.5 pt-1 font-mono text-[8px] text-mist/34"
                         >
-                          {groupName}
+                          {t.command.groups[groupName]}
                         </h2>
                         <div className="grid gap-0.5">
                           {entries.map(({ command, index }) => {
@@ -663,7 +730,7 @@ export function CommandPalette() {
                                   <span className="flex shrink-0 items-center gap-1 font-mono text-[8px] text-signal/75">
                                     <Check size={10} strokeWidth={2} />
                                     <span className="hidden sm:inline">
-                                      CURRENT
+                                      {t.command.current}
                                     </span>
                                   </span>
                                 ) : (
@@ -693,10 +760,10 @@ export function CommandPalette() {
                           className="mx-auto text-mist/28"
                         />
                         <p className="mt-3 text-sm text-mist/60">
-                          没有匹配动作
+                          {t.command.noResults}
                         </p>
                         <p className="mt-1 font-mono text-[8px] text-mist/30">
-                          尝试“重力”、“紫色”或“email”
+                          {t.command.noResultsHint}
                         </p>
                       </div>
                     </div>
@@ -712,15 +779,17 @@ export function CommandPalette() {
                       <kbd className="command-key">
                         <ArrowDown size={8} />
                       </kbd>
-                      选择
+                      {t.command.choose}
                     </span>
                     <span className="flex items-center gap-1">
                       <kbd className="command-key">↵</kbd>
-                      执行
+                      {t.command.execute}
                     </span>
                     <span className="hidden items-center gap-1 sm:flex">
-                      <kbd className="command-key">ESC</kbd>
-                      关闭
+                      <kbd className="command-key">
+                        {t.common.keyboard.escape}
+                      </kbd>
+                      {t.command.dismiss}
                     </span>
                   </span>
                   <span>{shortcutLabel}</span>
@@ -741,7 +810,7 @@ export function CommandPalette() {
             initial={reducedMotion ? false : { opacity: 0, y: 10 }}
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: 6 }}
-            className="fixed bottom-5 left-1/2 z-[110] flex -translate-x-1/2 items-center gap-2 border border-signal/24 bg-[#05090f]/94 px-3.5 py-2.5 font-mono text-[9px] text-frost/80 shadow-[0_16px_48px_rgba(0,0,0,0.55)] backdrop-blur-xl"
+            className="fixed bottom-5 left-1/2 z-[180] flex -translate-x-1/2 items-center gap-2 border border-signal/24 bg-[#05090f]/94 px-3.5 py-2.5 font-mono text-[9px] text-frost/80 shadow-[0_16px_48px_rgba(0,0,0,0.55)] backdrop-blur-xl"
           >
             <span className="size-1.5 bg-signal shadow-[0_0_10px_var(--color-signal)]" />
             {notice}
