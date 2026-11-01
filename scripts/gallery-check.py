@@ -131,14 +131,14 @@ with sync_playwright() as playwright:
         "unmounted",
     )
     expect(page.locator("[data-exhibit-preview]")).to_have_count(8)
-    expect(
-        page.locator('[data-preview-running="true"]')
-    ).not_to_have_count(0)
     assert not exhibit_chunk_requests, exhibit_chunk_requests
 
     first_stage = page.locator("[data-gallery-stage]").first
     first_stage.scroll_into_view_if_needed()
     page.wait_for_timeout(180)
+    expect(
+        page.locator('[data-preview-running="true"]')
+    ).not_to_have_count(0)
     stage_box = first_stage.bounding_box()
     assert stage_box
     test_pointer = {

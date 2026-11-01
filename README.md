@@ -94,6 +94,7 @@ stateDiagram-v2
 | State | Zustand reactive state + non-reactive mutable transient snapshot |
 | Audio | Web Audio API: oscillators, noise buffers, filters, compressor, analyser |
 | Physics | Hand-written Verlet, OBB collision, FABRIK IK, procedural gait |
+| Browser Translation | translation-resilience DOM re-adoption + root render recovery |
 | Delivery | Vite, GitHub Actions, GitHub Pages |
 
 ## 核心能力
@@ -109,6 +110,7 @@ stateDiagram-v2
 - 类型安全的 English / 中文双语系统，默认英文，支持本地持久化、动态页面元数据与全站文案切换。
 - `Cmd/Ctrl + K` 模糊命令面板、主题切换、重力环境与简历 JSON 导出。
 - 视口休眠、自适应画质、4K 首帧降级和 `Shift + D` 性能遥测。
+- 浏览器整页翻译兼容：自动修复翻译器替换 React 文本节点造成的 DOM 位移，并提供根级错误恢复界面，避免黑屏。
 
 ### 电影级光效系统
 
@@ -209,6 +211,8 @@ a = -k(p-p_0) - cv
 
 光学展馆橱窗阶段保持 `0 Canvas / 0 View`，只有浏览器视口内的轻量预览运行 CSS 动画；进入暗房后仅创建 `1 Canvas / 1 View`，关闭暗房时整个 Canvas 被卸载。物理沙盒与架构 Canvas 离开视口后立即停止 RAF 或切换为 `frameloop="demand"`。所有自定义 `BufferGeometry`、`TubeGeometry`、`ShaderMaterial`、`MeshBasicMaterial` 和 `InstancedMesh` 均在 `useEffect` 清理函数中显式释放。
 
+滚动使用原生 Wheel 响应，不再对主线程做惯性插值。滚动期间仅暂停装饰动画、隐藏全屏胶片混合层，并停用固定导航与导览坞的背景模糊；Bento 卡片离屏时停止流光和实时数据刷新。导航进度改为单个元素上的局部 transform 更新，避免每帧写入根级 CSS 变量引发全页样式重算。300vh 架构区的 WebGL Canvas 会在距离视口 `600px` 时才初始化。
+
 `Shift + D` 遥测浮层实时汇总各场景活跃粒子源、当前后期 Shader Pass 数量、物理求解耗时、JS Heap、当前 `vfxPreset`、正在检视的光学展台名称与活跃 WebGL 视口数。
 
 ## 快捷操作
@@ -245,6 +249,8 @@ interactive-showroom/
 │  ├─ gpu-compute-matrix-check.py
 │  ├─ optical-tour-director-check.py
 │  ├─ optical-theme-clean-view-check.py
+│  ├─ scroll-performance-check.py
+│  ├─ translation-resilience-check.py
 │  ├─ sound-engine-check.py
 │  ├─ verlet-sandbox-check.py
 │  └─ visual-check.py
@@ -319,6 +325,8 @@ python scripts/neural-pulse-sandbox-check.py artifacts/neural-pulse-sandbox
 python scripts/gpu-compute-matrix-check.py artifacts/gpu-compute-matrix
 python scripts/optical-tour-director-check.py artifacts/optical-tour-director
 python scripts/optical-theme-clean-view-check.py artifacts/optical-theme-clean-view
+python scripts/scroll-performance-check.py artifacts/scroll-performance
+python scripts/translation-resilience-check.py artifacts/translation-resilience
 python scripts/sound-engine-check.py artifacts/sound
 python scripts/i18n-check.py artifacts/i18n
 ```

@@ -318,7 +318,7 @@ function FpsReadout() {
           exit={{ opacity: 0, y: -4 }}
           transition={{ duration: 0.2 }}
           aria-label={t.nav.fps.liveTelemetry}
-          className="fixed right-4 top-[84px] z-40 flex items-center gap-3 border border-white/10 bg-void/75 px-3 py-2 font-mono text-[11px] text-mist shadow-2xl shadow-black/30 backdrop-blur-xl sm:right-6 md:right-8"
+          className="fixed right-4 top-[84px] z-40 flex items-center gap-3 border border-white/10 bg-[#030507]/96 px-3 py-2 font-mono text-[11px] text-mist shadow-2xl shadow-black/30 sm:right-6 md:right-8"
         >
           <span className="flex h-4 items-end gap-0.5" aria-hidden="true">
             {[0.45, 0.7, 1].map((height, index) => (
@@ -417,8 +417,12 @@ export function Navbar() {
   }
 
   return (
-    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.08] bg-void/75 backdrop-blur-xl">
-      <div className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-px origin-left scale-x-[var(--scroll-progress)] bg-signal/35" />
+    <header className="fixed inset-x-0 top-0 z-50 border-b border-white/[0.08] bg-[#030507]/95 shadow-[0_12px_30px_rgba(0,0,0,0.22)]">
+      <div
+        data-scroll-progress-line
+        className="pointer-events-none absolute inset-x-0 bottom-[-1px] h-px origin-left bg-signal/35"
+        style={{ transform: 'scaleX(0)' }}
+      />
       <div className="mx-auto flex h-[72px] max-w-[1600px] items-center justify-between px-4 max-[359px]:px-3 sm:px-6 md:px-8">
         <BrandMark Icon={Aperture} />
 
@@ -481,7 +485,7 @@ export function Navbar() {
             animate={{ opacity: 1, y: 0 }}
             exit={{ opacity: 0, y: -8 }}
             transition={{ duration: 0.22, ease: [0.22, 1, 0.36, 1] }}
-            className="border-t border-white/[0.07] bg-void/95 px-4 py-4 backdrop-blur-2xl sm:px-6 min-[1366px]:hidden"
+            className="border-t border-white/[0.07] bg-[#030507]/98 px-4 py-4 sm:px-6 min-[1366px]:hidden"
           >
             <div className="grid gap-1">
               {SHOWROOM_SECTIONS.map((section, index) => (

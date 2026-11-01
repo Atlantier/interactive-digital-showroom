@@ -192,7 +192,7 @@ function buildLinePath(values: number[], width: number, height: number) {
     .join(' ')
 }
 
-function TokenThroughputCard() {
+function TokenThroughputCard({ active }: { active: boolean }) {
   const { t } = useI18n()
   const [series, setSeries] = useState(() =>
     Array.from({ length: 28 }, (_, index) =>
@@ -201,6 +201,7 @@ function TokenThroughputCard() {
   )
 
   useEffect(() => {
+    if (!active) return
     const interval = window.setInterval(() => {
       setSeries((current) => {
         const latest = current[current.length - 1]
@@ -213,7 +214,7 @@ function TokenThroughputCard() {
     }, 1100)
 
     return () => window.clearInterval(interval)
-  }, [])
+  }, [active])
 
   const current = series[series.length - 1]
   const previous = series[series.length - 2]
@@ -652,16 +653,17 @@ function TerminalCard() {
   )
 }
 
-function TelemetryCard() {
+function TelemetryCard({ active }: { active: boolean }) {
   const { t } = useI18n()
   const [pulse, setPulse] = useState(0)
 
   useEffect(() => {
+    if (!active) return
     const interval = window.setInterval(() => {
       setPulse((value) => (value + 1) % 4)
     }, 1400)
     return () => window.clearInterval(interval)
-  }, [])
+  }, [active])
 
   const bars = [42, 68, 54, 86, 61, 76, 48, 92, 58, 72]
 
@@ -703,7 +705,7 @@ function TelemetryCard() {
   )
 }
 
-function ArchiveCard() {
+function ArchiveCard({ active }: { active: boolean }) {
   const { t } = useI18n()
 
   return (
@@ -720,8 +722,16 @@ function ArchiveCard() {
           <div className="absolute size-16 rounded-full border border-signal/15" />
           <motion.div
             className="absolute size-24"
-            animate={{ rotate: 360 }}
-            transition={{ duration: 18, ease: 'linear', repeat: Infinity }}
+            animate={{ rotate: active ? 360 : 0 }}
+            transition={
+              active
+                ? {
+                    duration: 18,
+                    ease: 'linear',
+                    repeat: Infinity,
+                  }
+                : { duration: 0 }
+            }
           >
             <span className="absolute left-1/2 top-0 size-1.5 -translate-x-1/2 rounded-full bg-signal shadow-[0_0_12px_rgba(114,230,255,0.8)]" />
             <span className="absolute bottom-2 right-1 size-1 rounded-full bg-amber/80" />
@@ -856,6 +866,7 @@ export function BentoGrid() {
     <div
       ref={gridRef}
       data-bento-grid
+      data-bento-in-view={gridInView ? 'true' : 'false'}
       onPointerMove={scheduleSpotlight}
       onPointerLeave={clearSpotlights}
       onClick={(event) => {
@@ -880,11 +891,11 @@ export function BentoGrid() {
       }}
       className="relative isolate mt-10 grid auto-rows-[minmax(240px,auto)] grid-cols-1 gap-3 max-md:auto-rows-auto max-md:gap-4 md:grid-cols-2 md:auto-rows-[250px] xl:mt-14 xl:auto-rows-[250px] xl:grid-cols-4"
     >
-      <TokenThroughputCard />
+      <TokenThroughputCard active={gridInView} />
       <TopologyCard />
       <TerminalCard />
-      <TelemetryCard />
-      <ArchiveCard />
+      <TelemetryCard active={gridInView} />
+      <ArchiveCard active={gridInView} />
       <BentoDataPulse
         gridRef={gridRef}
         pulseId={pulseEvent.id}

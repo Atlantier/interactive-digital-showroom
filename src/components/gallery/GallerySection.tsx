@@ -97,7 +97,7 @@ export function GallerySection() {
             </p>
           </div>
 
-          <div className="gallery-control-console border border-white/[0.085] bg-black/28 p-4 backdrop-blur-md sm:p-5">
+          <div className="gallery-control-console border border-white/[0.085] bg-[#030507]/72 p-4 sm:p-5">
             <div className="flex items-center justify-between gap-4 border-b border-white/[0.07] pb-3">
               <div>
                 <p className="flex items-center gap-2 font-mono text-[7px] text-[var(--vfx-secondary)]/62">

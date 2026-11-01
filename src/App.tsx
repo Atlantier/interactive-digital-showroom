@@ -182,7 +182,7 @@ function Works() {
   return (
     <section
       id="works"
-      className="relative z-10 border-t border-white/[0.07] bg-void/88 backdrop-blur-[2px]"
+      className="relative z-10 border-t border-white/[0.07] bg-void/96"
     >
       <div className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 sm:py-28 md:px-12 lg:py-32">
         <div className="grid h-[322px] gap-10 border-b border-white/[0.08] pb-14 max-[359px]:h-[388px] sm:h-[292px] md:h-[347px] md:grid-cols-[1fr_1.25fr] md:items-end lg:h-[284px] xl:h-[284px] min-[1440px]:h-[221px]">
@@ -213,7 +213,7 @@ function Archive() {
   return (
     <section
       id="archive"
-      className="relative z-10 overflow-hidden border-t border-white/[0.07] bg-[#05080c]/88 backdrop-blur-[2px]"
+      className="relative z-10 overflow-hidden border-t border-white/[0.07] bg-[#05080c]/96"
     >
       <div className="mx-auto grid max-w-[1600px] gap-14 px-5 py-20 sm:px-8 sm:py-28 md:px-12 lg:grid-cols-[1.15fr_1fr] lg:gap-24 lg:py-36">
         <div>
@@ -265,7 +265,7 @@ function Contact() {
   return (
     <section
       id="contact"
-      className="relative z-10 min-h-[78svh] border-t border-white/[0.07] bg-[#030507]/91 backdrop-blur-[1px]"
+      className="relative z-10 min-h-[78svh] border-t border-white/[0.07] bg-[#030507]/96"
     >
       <div className="mx-auto flex min-h-[78svh] max-w-[1600px] flex-col justify-between px-5 pb-8 pt-20 sm:px-8 sm:pb-10 sm:pt-28 md:px-12 lg:pt-36">
         <div className="grid min-w-0 gap-14 lg:grid-cols-[1fr_auto] lg:items-end">

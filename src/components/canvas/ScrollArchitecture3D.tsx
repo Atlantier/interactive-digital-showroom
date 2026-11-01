@@ -1385,12 +1385,28 @@ export function ScrollArchitecture3D() {
   const { t } = useI18n()
   const sectionRef = useRef<HTMLElement>(null)
   const [selectedLayer, setSelectedLayer] = useState<LayerId | null>(null)
+  const [sceneReady, setSceneReady] = useState(false)
   const performanceTier = useAppStore((state) => state.performanceTier)
   const { scrollYProgress } = useScroll({
     target: sectionRef,
     offset: ['start start', 'end end'],
   })
   const inView = useInViewAnimation(sectionRef)
+
+  useEffect(() => {
+    const section = sectionRef.current
+    if (!section || sceneReady) return
+    const observer = new IntersectionObserver(
+      ([entry]) => {
+        if (!entry.isIntersecting) return
+        setSceneReady(true)
+        observer.disconnect()
+      },
+      { rootMargin: '600px 0px', threshold: 0.01 },
+    )
+    observer.observe(section)
+    return () => observer.disconnect()
+  }, [sceneReady])
 
   useEffect(() => {
     setShaderPassSourceCount('architecture-bloom', inView ? 1 : 0)
@@ -1416,43 +1432,50 @@ export function ScrollArchitecture3D() {
         data-prism-ior={PRISM_CHROMATIC_IOR.join(',')}
         data-performance-tier={performanceTier}
         data-frameloop={inView ? 'always' : 'demand'}
+        data-scene-ready={sceneReady ? 'true' : 'false'}
         className="sticky top-0 h-[100svh] overflow-hidden"
       >
         <div className="absolute inset-0 z-0" aria-hidden="true">
-          <Canvas
-            frameloop={inView ? 'always' : 'demand'}
-            dpr={performanceTier === 'high' ? [1, 1.5] : 1}
-            onPointerMissed={() => setSelectedLayer(null)}
-            camera={{
-              position: [0, 0.25, 9.2],
-              fov: 48,
-              near: 0.1,
-              far: 35,
-            }}
-            gl={{
-              antialias: false,
-              alpha: false,
-              powerPreference:
-                performanceTier === 'high'
-                  ? 'high-performance'
-                  : 'default',
-            }}
-            fallback={
-              <div className="grid h-full place-items-center bg-void font-mono text-sm text-mist">
-                {t.architecture.fallback}
-              </div>
-            }
-          >
-            <ArchitectureScene
-              progress={scrollYProgress}
-              selectedLayer={selectedLayer}
-              onSelectLayer={(layer) =>
-                setSelectedLayer((current) =>
-                  current === layer ? null : layer,
-                )
+          {sceneReady ? (
+            <Canvas
+              frameloop={inView ? 'always' : 'demand'}
+              dpr={performanceTier === 'high' ? [1, 1.5] : 1}
+              onPointerMissed={() => setSelectedLayer(null)}
+              camera={{
+                position: [0, 0.25, 9.2],
+                fov: 48,
+                near: 0.1,
+                far: 35,
+              }}
+              gl={{
+                antialias: false,
+                alpha: false,
+                powerPreference:
+                  performanceTier === 'high'
+                    ? 'high-performance'
+                    : 'default',
+              }}
+              fallback={
+                <div className="grid h-full place-items-center bg-void font-mono text-sm text-mist">
+                  {t.architecture.fallback}
+                </div>
               }
-            />
-          </Canvas>
+            >
+              <ArchitectureScene
+                progress={scrollYProgress}
+                selectedLayer={selectedLayer}
+                onSelectLayer={(layer) =>
+                  setSelectedLayer((current) =>
+                    current === layer ? null : layer,
+                  )
+                }
+              />
+            </Canvas>
+          ) : (
+            <div className="grid h-full place-items-center bg-void font-mono text-sm text-mist">
+              {t.architecture.fallback}
+            </div>
+          )}
         </div>
         <ArchitectureNarrativeOverlay
           progress={scrollYProgress}

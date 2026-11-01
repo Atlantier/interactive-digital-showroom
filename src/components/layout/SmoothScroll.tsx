@@ -28,10 +28,9 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
       autoRaf: false,
       duration: 1.15,
       easing: (time) => Math.min(1, 1.001 - 2 ** (-10 * time)),
-      smoothWheel: true,
+      smoothWheel: false,
       syncTouch: false,
       touchMultiplier: 1.15,
-      wheelMultiplier: 0.9,
       anchors: { offset: -76 },
       autoResize: true,
       respectReducedMotion: true,
@@ -92,23 +91,39 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
     const handleResize = () => instance.resize()
 
     activeLenis = instance
+    document.documentElement.dataset.scrollMode = 'native-wheel'
     setLenis(instance)
 
     let animationFrame = 0
+    let progressLine: HTMLElement | null = null
+    let scrollStateActive = false
+    let scrollIdleTimer = 0
+
+    const markScrollActivity = () => {
+      if (!scrollStateActive) {
+        scrollStateActive = true
+        document.documentElement.dataset.scrolling = 'true'
+      }
+      window.clearTimeout(scrollIdleTimer)
+      scrollIdleTimer = window.setTimeout(() => {
+        scrollStateActive = false
+        document.documentElement.dataset.scrolling = 'false'
+      }, 140)
+    }
+
     const driveLenis = (timestamp: number) => {
       if (activeLenis) {
         activeLenis.raf(timestamp)
+        const progress = activeLenis.progress
         useAppStore
           .getState()
-          .updateScroll(activeLenis.progress, activeLenis.velocity)
-        document.documentElement.style.setProperty(
-          '--scroll-progress',
-          String(activeLenis.progress),
+          .updateScroll(progress, activeLenis.velocity)
+        progressLine ??= document.querySelector<HTMLElement>(
+          '[data-scroll-progress-line]',
         )
-        document.documentElement.style.setProperty(
-          '--scroll-velocity',
-          String(activeLenis.velocity),
-        )
+        if (progressLine) {
+          progressLine.style.transform = `scaleX(${progress.toFixed(5)})`
+        }
       }
       animationFrame = requestAnimationFrame(driveLenis)
     }
@@ -126,6 +141,12 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
     })
     window.addEventListener('touchend', handleTouchEnd, { passive: true })
     window.addEventListener('touchcancel', handleTouchEnd, { passive: true })
+    window.addEventListener('scroll', markScrollActivity, {
+      passive: true,
+    })
+    window.addEventListener('wheel', markScrollActivity, {
+      passive: true,
+    })
     window.addEventListener('blur', handleWindowBlur)
     document.documentElement.addEventListener(
       'pointerleave',
@@ -135,12 +156,15 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
 
     return () => {
       cancelAnimationFrame(animationFrame)
+      window.clearTimeout(scrollIdleTimer)
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerdown', handlePointerDown)
       window.removeEventListener('touchstart', handleTouchMove)
       window.removeEventListener('touchmove', handleTouchMove)
       window.removeEventListener('touchend', handleTouchEnd)
       window.removeEventListener('touchcancel', handleTouchEnd)
+      window.removeEventListener('scroll', markScrollActivity)
+      window.removeEventListener('wheel', markScrollActivity)
       window.removeEventListener('blur', handleWindowBlur)
       document.documentElement.removeEventListener(
         'pointerleave',
@@ -148,6 +172,8 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
       )
       window.removeEventListener('resize', handleResize)
       instance.destroy()
+      delete document.documentElement.dataset.scrolling
+      delete document.documentElement.dataset.scrollMode
       activeLenis = null
       setLenis(null)
     }

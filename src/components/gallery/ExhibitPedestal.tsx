@@ -73,8 +73,8 @@ export function ExhibitPedestal({
   )
   const stageRef = useRef<HTMLDivElement>(null)
   const inView = useInViewAnimation(stageRef, {
-    rootMargin: '120px 0px',
-    threshold: 0.01,
+    rootMargin: '0px 0px -8% 0px',
+    threshold: 0.04,
   })
   const modalOpen = useGalleryStore(
     (state) => state.activeExhibitId !== null,

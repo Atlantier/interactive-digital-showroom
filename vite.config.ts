@@ -27,6 +27,11 @@ export default defineConfig({
               name: 'react-runtime',
               test: /node_modules[\\/](react|react-dom|scheduler|zustand|framer-motion|motion-dom|motion-utils)[\\/]/,
             },
+            {
+              name: 'translation-resilience',
+              test:
+                /node_modules[\\/]translation-resilience[\\/]|src[\\/]components[\\/]layout[\\/]RootErrorBoundary\.tsx/,
+            },
           ],
         },
       },

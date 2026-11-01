@@ -20,8 +20,6 @@
   --locale-heading-tracking: -0.03em;
   --locale-body-tracking: -0.004em;
   --locale-body-leading: 1.58;
-  --scroll-progress: 0;
-  --scroll-velocity: 0;
   --color-signal: #10b981;
   --theme-accent-rgb: 16 185 129;
   --vfx-primary: #10b981;
@@ -180,8 +178,25 @@ a {
 
 .film-grain {
   opacity: 0.035;
+  contain: strict;
+  transform: translateZ(0);
+  background-repeat: repeat;
+  background-size: 180px 180px;
   background-image: url("data:image/svg+xml,%3Csvg viewBox='0 0 180 180' xmlns='http://www.w3.org/2000/svg'%3E%3Cfilter id='n'%3E%3CfeTurbulence type='fractalNoise' baseFrequency='.9' numOctaves='3' stitchTiles='stitch'/%3E%3C/filter%3E%3Crect width='100%25' height='100%25' filter='url(%23n)' opacity='.9'/%3E%3C/svg%3E");
-  mix-blend-mode: soft-light;
+}
+
+html[data-scrolling="true"] .film-grain {
+  opacity: 0;
+}
+
+html[data-scrolling="true"] .bento-comet,
+html[data-scrolling="true"] .bento-card-border-glow,
+html[data-scrolling="true"] .bento-card-surface-glare,
+html[data-scrolling="true"] .exhibit-preview *,
+html[data-scrolling="true"] .exhibit-preview *::before,
+html[data-scrolling="true"] .exhibit-preview *::after,
+html[data-scrolling="true"] .gallery-pedestal-tour::before {
+  animation-play-state: paused !important;
 }
 
 .status-pulse {
@@ -252,6 +267,8 @@ a {
     inset 0 1px 0 rgb(255 255 255 / 3%),
     0 18px 60px rgb(0 0 0 / 24%);
   will-change: transform;
+  content-visibility: auto;
+  contain-intrinsic-size: auto 250px;
 }
 
 .bento-comet {
@@ -303,6 +320,12 @@ a {
     transparent 360deg
   );
   animation: bento-comet-orbit-reverse 12s linear infinite;
+}
+
+[data-bento-grid][data-bento-in-view="false"] .bento-comet,
+[data-bento-grid][data-bento-in-view="false"] .bento-card-border-glow,
+[data-bento-grid][data-bento-in-view="false"] .bento-card-surface-glare {
+  animation-play-state: paused;
 }
 
 .bento-card:hover .bento-comet,
@@ -858,6 +881,7 @@ html[data-sandbox-dragging="true"] body {
 
 .gallery-pedestal {
   isolation: isolate;
+  contain: layout paint style;
   border-radius: 3px;
   background-image:
     linear-gradient(180deg, rgb(255 255 255 / 2.4%), transparent 20%),
@@ -1665,6 +1689,7 @@ html[data-sandbox-dragging="true"] body {
 .preview-gpu-cell {
   border: 1px solid rgb(var(--vfx-secondary-rgb) / 26%);
   background: rgb(var(--vfx-primary-rgb) / 12%);
+  transform: scale(0.86);
   animation: preview-gpu-cell 2.2s ease-in-out infinite;
   animation-delay: calc(var(--i) * -0.11s);
 }
@@ -1959,12 +1984,12 @@ html[data-sandbox-dragging="true"] body {
 @keyframes preview-gpu-cell {
   0%,
   100% {
-    background: rgb(var(--vfx-primary-rgb) / 8%);
     opacity: 0.4;
+    transform: scale(0.86);
   }
   50% {
-    background: rgb(var(--vfx-tertiary-rgb) / 34%);
     opacity: 1;
+    transform: scale(1.06);
   }
 }
 

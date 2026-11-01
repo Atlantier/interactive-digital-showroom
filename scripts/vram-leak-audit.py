@@ -410,6 +410,15 @@ with sync_playwright() as playwright:
             section_id,
         )
         page.wait_for_timeout(180)
+        if section_id == "architecture":
+            expect(
+                page.locator("[data-architecture-sticky]")
+            ).to_have_attribute(
+                "data-scene-ready",
+                "true",
+                timeout=8_000,
+            )
+            page.wait_for_timeout(500)
     page.evaluate("window.scrollTo(0, 0)")
     page.wait_for_timeout(700)
     page.evaluate("window.gc?.()")

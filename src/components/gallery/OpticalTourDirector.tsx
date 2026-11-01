@@ -361,7 +361,7 @@ export function OpticalTourDirector() {
               duration: 0.32,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="fixed left-1/2 top-[74px] z-[145] w-[min(880px,calc(100vw-24px))] -translate-x-1/2 overflow-hidden border border-[var(--vfx-secondary)]/28 bg-[#03080c]/92 shadow-[0_24px_72px_rgba(0,0,0,0.62)] backdrop-blur-2xl"
+            className="fixed left-1/2 top-[74px] z-[145] w-[min(880px,calc(100vw-24px))] -translate-x-1/2 overflow-hidden border border-[var(--vfx-secondary)]/28 bg-[#03080c]/98 shadow-[0_24px_72px_rgba(0,0,0,0.62)]"
           >
             <div className="flex items-center justify-between gap-3 border-b border-white/[0.07] px-3 py-2 sm:px-4">
               <span className="flex items-center gap-2 font-mono text-[7px] text-[var(--vfx-secondary)]/72">
@@ -478,7 +478,7 @@ export function OpticalTourDirector() {
               duration: 0.28,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="fixed bottom-3 left-1/2 z-[150] w-[min(760px,calc(100vw-24px))] -translate-x-1/2 overflow-hidden rounded-[18px] border border-white/[0.12] bg-[#05090d]/78 shadow-[0_22px_70px_rgba(0,0,0,0.64),inset_0_1px_0_rgba(255,255,255,0.055)] backdrop-blur-2xl sm:bottom-5"
+            className="fixed bottom-3 left-1/2 z-[150] w-[min(760px,calc(100vw-24px))] -translate-x-1/2 overflow-hidden rounded-[18px] border border-white/[0.12] bg-[#05090d]/96 shadow-[0_22px_70px_rgba(0,0,0,0.64),inset_0_1px_0_rgba(255,255,255,0.055)] sm:bottom-5"
           >
             <div className="flex items-center justify-between gap-4 border-b border-white/[0.065] px-3 py-2 sm:px-4">
               <div className="flex min-w-0 items-center gap-2">
