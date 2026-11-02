@@ -35,7 +35,11 @@ import {
   type SectionId,
 } from '../../data/sections'
 import { VFX_PRESETS } from '../../data/vfxPresets'
+import { useBackgroundInert } from '../../hooks/useBackgroundInert'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
+import { useModalLayer } from '../../hooks/useModalLayer'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import {
   formatTranslation,
   useI18n,
@@ -199,12 +203,18 @@ export function CommandPalette() {
   const reducedMotion = useReducedMotion()
   const dialogRef = useRef<HTMLDivElement>(null)
   const inputRef = useRef<HTMLInputElement>(null)
-  const returnFocusRef = useRef<HTMLElement | null>(null)
   const noticeTimerRef = useRef(0)
   const [query, setQuery] = useState('')
   const deferredQuery = useDeferredValue(query)
   const [activeIndex, setActiveIndex] = useState(0)
   const [notice, setNotice] = useState<string | null>(null)
+  const isTopLayer = useModalLayer(open)
+  useFocusTrap(dialogRef, open, {
+    enabled: isTopLayer,
+    initialFocusRef: inputRef,
+  })
+  useScrollLock(open, lenis)
+  useBackgroundInert(open)
 
   const showNotice = useCallback((message: string) => {
     window.clearTimeout(noticeTimerRef.current)
@@ -443,36 +453,12 @@ export function CommandPalette() {
   useEffect(() => {
     if (!open) return
 
-    returnFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null
     setQuery('')
     setActiveIndex(0)
-    const focusFrame = window.requestAnimationFrame(() => {
-      inputRef.current?.focus()
-    })
-
-    return () => {
-      window.cancelAnimationFrame(focusFrame)
-      returnFocusRef.current?.focus()
-    }
   }, [open])
 
   useEffect(() => {
-    if (!lenis) return
-    if (open) {
-      lenis.stop()
-    } else {
-      lenis.start()
-    }
-    return () => {
-      if (open) lenis.start()
-    }
-  }, [lenis, open])
-
-  useEffect(() => {
-    if (!open) return
+    if (!open || !isTopLayer) return
     const handleEscape = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
         event.preventDefault()
@@ -481,7 +467,7 @@ export function CommandPalette() {
     }
     window.addEventListener('keydown', handleEscape)
     return () => window.removeEventListener('keydown', handleEscape)
-  }, [open, setOpen])
+  }, [isTopLayer, open, setOpen])
 
   useEffect(() => {
     setActiveIndex((current) =>
@@ -523,23 +509,6 @@ export function CommandPalette() {
       executeCommand(command)
       return
     }
-    if (event.key !== 'Tab' || !dialogRef.current) return
-
-    const focusable = Array.from(
-      dialogRef.current.querySelectorAll<HTMLElement>(
-        'input, button:not([disabled])',
-      ),
-    )
-    if (focusable.length === 0) return
-    const first = focusable[0]
-    const last = focusable[focusable.length - 1]
-    if (event.shiftKey && document.activeElement === first) {
-      event.preventDefault()
-      last.focus()
-    } else if (!event.shiftKey && document.activeElement === last) {
-      event.preventDefault()
-      first.focus()
-    }
   }
 
   const activeCommand = filteredCommands[activeIndex]
@@ -557,6 +526,8 @@ export function CommandPalette() {
             <motion.div
               key="command-palette"
               data-command-palette
+              aria-hidden={!isTopLayer ? true : undefined}
+              inert={!isTopLayer ? true : undefined}
               initial={reducedMotion ? false : { opacity: 0 }}
               animate={{ opacity: 1 }}
               exit={{ opacity: 0 }}
@@ -657,16 +628,18 @@ export function CommandPalette() {
                     groupedCommands.map(({ groupName, entries }) => (
                       <section
                         key={groupName}
-                        aria-labelledby={`command-group-${groupName}`}
+                        role="group"
+                        aria-label={t.command.groups[groupName]}
                         className="mb-2 last:mb-0"
                       >
                         <h2
                           id={`command-group-${groupName}`}
+                          aria-hidden="true"
                           className="px-2 pb-1.5 pt-1 font-mono text-[8px] text-mist/34"
                         >
                           {t.command.groups[groupName]}
                         </h2>
-                        <div className="grid gap-0.5">
+                        <>
                           {entries.map(({ command, index }) => {
                             const Icon = command.icon
                             const selected = index === activeIndex
@@ -681,7 +654,7 @@ export function CommandPalette() {
                                 onMouseMove={() => setActiveIndex(index)}
                                 onClick={() => executeCommand(command)}
                                 className={cn(
-                                  'group/command relative flex min-h-12 w-full items-center gap-3 rounded-[3px] border border-transparent px-2.5 py-2 text-left transition-colors sm:px-3',
+                                  'group/command relative mb-0.5 flex min-h-12 w-full items-center gap-3 rounded-[3px] border border-transparent px-2.5 py-2 text-left transition-colors last:mb-0 sm:px-3',
                                   selected
                                     ? 'border-signal/18 bg-signal/[0.075]'
                                     : 'hover:border-white/[0.06] hover:bg-white/[0.028]',
@@ -748,7 +721,7 @@ export function CommandPalette() {
                               </button>
                             )
                           })}
-                        </div>
+                        </>
                       </section>
                     ))
                   ) : (

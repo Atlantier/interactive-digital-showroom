@@ -23,8 +23,12 @@ import {
   type RefObject,
 } from 'react'
 import { createPortal } from 'react-dom'
+import { useBackgroundInert } from '../../hooks/useBackgroundInert'
+import { useFocusTrap } from '../../hooks/useFocusTrap'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
+import { useModalLayer } from '../../hooks/useModalLayer'
+import { useScrollLock } from '../../hooks/useScrollLock'
 import {
   formatTranslation,
   useI18n,
@@ -152,10 +156,11 @@ export function DarkroomInspectorModal() {
   const triggerHologramGlitch = useGalleryStore(
     (state) => state.triggerHologramGlitch,
   )
+  const dialogRef = useRef<HTMLDivElement>(null)
   const stageRef = useRef<HTMLDivElement>(null)
   const viewTrackRef = stageRef as unknown as RefObject<HTMLElement>
   const closeButtonRef = useRef<HTMLButtonElement>(null)
-  const returnFocusRef = useRef<HTMLElement | null>(null)
+  const cleanExitButtonRef = useRef<HTMLButtonElement>(null)
   const pointerRef = useRef(createGalleryPointerState())
   const orbitRef = useRef(createOrbitCameraState())
   const dragStateRef = useRef({
@@ -190,6 +195,13 @@ export function DarkroomInspectorModal() {
   const lenis = useSmoothScroll()
   const playSound = useInterfaceSound()
   const reducedMotion = useReducedMotion()
+  const isTopLayer = useModalLayer(open)
+  useFocusTrap(dialogRef, open, {
+    enabled: isTopLayer,
+    initialFocusRef: closeButtonRef,
+  })
+  useScrollLock(open, lenis)
+  useBackgroundInert(open)
   const exhibitIndex = useGalleryStore((state) =>
     Math.max(
       0,
@@ -236,16 +248,21 @@ export function DarkroomInspectorModal() {
   useEffect(() => {
     if (!open) return
 
-    returnFocusRef.current =
-      document.activeElement instanceof HTMLElement
-        ? document.activeElement
-        : null
-    const previousOverflow = document.body.style.overflow
-    document.body.style.overflow = 'hidden'
-    lenis?.stop()
     const focusFrame = window.requestAnimationFrame(() => {
-      closeButtonRef.current?.focus()
+      if (cinemaCleanView) {
+        cleanExitButtonRef.current?.focus({ preventScroll: true })
+      } else if (
+        !dialogRef.current?.contains(document.activeElement)
+      ) {
+        closeButtonRef.current?.focus({ preventScroll: true })
+      }
     })
+
+    return () => window.cancelAnimationFrame(focusFrame)
+  }, [cinemaCleanView, open])
+
+  useEffect(() => {
+    if (!open || !isTopLayer) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') {
@@ -281,17 +298,11 @@ export function DarkroomInspectorModal() {
     }
     window.addEventListener('keydown', handleKeyDown)
 
-    return () => {
-      window.cancelAnimationFrame(focusFrame)
-      window.removeEventListener('keydown', handleKeyDown)
-      document.body.style.overflow = previousOverflow
-      lenis?.start()
-      returnFocusRef.current?.focus()
-    }
+    return () => window.removeEventListener('keydown', handleKeyDown)
   }, [
     cinemaCleanView,
     close,
-    lenis,
+    isTopLayer,
     navigateExhibit,
     open,
     setCinemaCleanView,
@@ -510,11 +521,15 @@ export function DarkroomInspectorModal() {
 
     return (
       <motion.div
+        ref={dialogRef}
         data-darkroom-inspector
         data-localized-portal
         role="dialog"
         aria-modal="true"
         aria-labelledby="darkroom-title"
+        aria-hidden={!isTopLayer ? true : undefined}
+        inert={!isTopLayer ? true : undefined}
+        tabIndex={-1}
         data-darkroom-clean-view={
           cinemaCleanView ? 'true' : 'false'
         }
@@ -546,6 +561,7 @@ export function DarkroomInspectorModal() {
         </p>
         {cinemaCleanView ? (
           <button
+            ref={cleanExitButtonRef}
             type="button"
             data-darkroom-clean-exit
             aria-label={t.gallery.darkroom.cinemaCleanExit}
@@ -573,7 +589,7 @@ export function DarkroomInspectorModal() {
           )}
         >
           {!cinemaCleanView ? (
-            <header className="col-span-full flex min-w-0 flex-col items-stretch gap-2 border-b border-white/[0.08] bg-black/28 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
+            <div className="col-span-full flex min-w-0 flex-col items-stretch gap-2 border-b border-white/[0.08] bg-black/28 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid size-8 shrink-0 place-items-center border border-[var(--vfx-secondary)]/28 bg-[var(--vfx-secondary)]/[0.055] text-[var(--vfx-secondary)]">
                 <ScanEye size={15} strokeWidth={1.55} />
@@ -669,7 +685,7 @@ export function DarkroomInspectorModal() {
                 <X size={15} strokeWidth={1.6} />
               </button>
             </div>
-          </header>
+            </div>
           ) : null}
 
           <div

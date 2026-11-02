@@ -14,6 +14,7 @@ import { useEffect, useState, type MouseEvent } from 'react'
 import { SHOWROOM_SECTIONS, type SectionId } from '../../data/sections'
 import { VFX_PRESETS } from '../../data/vfxPresets'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
+import { useModalLayer } from '../../hooks/useModalLayer'
 import {
   formatTranslation,
   useI18n,
@@ -386,9 +387,10 @@ export function Navbar() {
   const playSound = useInterfaceSound()
   const [menuOpen, setMenuOpen] = useState(false)
   const reducedMotion = useReducedMotion()
+  const isTopLayer = useModalLayer(menuOpen)
 
   useEffect(() => {
-    if (!menuOpen) return
+    if (!menuOpen || !isTopLayer) return
 
     const handleKeyDown = (event: KeyboardEvent) => {
       if (event.key === 'Escape') setMenuOpen(false)
@@ -396,7 +398,7 @@ export function Navbar() {
 
     window.addEventListener('keydown', handleKeyDown)
     return () => window.removeEventListener('keydown', handleKeyDown)
-  }, [menuOpen])
+  }, [isTopLayer, menuOpen])
 
   const handleNavigate = (
     event: MouseEvent<HTMLAnchorElement>,
