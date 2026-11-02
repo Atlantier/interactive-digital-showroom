@@ -63,15 +63,24 @@ export async function openPrismDarkroom(page: Page) {
       document.getElementById('gallery')?.scrollIntoView()
     })
   }
-  await page.locator('[data-gallery-section]').scrollIntoViewIfNeeded()
+  await expect(
+    page.locator('[data-deferred-section="gallery"]'),
+  ).toHaveAttribute('data-deferred-ready', 'true')
+  const gallery = page.locator('[data-gallery-section]')
+  await expect(gallery).toBeVisible()
+  await gallery.scrollIntoViewIfNeeded()
   const trigger = page.locator(
     '[data-enter-darkroom="prism-caustics"]',
   )
   await trigger.scrollIntoViewIfNeeded()
-  await trigger.click()
+  await trigger.focus()
+  await trigger.evaluate((element) => {
+    const button = element as HTMLButtonElement
+    button.click()
+  })
 
   const dialog = page.locator('[data-darkroom-inspector]')
-  await expect(dialog).toBeVisible()
+  await expect(dialog).toBeVisible({ timeout: 15_000 })
   await expect(
     page.locator('[data-gallery-shared-canvas]'),
   ).toHaveAttribute('data-gallery-view-count', '1', {

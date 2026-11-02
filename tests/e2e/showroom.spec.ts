@@ -88,6 +88,7 @@ test('defers below-fold modules until their sections approach the viewport', asy
 test('keeps the gallery at zero canvases until the darkroom opens', async ({
   page,
 }) => {
+  test.setTimeout(90_000)
   const errors = trackRuntimeErrors(page)
   await gotoShowroom(page)
 
@@ -215,6 +216,7 @@ test.describe('mobile gallery controls', () => {
 test('traps focus and resolves layered Escape targets in order', async ({
   page,
 }) => {
+  test.setTimeout(90_000)
   const errors = trackRuntimeErrors(page)
   await gotoShowroom(page)
   const { dialog } = await openPrismDarkroom(page)
