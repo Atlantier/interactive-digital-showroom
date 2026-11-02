@@ -1,6 +1,7 @@
 import {
   ArrowDown,
   ArrowUpRight,
+  Code2,
   Mail,
 } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
@@ -339,6 +340,16 @@ function Contact() {
               size={15}
               className="text-amber transition-transform duration-300 group-hover:-translate-y-0.5 group-hover:translate-x-0.5"
             />
+          </a>
+          <a
+            href="https://github.com/Atlantier/interactive-digital-showroom"
+            target="_blank"
+            rel="noreferrer"
+            className="inline-flex h-12 items-center gap-3 border border-white/12 px-4 font-mono text-[11px] text-mist transition-colors hover:border-[var(--vfx-secondary)]/45 hover:text-frost"
+          >
+            <Code2 size={14} strokeWidth={1.6} />
+            GitHub / Source
+            <ArrowUpRight size={13} strokeWidth={1.6} />
           </a>
         </div>
 

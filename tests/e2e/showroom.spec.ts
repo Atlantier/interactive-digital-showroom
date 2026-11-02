@@ -448,6 +448,42 @@ test('switches locale without creating horizontal overflow', async ({
   await errors.assertClean()
 })
 
+test('restores visual preferences after reload', async ({ page }) => {
+  test.setTimeout(60_000)
+  const errors = trackRuntimeErrors(page)
+  await page.setViewportSize({ width: 1600, height: 1000 })
+  await gotoShowroom(page)
+
+  const preset = page.locator(
+    '[data-vfx-preset-option="supernova-gold"]',
+  )
+  await expect(preset).toBeVisible()
+  await preset.click()
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-vfx-preset',
+    'supernova-gold',
+  )
+  await expect
+    .poll(() =>
+      page.evaluate(
+        (key) => window.localStorage.getItem(key),
+        'node01:visual-preferences',
+      ),
+    )
+    .toContain('supernova-gold')
+
+  await page.reload()
+  await page.waitForLoadState('networkidle')
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-vfx-preset',
+    'supernova-gold',
+  )
+  await expect(
+    page.locator('[data-vfx-preset-switcher]'),
+  ).toHaveAttribute('data-vfx-preset-active', 'supernova-gold')
+  await errors.assertClean()
+})
+
 test.describe('reduced motion', () => {
   test.use({ reducedMotion: 'reduce' })
 

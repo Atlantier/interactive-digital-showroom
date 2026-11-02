@@ -109,6 +109,7 @@ stateDiagram-v2
 - 8 座光学与计算架构展台在橱窗阶段使用合成层轻量循环预览，不创建 WebGL；进入暗房时仅按需挂载当前展品的一个 Canvas / View，关闭后立即卸载并释放上下文。
 - 类型安全的 English / 中文双语系统，默认英文，支持本地持久化、动态页面元数据与全站文案切换。
 - `Cmd/Ctrl + K` 模糊命令面板、主题切换、重力环境与简历 JSON 导出。
+- 全站强调色、VFX 光谱预设与重力环境会写入本地偏好，刷新后自动恢复；音频开关不持久化。
 - 视口休眠、自适应画质、4K 首帧降级和 `Shift + D` 性能遥测。
 - 浏览器整页翻译兼容：自动修复翻译器替换 React 文本节点造成的 DOM 位移，并提供根级错误恢复界面，避免黑屏。
 - 全站区块导航统一写入 hash 并保留查询参数；刷新、分享深链接以及浏览器前进/后退都能恢复对应区块，普通滚动只更新导航高亮而不污染历史记录。
@@ -372,6 +373,7 @@ python scripts/scroll-performance-check.py artifacts/scroll-performance
 python scripts/translation-resilience-check.py artifacts/translation-resilience
 python scripts/sound-engine-check.py artifacts/sound
 python scripts/i18n-check.py artifacts/i18n
+python scripts/capture-social-card.py public/og-showroom.png
 ```
 
 ## GitHub Pages 部署
@@ -385,6 +387,8 @@ python scripts/i18n-check.py artifacts/i18n
 5. `upload-pages-artifact` 与 `deploy-pages` 发布 `dist/`。
 
 PR 和非 `main` 分支由 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) 执行同一 Chromium 门禁；每周末额外运行 WebKit 与 Firefox smoke。
+
+首页包含 canonical、Open Graph 与 Twitter Card 元数据，分享图位于 `public/og-showroom.png`，可通过 `scripts/capture-social-card.py` 从线上成品重新采集为 `1200 × 630` PNG。
 
 首次部署前，在仓库 **Settings → Pages → Build and deployment** 中将 Source 设为 **GitHub Actions**。Vite 使用相对 `base: './'`，兼容用户主页与项目子路径部署。
 
