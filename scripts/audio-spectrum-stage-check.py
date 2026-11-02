@@ -56,9 +56,23 @@ with sync_playwright() as playwright:
 
     pedestal = page.locator('[data-exhibit-pedestal][data-exhibit-index="5"]')
     pedestal.scroll_into_view_if_needed()
-    stage = pedestal.locator("[data-gallery-stage]")
-    stage.scroll_into_view_if_needed()
+    pedestal.locator(
+        '[data-enter-darkroom="orbital-lens"]'
+    ).click()
+    modal = page.locator("[data-darkroom-inspector]")
+    expect(modal).to_be_visible()
+    expect(modal.get_by_role("heading", level=2)).to_contain_text(
+        "Audio Spectrum Stage"
+    )
     shared_canvas = page.locator("[data-gallery-shared-canvas]")
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+          '[data-gallery-shared-canvas]'
+        )?.dataset.audioSpectrumStage === 'instanced-256'
+        """,
+        timeout=15_000,
+    )
 
     expect(shared_canvas).to_have_attribute(
         "data-audio-spectrum-stage",
@@ -109,7 +123,10 @@ with sync_playwright() as playwright:
         "4",
     )
 
-    play_button = pedestal.locator("[data-audio-stage-play]")
+    play_button = page.locator(
+        "[data-darkroom-audio-stage-controls] "
+        "[data-audio-stage-play]"
+    )
     expect(play_button).to_be_visible()
     play_button.click()
     expect(play_button).to_have_attribute("aria-pressed", "true")
@@ -134,11 +151,15 @@ with sync_playwright() as playwright:
     page.wait_for_timeout(650)
     page.screenshot(path=output_dir / "stage-audio-spectrum.png")
 
-    stage_modes = pedestal.locator(
-        "[data-audio-stage-mode-selector] [data-audio-stage-mode]"
+    stage_modes = page.locator(
+        "[data-darkroom-audio-stage-controls] "
+        "[data-audio-stage-mode]"
     )
     expect(stage_modes).to_have_count(3)
-    pedestal.locator('[data-audio-stage-mode="sunburst"]').click()
+    page.locator(
+        '[data-darkroom-audio-stage-controls] '
+        '[data-audio-stage-mode="sunburst"]'
+    ).click()
     expect(shared_canvas).to_have_attribute(
         "data-audio-spectrum-mode",
         "sunburst",
@@ -151,7 +172,10 @@ with sync_playwright() as playwright:
         )
         or "0"
     )
-    pedestal.locator('[data-audio-stage-mode="waterfall"]').click()
+    page.locator(
+        '[data-darkroom-audio-stage-controls] '
+        '[data-audio-stage-mode="waterfall"]'
+    ).click()
     expect(shared_canvas).to_have_attribute(
         "data-audio-spectrum-mode",
         "waterfall",
@@ -168,18 +192,15 @@ with sync_playwright() as playwright:
     )
     page.wait_for_timeout(760)
     page.screenshot(path=output_dir / "stage-audio-waterfall.png")
-    pedestal.locator('[data-audio-stage-mode="matrix"]').click()
+    page.locator(
+        '[data-darkroom-audio-stage-controls] '
+        '[data-audio-stage-mode="matrix"]'
+    ).click()
     expect(shared_canvas).to_have_attribute(
         "data-audio-spectrum-mode",
         "matrix",
     )
 
-    page.locator('[data-enter-darkroom="orbital-lens"]').click()
-    modal = page.locator("[data-darkroom-inspector]")
-    expect(modal).to_be_visible()
-    expect(modal.get_by_role("heading", level=2)).to_contain_text(
-        "Audio Spectrum Stage"
-    )
     expect(
         page.locator("[data-darkroom-audio-stage-controls]")
     ).to_be_visible()
