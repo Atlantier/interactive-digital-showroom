@@ -3,20 +3,26 @@ import {
   formatTranslation,
   useI18n,
 } from '../../i18n/useI18n'
+import { useInViewAnimation } from '../../hooks/useInViewAnimation'
 import { readTransientState } from '../../store/useAppStore'
+import { subscribeFrame } from '../../utils/frameScheduler'
 
 export const ScrollProgressRing = memo(function ScrollProgressRing() {
   const { t } = useI18n()
   const hostRef = useRef<HTMLDivElement>(null)
   const arcRef = useRef<SVGCircleElement>(null)
   const progressLabel = t.scrollProgress.valueText
+  const inView = useInViewAnimation(hostRef, {
+    rootMargin: '48px',
+    threshold: 0.01,
+  })
 
   useEffect(() => {
-    let animationFrame = 0
+    if (!inView) return
     let lastProgress = -1
     let lastAriaValue = -1
 
-    const updateProgress = () => {
+    const unsubscribeFrame = subscribeFrame(() => {
       const progress = Math.min(
         1,
         Math.max(0, readTransientState().scrollProgress),
@@ -40,13 +46,10 @@ export const ScrollProgressRing = memo(function ScrollProgressRing() {
           formatTranslation(progressLabel, { value: ariaValue }),
         )
       }
+    })
 
-      animationFrame = requestAnimationFrame(updateProgress)
-    }
-
-    animationFrame = requestAnimationFrame(updateProgress)
-    return () => cancelAnimationFrame(animationFrame)
-  }, [progressLabel])
+    return unsubscribeFrame
+  }, [inView, progressLabel])
 
   return (
     <div

@@ -215,6 +215,14 @@ a = -k(p-p_0) - cv
 
 `Shift + D` 遥测浮层实时汇总各场景活跃粒子源、当前后期 Shader Pass 数量、物理求解耗时、JS Heap、当前 `vfxPreset`、正在检视的光学展台名称与活跃 WebGL 视口数。
 
+### 渐进加载与工程预算
+
+- `DeferredSection` 通过 `IntersectionObserver` 按区块邻近视口时才挂载 `BentoGrid`、光学展馆、共享 WebGL Canvas、暗房、架构场景、Verlet 工牌和 FABRIK 机械生物；首屏不会提前请求这些重组件对应的独立 chunk。
+- 每个延迟区块保留稳定的 DOM `id`，因此带 hash 的深链接、直接定位和巡礼自动聚焦不会因为组件尚未挂载而失效。
+- 共享 `frameScheduler` 统一驱动 Lenis、滚动进度和遥测采样；页面进入后台后停止 RAF，诊断属性仅在开启诊断时写入，避免持续造成主线程与 DOM 抖动。
+- 移动端 Quick-Dock 默认折叠为单行状态条，展开后使用 4 × 2 徽章布局；所有触控目标至少 `44 × 44px`，并通过 `env(safe-area-inset-bottom)` 与暗房底部保留区避开手机安全区。
+- `npm run build` 会在生产打包后执行 `npm run check:bundle`。当前门禁上限为入口 JS `100 KB gzip`、首屏 JS `500 KB gzip`、CSS `35 KB gzip`、字体 `140 KB`；超出任一预算会直接使构建失败。
+
 ## 快捷操作
 
 | Shortcut | Action |

@@ -4,6 +4,7 @@ import {
   recordMemoryUsage,
 } from '../store/performanceTelemetry'
 import { useAppStore } from '../store/useAppStore'
+import { subscribeFrame } from '../utils/frameScheduler'
 
 type PerformanceWithMemory = Performance & {
   memory?: {
@@ -16,10 +17,9 @@ const MEMORY_SAMPLE_INTERVAL_MS = 1_500
 
 export function usePerformanceTelemetry() {
   useEffect(() => {
-    let animationFrame = 0
-    let sampleStartedAt = performance.now()
     let lastMemorySampleAt = Number.NEGATIVE_INFINITY
     let frames = 0
+    let sampledFrameTime = 0
 
     const sampleMemory = (timestamp: number) => {
       if (timestamp - lastMemorySampleAt < MEMORY_SAMPLE_INTERVAL_MS) {
@@ -33,40 +33,31 @@ export function usePerformanceTelemetry() {
       )
     }
 
-    const tick = (timestamp: number) => {
-      frames += 1
-
-      const elapsed = timestamp - sampleStartedAt
-      if (elapsed >= SAMPLE_INTERVAL_MS) {
-        const fps = (frames * 1_000) / elapsed
-        publishFrameTelemetry(fps, elapsed / frames)
-        if (useAppStore.getState().fpsMonitorEnabled) {
-          useAppStore.getState().setFps(Math.round(fps))
+    const unsubscribeFrame = subscribeFrame(
+      (timestamp, deltaMs) => {
+        if (deltaMs > 0) {
+          frames += 1
+          sampledFrameTime += deltaMs
         }
-        frames = 0
-        sampleStartedAt = timestamp
-        sampleMemory(timestamp)
-      }
 
-      animationFrame = requestAnimationFrame(tick)
-    }
-
-    const handleVisibilityChange = () => {
-      if (document.visibilityState !== 'visible') return
-      const now = performance.now()
-      sampleStartedAt = now
-      frames = 0
-    }
-
-    animationFrame = requestAnimationFrame(tick)
-    document.addEventListener('visibilitychange', handleVisibilityChange)
+        if (sampledFrameTime >= SAMPLE_INTERVAL_MS) {
+          const fps = (frames * 1_000) / sampledFrameTime
+          publishFrameTelemetry(
+            fps,
+            sampledFrameTime / frames,
+          )
+          if (useAppStore.getState().fpsMonitorEnabled) {
+            useAppStore.getState().setFps(Math.round(fps))
+          }
+          frames = 0
+          sampledFrameTime = 0
+          sampleMemory(timestamp)
+        }
+      },
+    )
 
     return () => {
-      cancelAnimationFrame(animationFrame)
-      document.removeEventListener(
-        'visibilitychange',
-        handleVisibilityChange,
-      )
+      unsubscribeFrame()
     }
   }, [])
 }

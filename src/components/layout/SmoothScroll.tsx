@@ -7,6 +7,7 @@ import {
   type ReactNode,
 } from 'react'
 import { useAppStore } from '../../store/useAppStore'
+import { subscribeFrame } from '../../utils/frameScheduler'
 
 let activeLenis: Lenis | null = null
 
@@ -94,7 +95,6 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
     document.documentElement.dataset.scrollMode = 'native-wheel'
     setLenis(instance)
 
-    let animationFrame = 0
     let progressLine: HTMLElement | null = null
     let scrollStateActive = false
     let scrollIdleTimer = 0
@@ -111,7 +111,7 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
       }, 140)
     }
 
-    const driveLenis = (timestamp: number) => {
+    const unsubscribeFrame = subscribeFrame((timestamp) => {
       if (activeLenis) {
         activeLenis.raf(timestamp)
         const progress = activeLenis.progress
@@ -125,10 +125,8 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
           progressLine.style.transform = `scaleX(${progress.toFixed(5)})`
         }
       }
-      animationFrame = requestAnimationFrame(driveLenis)
-    }
+    })
 
-    animationFrame = requestAnimationFrame(driveLenis)
     window.addEventListener('pointermove', handlePointerMove, { passive: true })
     window.addEventListener('pointerdown', handlePointerDown, {
       passive: true,
@@ -155,7 +153,7 @@ export function SmoothScroll({ children }: SmoothScrollProps) {
     window.addEventListener('resize', handleResize, { passive: true })
 
     return () => {
-      cancelAnimationFrame(animationFrame)
+      unsubscribeFrame()
       window.clearTimeout(scrollIdleTimer)
       window.removeEventListener('pointermove', handlePointerMove)
       window.removeEventListener('pointerdown', handlePointerDown)
