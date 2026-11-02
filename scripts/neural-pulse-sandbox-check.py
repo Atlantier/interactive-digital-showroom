@@ -60,7 +60,23 @@ with sync_playwright() as playwright:
         '[data-exhibit-pedestal][data-exhibit-index="6"]'
     )
     pedestal.scroll_into_view_if_needed()
+    pedestal.locator(
+        '[data-enter-darkroom="quantum-lattice"]'
+    ).click()
+    modal = page.locator("[data-darkroom-inspector]")
+    expect(modal).to_be_visible()
+    expect(modal.get_by_role("heading", level=2)).to_contain_text(
+        "Neural Pulse Sandbox"
+    )
     shared_canvas = page.locator("[data-gallery-shared-canvas]")
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+          '[data-gallery-shared-canvas]'
+        )?.dataset.neuralPulseSandbox === 'five-layer-transformer'
+        """,
+        timeout=15_000,
+    )
 
     expect(shared_canvas).to_have_attribute(
         "data-neural-pulse-sandbox",
@@ -99,12 +115,18 @@ with sync_playwright() as playwright:
         "32",
     )
 
-    stage_trigger = pedestal.locator(
+    panel_controls = page.locator(
+        "[data-darkroom-neural-pulse-controls]"
+    )
+    expect(panel_controls).to_be_visible()
+    stage_trigger = panel_controls.locator(
         "[data-neural-trigger-inference]"
     )
     expect(stage_trigger).to_be_visible()
     expect(
-        pedestal.locator("[data-neural-training-mode-option]")
+        panel_controls.locator(
+            "[data-neural-training-mode-option]"
+        )
     ).to_have_count(2)
     stage_trigger.click()
     expect(shared_canvas).to_have_attribute(
@@ -127,21 +149,9 @@ with sync_playwright() as playwright:
     )
     page.wait_for_timeout(1_350)
     page.screenshot(
-        path=output_dir / "stage-neural-pulse-inference.png"
+        path=output_dir / "darkroom-neural-pulse-inference.png"
     )
 
-    pedestal.locator(
-        '[data-enter-darkroom="quantum-lattice"]'
-    ).click()
-    modal = page.locator("[data-darkroom-inspector]")
-    expect(modal).to_be_visible()
-    expect(modal.get_by_role("heading", level=2)).to_contain_text(
-        "Neural Pulse Sandbox"
-    )
-    panel_controls = page.locator(
-        "[data-darkroom-neural-pulse-controls]"
-    )
-    expect(panel_controls).to_be_visible()
     mode_options = panel_controls.locator(
         "[data-neural-training-mode-option]"
     )

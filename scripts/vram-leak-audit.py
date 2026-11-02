@@ -323,6 +323,24 @@ def gallery_renderer_snapshot(page) -> dict[str, int]:
     )
 
 
+GALLERY_READY_MARKERS = {
+    "prism-caustics": ("prismCaustics", "voronoi-rgb"),
+    "laser-scan-hologram": ("laserScanHologram", "quad-state"),
+    "particle-morph": ("particleMorph", "gpu-curl-morph"),
+    "plasma-reactor": ("plasmaReactor", "hybrid-core"),
+    "photonic-mesh": (
+        "rayBounceMaze",
+        "recursive-cpu-max-depth-10",
+    ),
+    "orbital-lens": ("audioSpectrumStage", "instanced-256"),
+    "quantum-lattice": (
+        "neuralPulseSandbox",
+        "five-layer-transformer",
+    ),
+    "phase-torus": ("gpuComputeMatrix", "tensor-core-bvh"),
+}
+
+
 def set_gallery_exhibit(page, exhibit_id: str | None) -> None:
     page.evaluate(
         """
@@ -340,6 +358,38 @@ def set_gallery_exhibit(page, exhibit_id: str | None) -> None:
         """,
         exhibit_id,
     )
+    if exhibit_id is None:
+        page.wait_for_function(
+            """
+            () => {
+              const canvas = document.querySelector(
+                '[data-gallery-shared-canvas]'
+              )
+              return canvas?.dataset.galleryStageMounted === 'false' &&
+                document.querySelector(
+                  '[data-telemetry-active-exhibit="none"]'
+                )
+            }
+            """,
+            timeout=10_000,
+        )
+        return
+
+    marker, expected = GALLERY_READY_MARKERS[exhibit_id]
+    page.wait_for_function(
+        """
+        ([markerName, expectedValue]) => {
+          const canvas = document.querySelector(
+            '[data-gallery-shared-canvas]'
+          )
+          return canvas?.dataset.galleryStageMounted === 'true' &&
+            canvas.dataset[markerName] === expectedValue
+        }
+        """,
+        arg=[marker, expected],
+        timeout=15_000,
+    )
+    page.wait_for_timeout(120)
 
 
 def set_performance_tier(page, tier: str) -> None:
