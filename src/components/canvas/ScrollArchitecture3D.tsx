@@ -1381,7 +1381,11 @@ function ArchitectureNarrativeOverlay({
   )
 }
 
-export function ScrollArchitecture3D() {
+export function ScrollArchitecture3D({
+  sectionId = 'architecture',
+}: {
+  sectionId?: string | null
+} = {}) {
   const { t } = useI18n()
   const sectionRef = useRef<HTMLElement>(null)
   const [selectedLayer, setSelectedLayer] = useState<LayerId | null>(null)
@@ -1416,7 +1420,7 @@ export function ScrollArchitecture3D() {
   return (
     <section
       ref={sectionRef}
-      id="architecture"
+      id={sectionId ?? undefined}
       data-architecture-section
       data-audio-reactive="architecture-model"
       data-audio-energy="0"

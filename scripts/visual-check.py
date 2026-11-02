@@ -103,10 +103,14 @@ with sync_playwright() as playwright:
         expect(
             page.get_by_role("button", name="Disable live FPS monitor")
         ).to_have_attribute("aria-pressed", "true")
-        page.wait_for_timeout(900)
-        fps_text = page.locator(
+        fps_telemetry = page.locator(
             '[aria-label="Live frame rate telemetry"]'
-        ).inner_text()
+        )
+        expect(fps_telemetry).to_have_text(
+            re.compile(r"^\d+\s*fps$"),
+            timeout=10_000,
+        )
+        fps_text = fps_telemetry.inner_text()
         assert re.search(r"\d+\s*fps", fps_text), fps_text
         print(f"Desktop FPS sample: {fps_text}")
         page.set_viewport_size({"width": 1440, "height": 1000})
@@ -345,6 +349,15 @@ with sync_playwright() as playwright:
         page.wait_for_timeout(250)
         page.screenshot(path=output_dir / "desktop-works.png")
 
+        deferred_architecture = page.locator(
+            '[data-deferred-section="architecture"]'
+        )
+        deferred_architecture.scroll_into_view_if_needed()
+        expect(deferred_architecture).to_have_attribute(
+            "data-deferred-ready",
+            "true",
+            timeout=10_000,
+        )
         architecture_section = page.locator("[data-architecture-section]")
         expect(architecture_section).to_be_attached()
         architecture_height = architecture_section.evaluate(

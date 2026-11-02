@@ -62,20 +62,25 @@ with sync_playwright() as playwright:
         "data-scroll-mode",
         "native-wheel",
     )
-    expect(page.locator("[data-architecture-sticky]")).to_have_attribute(
-        "data-scene-ready",
-        "false",
-    )
+    expect(
+        page.locator('[data-deferred-section="architecture"]')
+    ).to_have_attribute("data-deferred-ready", "false")
     expect(
         page.locator(
-            "[data-architecture-sticky] "
-            "[data-scene-canvas], "
-            "[data-architecture-sticky] canvas"
+            '[data-deferred-section="architecture"] '
+            "[data-architecture-sticky], "
+            '[data-deferred-section="architecture"] canvas'
         )
     ).to_have_count(0)
-    bento_height_before = page.locator(
-        "[data-bento-grid]"
-    ).evaluate("(element) => element.getBoundingClientRect().height")
+
+    page.locator(
+        '[data-deferred-section="content"]'
+    ).first.scroll_into_view_if_needed()
+    bento = page.locator("[data-bento-grid]")
+    expect(bento).to_be_visible()
+    bento_height_before = bento.evaluate(
+        "(element) => element.getBoundingClientRect().height"
+    )
 
     page.evaluate(
         """
@@ -119,9 +124,9 @@ with sync_playwright() as playwright:
         "data-bento-in-view",
         "false",
     )
-    bento_height_after = page.locator(
-        "[data-bento-grid]"
-    ).evaluate("(element) => element.getBoundingClientRect().height")
+    bento_height_after = bento.evaluate(
+        "(element) => element.getBoundingClientRect().height"
+    )
     assert abs(bento_height_after - bento_height_before) < 0.5, (
         bento_height_before,
         bento_height_after,

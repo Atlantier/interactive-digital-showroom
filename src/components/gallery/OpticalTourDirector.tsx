@@ -7,6 +7,7 @@ import {
   ArrowRight,
   Atom,
   AudioWaveform,
+  ChevronDown,
   CircleDotDashed,
   Clapperboard,
   Cpu,
@@ -116,6 +117,7 @@ export function OpticalTourDirector() {
   const [galleryInView, setGalleryInView] = useState(false)
   const [viewportExhibitIndex, setViewportExhibitIndex] =
     useState(0)
+  const [dockExpanded, setDockExpanded] = useState(false)
   const progressRef = useRef<HTMLSpanElement>(null)
   const clockRef = useRef<HTMLSpanElement>(null)
   const hudRef = useRef<HTMLDivElement>(null)
@@ -144,6 +146,14 @@ export function OpticalTourDirector() {
   const directorCopy = t.gallery.tourDirector
 
   useEffect(() => {
+    const media = window.matchMedia('(min-width: 640px)')
+    const syncExpanded = () => setDockExpanded(media.matches)
+    syncExpanded()
+    media.addEventListener('change', syncExpanded)
+    return () => media.removeEventListener('change', syncExpanded)
+  }, [])
+
+  useEffect(() => {
     const section = document.getElementById('gallery')
     if (!section) return
     const observer = new IntersectionObserver(
@@ -158,49 +168,78 @@ export function OpticalTourDirector() {
   }, [])
 
   useEffect(() => {
-    const pedestals = Array.from(
-      document.querySelectorAll<HTMLElement>(
-        '[data-exhibit-pedestal]',
-      ),
-    )
-    if (pedestals.length === 0) return
-    const ratios = new Map<number, number>()
-    const observer = new IntersectionObserver(
-      (entries) => {
-        for (const entry of entries) {
-          if (!(entry.target instanceof HTMLElement)) continue
-          ratios.set(
-            Number(entry.target.dataset.exhibitIndex ?? 0),
-            entry.isIntersecting ? entry.intersectionRatio : 0,
-          )
-        }
-        let nearestIndex = 0
-        let nearestRatio = 0
-        for (const [index, ratio] of ratios) {
-          if (ratio <= nearestRatio) continue
-          nearestIndex = index
-          nearestRatio = ratio
-        }
-        if (nearestRatio > 0) {
-          setViewportExhibitIndex(nearestIndex)
-        }
-      },
-      {
-        threshold: [0, 0.08, 0.18, 0.32, 0.5, 0.72, 1],
-        rootMargin: '-18% 0px -18% 0px',
-      },
-    )
-    pedestals.forEach((pedestal) => observer.observe(pedestal))
-    return () => observer.disconnect()
+    let intersectionObserver: IntersectionObserver | null = null
+    let mutationObserver: MutationObserver | null = null
+
+    const observePedestals = () => {
+      const pedestals = Array.from(
+        document.querySelectorAll<HTMLElement>(
+          '[data-exhibit-pedestal]',
+        ),
+      )
+      if (pedestals.length === 0) return false
+
+      intersectionObserver?.disconnect()
+      mutationObserver?.disconnect()
+      mutationObserver = null
+      const ratios = new Map<number, number>()
+      intersectionObserver = new IntersectionObserver(
+        (entries) => {
+          for (const entry of entries) {
+            if (!(entry.target instanceof HTMLElement)) continue
+            ratios.set(
+              Number(entry.target.dataset.exhibitIndex ?? 0),
+              entry.isIntersecting
+                ? entry.intersectionRatio
+                : 0,
+            )
+          }
+          let nearestIndex = 0
+          let nearestRatio = 0
+          for (const [index, ratio] of ratios) {
+            if (ratio <= nearestRatio) continue
+            nearestIndex = index
+            nearestRatio = ratio
+          }
+          if (nearestRatio > 0) {
+            setViewportExhibitIndex(nearestIndex)
+          }
+        },
+        {
+          threshold: [0, 0.08, 0.18, 0.32, 0.5, 0.72, 1],
+          rootMargin: '-18% 0px -18% 0px',
+        },
+      )
+      pedestals.forEach((pedestal) =>
+        intersectionObserver?.observe(pedestal),
+      )
+      return true
+    }
+
+    if (!observePedestals()) {
+      mutationObserver = new MutationObserver(() => {
+        observePedestals()
+      })
+      mutationObserver.observe(document.body, {
+        childList: true,
+        subtree: true,
+      })
+    }
+
+    return () => {
+      intersectionObserver?.disconnect()
+      mutationObserver?.disconnect()
+    }
   }, [])
 
   const scrollToExhibit = useCallback(
     (index: number) => {
       const exhibit = GALLERY_EXHIBITS[index]
       if (!exhibit) return
-      const element = document.querySelector<HTMLElement>(
+      const element =
+        document.querySelector<HTMLElement>(
         `[data-exhibit-pedestal][data-exhibit-index="${index}"]`,
-      )
+        ) ?? document.getElementById('gallery')
       if (!element) return
       if (lenis) {
         lenis.start()
@@ -228,7 +267,25 @@ export function OpticalTourDirector() {
     const frame = window.requestAnimationFrame(() => {
       scrollToExhibit(opticalTourIndex)
     })
-    return () => window.cancelAnimationFrame(frame)
+    const mutation = new MutationObserver(() => {
+      if (
+        !document.querySelector(
+          '[data-exhibit-pedestal]',
+        )
+      ) {
+        return
+      }
+      mutation.disconnect()
+      scrollToExhibit(opticalTourIndex)
+    })
+    mutation.observe(document.body, {
+      childList: true,
+      subtree: true,
+    })
+    return () => {
+      window.cancelAnimationFrame(frame)
+      mutation.disconnect()
+    }
   }, [
     currentExhibit.id,
     isTourActive,
@@ -467,6 +524,9 @@ export function OpticalTourDirector() {
           <motion.nav
             data-gallery-quick-dock
             data-gallery-quick-active-index={dockExhibitIndex}
+            data-gallery-quick-expanded={
+              dockExpanded ? 'true' : 'false'
+            }
             data-gallery-quick-visible="true"
             aria-label={directorCopy.quickDock}
             initial={
@@ -478,12 +538,19 @@ export function OpticalTourDirector() {
               duration: 0.28,
               ease: [0.22, 1, 0.36, 1],
             }}
-            className="fixed bottom-3 left-1/2 z-[150] w-[min(760px,calc(100vw-24px))] -translate-x-1/2 overflow-hidden rounded-[18px] border border-white/[0.12] bg-[#05090d]/96 shadow-[0_22px_70px_rgba(0,0,0,0.64),inset_0_1px_0_rgba(255,255,255,0.055)] sm:bottom-5"
+            className="fixed bottom-[max(0.75rem,env(safe-area-inset-bottom))] left-1/2 z-[150] w-[min(430px,calc(100vw-24px))] -translate-x-1/2 overflow-hidden rounded-[14px] border border-white/[0.12] bg-[#05090d]/96 shadow-[0_22px_70px_rgba(0,0,0,0.64),inset_0_1px_0_rgba(255,255,255,0.055)] sm:bottom-[max(1.25rem,env(safe-area-inset-bottom))] sm:w-[min(760px,calc(100vw-24px))] sm:rounded-[18px]"
           >
             <div className="flex items-center justify-between gap-4 border-b border-white/[0.065] px-3 py-2 sm:px-4">
-              <div className="flex min-w-0 items-center gap-2">
+              <button
+                type="button"
+                data-gallery-quick-toggle
+                aria-expanded={dockExpanded}
+                aria-controls="gallery-quick-dock-content"
+                onClick={() => setDockExpanded((current) => !current)}
+                className="flex min-w-0 flex-1 items-center gap-2 text-left"
+              >
                 <CircleDotDashed
-                  size={10}
+                  size={12}
                   strokeWidth={1.7}
                   className="shrink-0 text-[var(--vfx-secondary)]"
                 />
@@ -494,8 +561,17 @@ export function OpticalTourDirector() {
                   {String(dockExhibitIndex + 1).padStart(2, '0')} /
                   {String(GALLERY_EXHIBITS.length).padStart(2, '0')}
                 </span>
-              </div>
-              <div className="flex min-w-0 items-center gap-2 font-mono text-[11px] text-[var(--text-secondary)]">
+                <span className="sr-only">{directorCopy.quickDock}</span>
+                <ChevronDown
+                  size={16}
+                  strokeWidth={1.7}
+                  className={cn(
+                    'ml-auto shrink-0 text-[var(--text-secondary)] transition-transform sm:hidden',
+                    dockExpanded && 'rotate-180',
+                  )}
+                />
+              </button>
+              <div className="hidden min-w-0 items-center gap-2 font-mono text-[11px] text-[var(--text-secondary)] sm:flex">
                 <span className="hidden shrink-0 text-[var(--text-tertiary)] sm:inline">
                   {directorCopy.coreFormula}
                 </span>
@@ -504,7 +580,13 @@ export function OpticalTourDirector() {
                 </code>
               </div>
             </div>
-            <div className="flex items-end justify-center gap-1 px-2 py-2 sm:gap-1.5 sm:px-3">
+            <div
+              id="gallery-quick-dock-content"
+              className={cn(
+                'grid grid-cols-4 items-center gap-2 px-3 py-3 sm:flex sm:items-end sm:justify-center sm:gap-1.5 sm:px-3 sm:py-2',
+                !dockExpanded && 'hidden sm:flex',
+              )}
+            >
               {GALLERY_EXHIBITS.map((exhibit, index) => {
                 const Icon = DOCK_ICONS[exhibit.id]
                 const active = index === dockExhibitIndex
@@ -527,7 +609,7 @@ export function OpticalTourDirector() {
                       } as CSSProperties
                     }
                     className={cn(
-                      'group/dock relative grid h-8 w-8 shrink-0 place-items-center rounded-[8px] border transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:h-9 sm:w-9',
+                      'group/dock relative grid h-11 w-11 shrink-0 place-items-center rounded-[8px] border transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:h-9 sm:w-9',
                       active
                         ? '-translate-y-1 scale-105 border-[var(--dock-color)]/45 bg-[var(--dock-color)]/[0.1] text-[var(--dock-color)] shadow-[0_8px_24px_color-mix(in_srgb,var(--dock-color)_22%,transparent)]'
                         : 'border-white/[0.08] bg-white/[0.03] text-[var(--text-secondary)] hover:-translate-y-0.5 hover:border-white/20 hover:text-frost',

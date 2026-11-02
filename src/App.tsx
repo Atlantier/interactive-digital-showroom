@@ -5,8 +5,11 @@ import {
 } from 'lucide-react'
 import { motion, useReducedMotion } from 'framer-motion'
 import {
+  lazy,
+  Suspense,
   useEffect,
   useRef,
+  useState,
   type MouseEvent,
   type RefObject,
   type ReactNode,
@@ -16,19 +19,13 @@ import { CommandPalette } from './components/command/CommandPalette'
 import { PerformanceQualityNotice } from './components/layout/PerformanceQualityNotice'
 import { PerformanceTelemetryHud } from './components/layout/PerformanceTelemetryHud'
 import { VfxPresetSweep } from './components/layout/VfxPresetSweep'
-import { BentoGrid } from './components/bento/BentoGrid'
-import { DarkroomInspectorModal } from './components/gallery/DarkroomInspectorModal'
-import { GallerySection } from './components/gallery/GallerySection'
-import { GallerySharedCanvas } from './components/gallery/GallerySharedCanvas'
+import { DeferredSection } from './components/layout/DeferredSection'
 import { OpticalTourDirector } from './components/gallery/OpticalTourDirector'
 import {
   SmoothScroll,
   useSmoothScroll,
 } from './components/layout/SmoothScroll'
 import { SceneCanvas } from './components/canvas/SceneCanvas'
-import { ScrollArchitecture3D } from './components/canvas/ScrollArchitecture3D'
-import { FabrikCreature } from './components/sandbox/FabrikCreature'
-import { VerletLanyard } from './components/sandbox/VerletLanyard'
 import { LocalizedTextRoot } from './components/ui/LocalizedText'
 import { SHOWROOM_SECTIONS, type SectionId } from './data/sections'
 import { getAccentTheme } from './data/preferences'
@@ -37,7 +34,56 @@ import { useInterfaceSound } from './hooks/useInterfaceSound'
 import { usePerformanceTelemetry } from './hooks/usePerformanceTelemetry'
 import { useI18n } from './i18n/useI18n'
 import { useAppStore } from './store/useAppStore'
+import { useGalleryStore } from './store/useGalleryStore'
 import { soundEngine } from './utils/soundEngine'
+
+const BentoGrid = lazy(() =>
+  import('./components/bento/BentoGrid').then((module) => ({
+    default: module.BentoGrid,
+  })),
+)
+
+const DarkroomInspectorModal = lazy(() =>
+  import('./components/gallery/DarkroomInspectorModal').then(
+    (module) => ({
+      default: module.DarkroomInspectorModal,
+    }),
+  ),
+)
+
+const GallerySection = lazy(() =>
+  import('./components/gallery/GallerySection').then((module) => ({
+    default: module.GallerySection,
+  })),
+)
+
+const GallerySharedCanvas = lazy(() =>
+  import('./components/gallery/GallerySharedCanvas').then(
+    (module) => ({
+      default: module.GallerySharedCanvas,
+    }),
+  ),
+)
+
+const ScrollArchitecture3D = lazy(() =>
+  import('./components/canvas/ScrollArchitecture3D').then(
+    (module) => ({
+      default: module.ScrollArchitecture3D,
+    }),
+  ),
+)
+
+const VerletLanyard = lazy(() =>
+  import('./components/sandbox/VerletLanyard').then((module) => ({
+    default: module.VerletLanyard,
+  })),
+)
+
+const FabrikCreature = lazy(() =>
+  import('./components/sandbox/FabrikCreature').then((module) => ({
+    default: module.FabrikCreature,
+  })),
+)
 
 function ScrollLink({
   target,
@@ -203,7 +249,13 @@ function Works() {
           </p>
         </div>
 
-        <BentoGrid />
+        <DeferredSection
+          rootMargin="180px 0px"
+          minHeight="clamp(860px, 100svh, 1200px)"
+          className="mt-10"
+        >
+          <BentoGrid />
+        </DeferredSection>
       </div>
     </section>
   )
@@ -313,9 +365,13 @@ function Contact() {
 
 function App() {
   const heroRef = useRef<HTMLElement>(null)
+  const [galleryRuntimeReady, setGalleryRuntimeReady] = useState(false)
   const setActiveSection = useAppStore((state) => state.setActiveSection)
   const accentTheme = useAppStore((state) => state.accentTheme)
   const vfxPreset = useAppStore((state) => state.vfxPreset)
+  const activeExhibitId = useGalleryStore(
+    (state) => state.activeExhibitId,
+  )
 
   usePerformanceTelemetry()
 
@@ -387,7 +443,6 @@ function App() {
     <LocalizedTextRoot>
       <SmoothScroll>
         <SceneCanvas visibilityRef={heroRef} />
-        <GallerySharedCanvas />
         <OpticalTourDirector />
         <div className="film-grain pointer-events-none fixed inset-0 z-[5]" />
         <VfxPresetSweep />
@@ -395,17 +450,53 @@ function App() {
         <CommandPalette />
         <PerformanceQualityNotice />
         <PerformanceTelemetryHud />
-        <DarkroomInspectorModal />
         <main className="relative z-10">
           <Hero sectionRef={heroRef} />
           <Works />
-          <GallerySection />
-          <ScrollArchitecture3D />
-          <VerletLanyard />
-          <FabrikCreature />
+          <DeferredSection
+            sectionId="gallery"
+            rootMargin="500px 0px"
+            minHeight="clamp(2600px, 360svh, 4600px)"
+            onReady={() => setGalleryRuntimeReady(true)}
+          >
+            <GallerySection sectionId={null} />
+          </DeferredSection>
+          <DeferredSection
+            sectionId="architecture"
+            rootMargin="600px 0px"
+            minHeight="300svh"
+          >
+            <ScrollArchitecture3D sectionId={null} />
+          </DeferredSection>
+          <DeferredSection
+            sectionId="sandbox"
+            rootMargin="600px 0px"
+            minHeight="clamp(980px, 125svh, 1320px)"
+          >
+            <VerletLanyard sectionId={null} />
+          </DeferredSection>
+          <DeferredSection
+            sectionId="kinetics"
+            rootMargin="600px 0px"
+            minHeight="clamp(1040px, 135svh, 1400px)"
+          >
+            <FabrikCreature sectionId={null} />
+          </DeferredSection>
           <Archive />
           <Contact />
         </main>
+        {galleryRuntimeReady ? (
+          <>
+            <Suspense fallback={null}>
+              <GallerySharedCanvas />
+            </Suspense>
+            {activeExhibitId ? (
+              <Suspense fallback={null}>
+                <DarkroomInspectorModal />
+              </Suspense>
+            ) : null}
+          </>
+        ) : null}
       </SmoothScroll>
     </LocalizedTextRoot>
   )

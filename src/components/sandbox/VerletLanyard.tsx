@@ -30,6 +30,7 @@ import {
   setParticleSourceCount,
 } from '../../store/performanceTelemetry'
 import { useAppStore } from '../../store/useAppStore'
+import { diagnosticsEnabled } from '../../utils/diagnostics'
 import { soundEngine } from '../../utils/soundEngine'
 import {
   createVfxIllumination,
@@ -414,7 +415,11 @@ function setSandboxDragLock(stage: HTMLDivElement, active: boolean) {
   }
 }
 
-export function VerletLanyard() {
+export function VerletLanyard({
+  sectionId = 'sandbox',
+}: {
+  sectionId?: string | null
+} = {}) {
   const { t } = useI18n()
   const soundEnabled = useAppStore((state) => state.soundEnabled)
   const gravityMode = useAppStore((state) => state.gravityMode)
@@ -880,14 +885,21 @@ export function VerletLanyard() {
         )
       }
       const strain = nextWorld.strain.toFixed(2)
-      stage.dataset.maxStrain = nextWorld.peakStrain.toFixed(2)
-      stage.dataset.tension = maximumTension.toFixed(3)
-      stage.dataset.overloaded =
-        maximumTension > 0.62 && detachedCount === 0 ? 'true' : 'false'
-      stage.dataset.collisionCount = String(nextWorld.collisionCount)
-      stage.dataset.detachedCount = String(detachedCount)
-      stage.dataset.solverIterations = String(SOLVER_ITERATIONS)
-      stage.dataset.ruptured = detachedCount > 0 ? 'true' : 'false'
+      if (diagnosticsEnabled) {
+        stage.dataset.maxStrain = nextWorld.peakStrain.toFixed(2)
+        stage.dataset.tension = maximumTension.toFixed(3)
+        stage.dataset.overloaded =
+          maximumTension > 0.62 && detachedCount === 0
+            ? 'true'
+            : 'false'
+        stage.dataset.collisionCount = String(
+          nextWorld.collisionCount,
+        )
+        stage.dataset.detachedCount = String(detachedCount)
+        stage.dataset.solverIterations = String(SOLVER_ITERATIONS)
+        stage.dataset.ruptured =
+          detachedCount > 0 ? 'true' : 'false'
+      }
 
       if (strainRef.current) {
         strainRef.current.textContent = `${strain}x`
@@ -1410,13 +1422,20 @@ export function VerletLanyard() {
         lightningPool.render(particleContext)
         const particleStats = particlePool?.getStats()
         const activeParticles = particleStats?.active ?? 0
-        stage.dataset.vfxActiveParticles = String(activeParticles)
         setParticleSourceCount('verlet-vfx-particles', activeParticles)
-        stage.dataset.vfxSplits = String(particleStats?.splits ?? 0)
-        stage.dataset.vfxFloorHits = String(
-          particleStats?.floorImpacts ?? 0,
-        )
-        stage.dataset.vfxArcs = String(lightningPool.activeArcs)
+        if (diagnosticsEnabled) {
+          stage.dataset.vfxActiveParticles =
+            String(activeParticles)
+          stage.dataset.vfxSplits = String(
+            particleStats?.splits ?? 0,
+          )
+          stage.dataset.vfxFloorHits = String(
+            particleStats?.floorImpacts ?? 0,
+          )
+          stage.dataset.vfxArcs = String(
+            lightningPool.activeArcs,
+          )
+        }
       }
       recordPhysicsSolveTime(solverElapsed)
 
@@ -1647,7 +1666,7 @@ export function VerletLanyard() {
 
   return (
     <section
-      id="sandbox"
+      id={sectionId ?? undefined}
       data-verlet-sandbox
       aria-labelledby="sandbox-title"
       className="relative z-10 overflow-hidden border-t border-white/[0.07] bg-[#04070a]/92 backdrop-blur-[2px]"

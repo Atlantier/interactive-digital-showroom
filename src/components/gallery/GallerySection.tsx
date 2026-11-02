@@ -22,7 +22,11 @@ import {
 } from '../../store/useGalleryStore'
 import { ExhibitPedestal } from './ExhibitPedestal'
 
-export function GallerySection() {
+export function GallerySection({
+  sectionId = 'gallery',
+}: {
+  sectionId?: string | null
+} = {}) {
   const { t } = useI18n()
   const sectionRef = useRef<HTMLElement>(null)
   const isTourActive = useGalleryStore(
@@ -57,7 +61,7 @@ export function GallerySection() {
   return (
     <section
       ref={sectionRef}
-      id="gallery"
+      id={sectionId ?? undefined}
       data-gallery-section
       data-gallery-tour-active={isTourActive ? 'true' : 'false'}
       data-gallery-tour-index={opticalTourIndex}
@@ -65,7 +69,7 @@ export function GallerySection() {
         opticalTourPaused ? 'true' : 'false'
       }
       data-gallery-timescale-value={timeScale.toFixed(2)}
-      className="gallery-section relative z-10 overflow-hidden border-t border-white/[0.07] bg-[#020406]/96"
+      className="gallery-section relative z-10 overflow-hidden border-t border-white/[0.07] bg-[#020406]/96 pb-[calc(76px+env(safe-area-inset-bottom))] sm:pb-[calc(92px+env(safe-area-inset-bottom))]"
     >
       <div
         aria-hidden="true"

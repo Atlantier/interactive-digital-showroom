@@ -30,6 +30,61 @@ test('loads the showroom without overflow at desktop and mobile widths', async (
   await errors.assertClean()
 })
 
+test('defers below-fold modules until their sections approach the viewport', async ({
+  page,
+}) => {
+  const errors = trackRuntimeErrors(page)
+  const requests: string[] = []
+  page.on('request', (request) => requests.push(request.url()))
+  await gotoShowroom(page)
+
+  await expect(
+    page.locator('[data-deferred-section="gallery"]'),
+  ).toHaveAttribute('data-deferred-ready', 'false')
+  await expect(
+    page.locator('[data-deferred-section="architecture"]'),
+  ).toHaveAttribute('data-deferred-ready', 'false')
+  await expect(
+    page.locator('[data-deferred-section="sandbox"]'),
+  ).toHaveAttribute('data-deferred-ready', 'false')
+  await expect(
+    page.locator('[data-gallery-section]'),
+  ).toHaveCount(0)
+  await expect(
+    page.locator('[data-gallery-shared-canvas]'),
+  ).toHaveCount(0)
+
+  expect(
+    requests.some((url) =>
+      /(?:DarkroomInspectorModal|ScrollArchitecture3D|VerletLanyard|FabrikCreature|BentoGrid)\.tsx/.test(
+        url,
+      ),
+    ),
+  ).toBe(false)
+
+  await page
+    .locator('#architecture')
+    .scrollIntoViewIfNeeded()
+  await expect(
+    page.locator('[data-deferred-section="architecture"]'),
+  ).toHaveAttribute('data-deferred-ready', 'true')
+  await expect(
+    page.locator(
+      '[data-deferred-section="architecture"] [data-architecture-section]',
+    ),
+  ).toHaveCount(1)
+
+  await page.locator('#gallery').scrollIntoViewIfNeeded()
+  await expect(
+    page.locator('[data-gallery-section]'),
+  ).toBeVisible()
+  await expect(
+    page.locator('[data-gallery-shared-canvas]'),
+  ).toHaveCount(1)
+
+  await errors.assertClean()
+})
+
 test('keeps the gallery at zero canvases until the darkroom opens', async ({
   page,
 }) => {
@@ -73,6 +128,88 @@ test('keeps the gallery at zero canvases until the darkroom opens', async ({
     .toBe('')
 
   await errors.assertClean()
+})
+
+test.describe('mobile gallery controls', () => {
+  test('uses safe-area-aware collapsible Dock with 44px targets', async ({
+    page,
+  }) => {
+    const errors = trackRuntimeErrors(page)
+
+    for (const viewport of [
+      { height: 568, width: 320 },
+      { height: 844, width: 390 },
+      { height: 932, width: 430 },
+    ]) {
+      await page.setViewportSize(viewport)
+      await gotoShowroom(page)
+      await page.evaluate(() => {
+        document.getElementById('gallery')?.scrollIntoView()
+      })
+
+      const dock = page.locator('[data-gallery-quick-dock]')
+      await expect(dock).toBeVisible()
+      await expect(dock).toHaveAttribute(
+        'data-gallery-quick-expanded',
+        'false',
+      )
+      await expectNoHorizontalOverflow(page)
+
+      const toggle = dock.locator('[data-gallery-quick-toggle]')
+      await toggle.click()
+      await expect(dock).toHaveAttribute(
+        'data-gallery-quick-expanded',
+        'true',
+      )
+
+      const items = dock.locator('[data-gallery-quick-item]')
+      await expect(items).toHaveCount(8)
+      for (let index = 0; index < 8; index += 1) {
+        const box = await items.nth(index).boundingBox()
+        expect(box).not.toBeNull()
+        expect(box?.width ?? 0).toBeGreaterThanOrEqual(44)
+        expect(box?.height ?? 0).toBeGreaterThanOrEqual(44)
+      }
+
+      const dockBox = await dock.boundingBox()
+      expect(dockBox).not.toBeNull()
+      expect((dockBox?.y ?? 0) + (dockBox?.height ?? 0)).toBeLessThanOrEqual(
+        viewport.height,
+      )
+    }
+
+    await errors.assertClean()
+  })
+
+  test('reserves space below darkroom controls for the collapsed Dock', async ({
+    page,
+  }) => {
+    const errors = trackRuntimeErrors(page)
+    await page.setViewportSize({ width: 390, height: 844 })
+    await gotoShowroom(page)
+    await openPrismDarkroom(page)
+
+    const dock = page.locator('[data-gallery-quick-dock]')
+    const toggle = dock.locator('[data-gallery-quick-toggle]')
+    await toggle.click()
+    await dock
+      .locator('[data-gallery-quick-item="5"]')
+      .click()
+    await toggle.click()
+    const pads = page.locator('[data-audio-stage-pads]')
+    await pads.scrollIntoViewIfNeeded()
+    await page.waitForTimeout(250)
+
+    const dockBox = await dock.boundingBox()
+    const padsBox = await pads.boundingBox()
+    expect(dockBox).not.toBeNull()
+    expect(padsBox).not.toBeNull()
+    expect((padsBox?.y ?? 0) + (padsBox?.height ?? 0)).toBeLessThanOrEqual(
+      (dockBox?.y ?? 0) + 2,
+    )
+
+    await errors.assertClean()
+  })
 })
 
 test('traps focus and resolves layered Escape targets in order', async ({
@@ -168,6 +305,54 @@ test('traps focus and resolves layered Escape targets in order', async ({
   await errors.assertClean()
 })
 
+test('shares one frame scheduler and pauses it while the document is hidden', async ({
+  page,
+}) => {
+  const errors = trackRuntimeErrors(page)
+  await page.setViewportSize({ width: 1600, height: 1000 })
+  await gotoShowroom(page)
+
+  await expect
+    .poll(async () =>
+      Number(
+        await page
+          .locator('html')
+          .getAttribute('data-frame-subscribers'),
+      ),
+    )
+    .toBeGreaterThanOrEqual(3)
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-frame-active',
+    'true',
+  )
+
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'hidden',
+    })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-frame-active',
+    'false',
+  )
+
+  await page.evaluate(() => {
+    Object.defineProperty(document, 'visibilityState', {
+      configurable: true,
+      get: () => 'visible',
+    })
+    document.dispatchEvent(new Event('visibilitychange'))
+  })
+  await expect(page.locator('html')).toHaveAttribute(
+    'data-frame-active',
+    'true',
+  )
+
+  await errors.assertClean()
+})
+
 test('returns focus after closing the command palette', async ({ page }) => {
   const errors = trackRuntimeErrors(page)
   await gotoShowroom(page)
@@ -219,7 +404,12 @@ test('keeps Bento geometry stable while scrolling', async ({ page }) => {
   const errors = trackRuntimeErrors(page)
   await gotoShowroom(page)
 
+  await page
+    .locator('[data-deferred-section="content"]')
+    .first()
+    .scrollIntoViewIfNeeded()
   const bento = page.locator('[data-bento-grid]')
+  await expect(bento).toBeVisible()
   const heightBefore = await bento.evaluate(
     (element) => element.getBoundingClientRect().height,
   )
@@ -271,6 +461,10 @@ test.describe('reduced motion', () => {
       'data-locale-motion',
       'settled',
     )
+    await page
+      .locator('[data-deferred-section="content"]')
+      .first()
+      .scrollIntoViewIfNeeded()
     await expect
       .poll(() =>
         page.locator('.bento-comet').first().evaluate(

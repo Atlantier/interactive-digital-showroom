@@ -106,11 +106,11 @@ with sync_playwright() as playwright:
     assert response is not None and response.ok
     expect(page.locator('header nav a[href="#gallery"]')).to_be_visible()
     shared_canvas = page.locator("[data-gallery-shared-canvas]")
+    expect(
+        page.locator('[data-deferred-section="gallery"]')
+    ).to_have_attribute("data-deferred-ready", "false")
     page.wait_for_timeout(300)
-    expect(shared_canvas).to_have_attribute(
-        "data-gallery-frameloop",
-        "unmounted",
-    )
+    expect(shared_canvas).to_have_count(0)
 
     scroll_to_gallery(page)
     gallery = page.locator("[data-gallery-section]")

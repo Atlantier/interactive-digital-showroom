@@ -27,6 +27,7 @@ import {
   setParticleSourceCount,
 } from '../../store/performanceTelemetry'
 import { useAppStore } from '../../store/useAppStore'
+import { diagnosticsEnabled } from '../../utils/diagnostics'
 import { soundEngine } from '../../utils/soundEngine'
 import {
   createVfxIllumination,
@@ -1734,7 +1735,11 @@ function drawQuadruped(
   }
 }
 
-export function FabrikCreature() {
+export function FabrikCreature({
+  sectionId = 'kinetics',
+}: {
+  sectionId?: string | null
+} = {}) {
   const { t } = useI18n()
   const [mode, setMode] = useState<IKMode>('arm')
   const [showDebug, setShowDebug] = useState(false)
@@ -2139,15 +2144,21 @@ export function FabrikCreature() {
           vfxPaletteRef.current,
           fabrikCopyRef.current.draw,
         )
-        stage.dataset.fabrikError = scene.result.error.toFixed(2)
-        stage.dataset.fabrikIterations = String(scene.result.iterations)
-        stage.dataset.fabrikSpeed = Math.hypot(
-          scene.velocity.x,
-          scene.velocity.y,
-        ).toFixed(1)
-        stage.dataset.spineNodes = '0'
-        stage.dataset.legs = '0'
-        stage.dataset.laserState = scene.laser.life > 0 ? 'active' : 'idle'
+        if (diagnosticsEnabled) {
+          stage.dataset.fabrikError =
+            scene.result.error.toFixed(2)
+          stage.dataset.fabrikIterations = String(
+            scene.result.iterations,
+          )
+          stage.dataset.fabrikSpeed = Math.hypot(
+            scene.velocity.x,
+            scene.velocity.y,
+          ).toFixed(1)
+          stage.dataset.spineNodes = '0'
+          stage.dataset.legs = '0'
+          stage.dataset.laserState =
+            scene.laser.life > 0 ? 'active' : 'idle'
+        }
       } else {
         updateQuadruped(
           scene,
@@ -2165,36 +2176,47 @@ export function FabrikCreature() {
           vfxPaletteRef.current,
           fabrikCopyRef.current.draw,
         )
-        stage.dataset.fabrikError = scene.maxLegError.toFixed(2)
-        stage.dataset.fabrikIterations = String(
-          scene.maxLegIterations,
-        )
-        stage.dataset.fabrikSpeed = Math.hypot(
-          scene.velocity.x,
-          scene.velocity.y,
-        ).toFixed(1)
-        stage.dataset.spineNodes = String(SPINE_NODE_COUNT)
-        stage.dataset.legs = String(scene.legs.length)
-        stage.dataset.laserState = 'unavailable'
-        let liftingLegs = ''
-        let hasSteppingLeg = false
-        for (let index = 0; index < scene.legs.length; index += 1) {
-          const leg = scene.legs[index]
-          if (!leg.stepping) continue
-          hasSteppingLeg = true
-          liftingLegs += `${liftingLegs ? '|' : ''}${leg.id}`
-        }
-        let activeRipples = 0
-        for (let index = 0; index < scene.ripples.length; index += 1) {
-          if (scene.ripples[index].active) activeRipples += 1
-        }
-        stage.dataset.gaitGroup = String(scene.gaitGroup)
-        stage.dataset.gaitPhase = scene.gaitPhase
-        stage.dataset.liftingLegs = liftingLegs
-        stage.dataset.rippleCount = String(scene.rippleCount)
-        stage.dataset.activeRipples = String(activeRipples)
-        if (hasSteppingLeg) {
-          stage.dataset.gaitStepped = 'true'
+        if (diagnosticsEnabled) {
+          stage.dataset.fabrikError =
+            scene.maxLegError.toFixed(2)
+          stage.dataset.fabrikIterations = String(
+            scene.maxLegIterations,
+          )
+          stage.dataset.fabrikSpeed = Math.hypot(
+            scene.velocity.x,
+            scene.velocity.y,
+          ).toFixed(1)
+          stage.dataset.spineNodes = String(SPINE_NODE_COUNT)
+          stage.dataset.legs = String(scene.legs.length)
+          stage.dataset.laserState = 'unavailable'
+          let liftingLegs = ''
+          let hasSteppingLeg = false
+          for (
+            let index = 0;
+            index < scene.legs.length;
+            index += 1
+          ) {
+            const leg = scene.legs[index]
+            if (!leg.stepping) continue
+            hasSteppingLeg = true
+            liftingLegs += `${liftingLegs ? '|' : ''}${leg.id}`
+          }
+          let activeRipples = 0
+          for (
+            let index = 0;
+            index < scene.ripples.length;
+            index += 1
+          ) {
+            if (scene.ripples[index].active) activeRipples += 1
+          }
+          stage.dataset.gaitGroup = String(scene.gaitGroup)
+          stage.dataset.gaitPhase = scene.gaitPhase
+          stage.dataset.liftingLegs = liftingLegs
+          stage.dataset.rippleCount = String(scene.rippleCount)
+          stage.dataset.activeRipples = String(activeRipples)
+          if (hasSteppingLeg) {
+            stage.dataset.gaitStepped = 'true'
+          }
         }
       }
 
@@ -2202,19 +2224,28 @@ export function FabrikCreature() {
       updateDynamicLight(scene, frameDelta)
       particlePool.render(context)
       const particleStats = particlePool.getStats()
-      let activeScorches = 0
-      if (scene.kind === 'arm') {
-        for (let index = 0; index < scene.scorches.length; index += 1) {
-          if (scene.scorches[index].active) activeScorches += 1
-        }
-      }
-      stage.dataset.vfxActiveParticles = String(particleStats.active)
       setParticleSourceCount('fabrik-vfx-particles', particleStats.active)
-      stage.dataset.laserVfx = String(
-        scene.kind === 'arm' ? particleStats.emitted : 0,
-      )
-      stage.dataset.scorchActive = String(activeScorches)
-      stage.dataset.debugActive = debugRef.current ? 'true' : 'false'
+      if (diagnosticsEnabled) {
+        let activeScorches = 0
+        if (scene.kind === 'arm') {
+          for (
+            let index = 0;
+            index < scene.scorches.length;
+            index += 1
+          ) {
+            if (scene.scorches[index].active) activeScorches += 1
+          }
+        }
+        stage.dataset.vfxActiveParticles = String(
+          particleStats.active,
+        )
+        stage.dataset.laserVfx = String(
+          scene.kind === 'arm' ? particleStats.emitted : 0,
+        )
+        stage.dataset.scorchActive = String(activeScorches)
+        stage.dataset.debugActive =
+          debugRef.current ? 'true' : 'false'
+      }
       if (inViewRef.current) {
         animationFrame = window.requestAnimationFrame(draw)
       } else {
@@ -2293,7 +2324,7 @@ export function FabrikCreature() {
 
   return (
     <section
-      id="kinetics"
+      id={sectionId ?? undefined}
       data-fabrik-creature
       aria-labelledby="fabrik-title"
       className="relative z-10 overflow-hidden border-t border-white/[0.07] bg-[#04070a]/93 backdrop-blur-[2px]"

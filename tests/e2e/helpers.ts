@@ -53,7 +53,16 @@ export async function expectNoHorizontalOverflow(page: Page) {
 }
 
 export async function openPrismDarkroom(page: Page) {
-  await page.locator('header nav a[href="#gallery"]').click()
+  const galleryLink = page.locator(
+    'header nav a[href="#gallery"]',
+  )
+  if (await galleryLink.isVisible()) {
+    await galleryLink.click()
+  } else {
+    await page.evaluate(() => {
+      document.getElementById('gallery')?.scrollIntoView()
+    })
+  }
   await page.locator('[data-gallery-section]').scrollIntoViewIfNeeded()
   const trigger = page.locator(
     '[data-enter-darkroom="prism-caustics"]',
