@@ -1,3 +1,4 @@
+import { useReducedMotion } from 'framer-motion'
 import {
   Clock3,
   Orbit,
@@ -20,6 +21,7 @@ import {
   GALLERY_EXHIBITS,
   useGalleryStore,
 } from '../../store/useGalleryStore'
+import { getEffectiveGalleryTimeScale } from '../../utils/motionPreferences'
 import { ExhibitPedestal } from './ExhibitPedestal'
 
 export function GallerySection({
@@ -29,6 +31,7 @@ export function GallerySection({
 } = {}) {
   const { t } = useI18n()
   const sectionRef = useRef<HTMLElement>(null)
+  const reducedMotion = Boolean(useReducedMotion())
   const isTourActive = useGalleryStore(
     (state) => state.isTourActive,
   )
@@ -45,6 +48,7 @@ export function GallerySection({
     (state) => state.toggleOpticalTourPaused,
   )
   const timeScale = useGalleryStore((state) => state.timeScale)
+  const effectiveTimeScale = getEffectiveGalleryTimeScale(timeScale)
   const setTimeScale = useGalleryStore((state) => state.setTimeScale)
   const modalOpen = useGalleryStore(
     (state) => state.activeExhibitId !== null,
@@ -69,6 +73,12 @@ export function GallerySection({
         opticalTourPaused ? 'true' : 'false'
       }
       data-gallery-timescale-value={timeScale.toFixed(2)}
+      data-gallery-motion-mode={
+        reducedMotion ? 'reduced' : 'full'
+      }
+      data-gallery-effective-timescale-value={effectiveTimeScale.toFixed(
+        2,
+      )}
       className="gallery-section relative z-10 overflow-hidden border-t border-white/[0.07] bg-[#020406]/96 pb-[calc(76px+env(safe-area-inset-bottom))] sm:pb-[calc(92px+env(safe-area-inset-bottom))]"
     >
       <div
@@ -126,7 +136,7 @@ export function GallerySection({
                   if (isTourActive) {
                     toggleOpticalTourPaused()
                   } else {
-                    startOpticalTour('gallery')
+                    startOpticalTour('gallery', reducedMotion)
                   }
                   playSound('toggle')
                 }}

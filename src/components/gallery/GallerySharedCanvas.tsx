@@ -1,9 +1,11 @@
 import { View } from '@react-three/drei'
 import { Canvas } from '@react-three/fiber'
+import { useReducedMotion } from 'framer-motion'
 import { useEffect } from 'react'
 import * as THREE from 'three'
 import { useAppStore } from '../../store/useAppStore'
 import { useGalleryStore } from '../../store/useGalleryStore'
+import { getEffectiveGalleryTimeScale } from '../../utils/motionPreferences'
 
 const CARD_CAMERA_POSITION = new THREE.Vector3(0, 0.16, 4.15)
 
@@ -12,11 +14,16 @@ export function GallerySharedCanvas() {
   const activeExhibitId = useGalleryStore(
     (state) => state.activeExhibitId,
   )
+  const timeScale = useGalleryStore((state) => state.timeScale)
+  const reducedMotion = Boolean(useReducedMotion())
+  const effectiveTimeScale = getEffectiveGalleryTimeScale(timeScale)
   const stageMounted = activeExhibitId !== null
   const frameloop = stageMounted ? 'always' : 'never'
   const frameloopMode = stageMounted ? 'always' : 'unmounted'
   const galleryDpr: number | [number, number] =
-    performanceTier === 'high' ? [1, 1.5] : 1
+    performanceTier === 'high' && !reducedMotion
+      ? [1, 1.5]
+      : 1
 
   useEffect(() => {
     document.documentElement.dataset.galleryCanvasMode =
@@ -38,6 +45,10 @@ export function GallerySharedCanvas() {
       }
       data-gallery-view-count={stageMounted ? '1' : '0'}
       data-gallery-frameloop={frameloopMode}
+      data-reduced-motion={reducedMotion ? 'true' : 'false'}
+      data-gallery-effective-timescale-value={effectiveTimeScale.toFixed(
+        2,
+      )}
       data-gallery-dpr={
         Array.isArray(galleryDpr)
           ? galleryDpr.join('-')

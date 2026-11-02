@@ -649,7 +649,10 @@ export function DarkroomInspectorModal() {
                   if (isTourActive) {
                     toggleOpticalTourPaused()
                   } else {
-                    startOpticalTour('darkroom')
+                    startOpticalTour(
+                      'darkroom',
+                      Boolean(reducedMotion),
+                    )
                   }
                   playSound('toggle')
                 }}

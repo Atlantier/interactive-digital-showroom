@@ -14,6 +14,7 @@ import {
   type ExhibitMeta,
   type PrismShape,
 } from '../../../store/useGalleryStore'
+import { getEffectiveGalleryTimeScale } from '../../../utils/motionPreferences'
 import { wavelengthToCss } from '../../../utils/optics'
 import type { GalleryPointerState } from '../OpticalExhibitScene'
 
@@ -408,7 +409,9 @@ function SpectralDust({
     if (!materialRef.current) return
     materialRef.current.uniforms.uTime.value =
       state.clock.elapsedTime *
-      useGalleryStore.getState().timeScale
+      getEffectiveGalleryTimeScale(
+        useGalleryStore.getState().timeScale,
+      )
   })
 
   return (
@@ -725,7 +728,9 @@ export function PrismCausticsExhibit({
   ])
 
   useFrame((state) => {
-    const timeScale = useGalleryStore.getState().timeScale
+    const timeScale = getEffectiveGalleryTimeScale(
+      useGalleryStore.getState().timeScale,
+    )
     const time = state.clock.elapsedTime * timeScale
     const pointer = pointerRef.current
     const crystal = crystalRef.current

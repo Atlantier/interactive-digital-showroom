@@ -13,6 +13,7 @@ import {
   type ExhibitMeta,
   type ParticleManifold,
 } from '../../../store/useGalleryStore'
+import { getEffectiveGalleryTimeScale } from '../../../utils/motionPreferences'
 import type { GalleryPointerState } from '../OpticalExhibitScene'
 
 const PARTICLE_COUNT = 20_000
@@ -823,7 +824,9 @@ export function ParticleMorphExhibit({
   }, [gl, manifold])
 
   useFrame((state, delta) => {
-    const timeScale = useGalleryStore.getState().timeScale
+    const timeScale = getEffectiveGalleryTimeScale(
+      useGalleryStore.getState().timeScale,
+    )
     const time = state.clock.elapsedTime * timeScale
     const safeDelta = Math.min(delta, 1 / 20)
     const pointer = pointerRef.current

@@ -1,5 +1,6 @@
 import { PerformanceMonitor } from '@react-three/drei'
 import { Canvas, useFrame, useThree } from '@react-three/fiber'
+import { useReducedMotion } from 'framer-motion'
 import {
   Bloom,
   ChromaticAberration,
@@ -230,12 +231,15 @@ export function SceneCanvas({
   const performanceTier = useAppStore((state) => state.performanceTier)
   const vfxPreset = useAppStore((state) => state.vfxPreset)
   const compactViewport = useCompactViewport()
+  const reducedMotion = Boolean(useReducedMotion())
   const inView = useInViewAnimation(visibilityRef, {
     rootMargin: '-10% 0px -10% 0px',
     threshold: 0.08,
   })
   const reducedEffects =
-    performanceTier !== 'high' || compactViewport
+    performanceTier !== 'high' ||
+    compactViewport ||
+    reducedMotion
   const particleCount =
     reducedEffects ? MEDIUM_PARTICLE_COUNT : HIGH_PARTICLE_COUNT
   const cursorParticleCount = reducedEffects
@@ -275,6 +279,7 @@ export function SceneCanvas({
       data-volumetric-dust-count={volumetricDustCount}
       data-aurora-vertex-count={AURORA_VERTEX_COUNT}
       data-vfx-preset={vfxPreset}
+      data-reduced-motion={reducedMotion ? 'true' : 'false'}
       data-bloom-threshold="0.15"
       data-chromatic-offset="0"
       data-chromatic-target="0"

@@ -16,6 +16,7 @@ import {
   useGalleryStore,
   type ExhibitMeta,
 } from '../../../store/useGalleryStore'
+import { getEffectiveGalleryTimeScale } from '../../../utils/motionPreferences'
 import { soundEngine } from '../../../utils/soundEngine'
 import type { GalleryPointerState } from '../OpticalExhibitScene'
 
@@ -623,7 +624,9 @@ export function AudioSpectrumStageExhibit({
   useFrame((state, delta) => {
     if (!active) return
     const safeDelta = Math.min(delta, 0.05)
-    const timeScale = useGalleryStore.getState().timeScale
+    const timeScale = getEffectiveGalleryTimeScale(
+      useGalleryStore.getState().timeScale,
+    )
     const time = state.clock.elapsedTime * timeScale
     const pointer = pointerRef.current
     const stageGroup = stageGroupRef.current

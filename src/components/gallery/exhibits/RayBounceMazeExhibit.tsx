@@ -16,6 +16,7 @@ import {
   useGalleryStore,
   type ExhibitMeta,
 } from '../../../store/useGalleryStore'
+import { getEffectiveGalleryTimeScale } from '../../../utils/motionPreferences'
 import { wavelengthToRgb } from '../../../utils/optics'
 import type { GalleryPointerState } from '../OpticalExhibitScene'
 
@@ -1563,7 +1564,9 @@ export function RayBounceMazeExhibit({
 
   useFrame((state, delta) => {
     if (!interactionActive) return
-    const timeScale = useGalleryStore.getState().timeScale
+    const timeScale = getEffectiveGalleryTimeScale(
+      useGalleryStore.getState().timeScale,
+    )
     const time = state.clock.elapsedTime * timeScale
     const safeDelta = Math.min(delta, 0.05)
     const pointer = pointerRef.current

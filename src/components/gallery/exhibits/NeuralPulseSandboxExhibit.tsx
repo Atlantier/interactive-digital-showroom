@@ -21,6 +21,7 @@ import {
   useGalleryStore,
   type ExhibitMeta,
 } from '../../../store/useGalleryStore'
+import { getEffectiveGalleryTimeScale } from '../../../utils/motionPreferences'
 import type { GalleryPointerState } from '../OpticalExhibitScene'
 
 const TAU = Math.PI * 2
@@ -1150,7 +1151,9 @@ export function NeuralPulseSandboxExhibit({
   useFrame((state, delta) => {
     if (!active) return
     const safeDelta = Math.min(delta, 0.045)
-    const timeScale = useGalleryStore.getState().timeScale
+    const timeScale = getEffectiveGalleryTimeScale(
+      useGalleryStore.getState().timeScale,
+    )
     const time = state.clock.elapsedTime * timeScale
     const pointer = pointerRef.current
     const galleryState = useGalleryStore.getState()

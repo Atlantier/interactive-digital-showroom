@@ -15,6 +15,7 @@ import {
   useGalleryStore,
   type ExhibitMeta,
 } from '../../store/useGalleryStore'
+import { getEffectiveGalleryTimeScale } from '../../utils/motionPreferences'
 
 const PrismCausticsExhibit = lazy(async () => {
   const module = await import('./exhibits/PrismCausticsExhibit')
@@ -441,7 +442,9 @@ function ParticleHalo({
 
   useFrame((state) => {
     if (!pointsRef.current) return
-    const timeScale = useGalleryStore.getState().timeScale
+    const timeScale = getEffectiveGalleryTimeScale(
+      useGalleryStore.getState().timeScale,
+    )
     const pointer = pointerRef.current
     const time = state.clock.elapsedTime * timeScale
     pointsRef.current.rotation.y =
@@ -504,7 +507,9 @@ function HologramPedestal({
   useFrame((state) => {
     const time =
       state.clock.elapsedTime *
-      useGalleryStore.getState().timeScale
+      getEffectiveGalleryTimeScale(
+        useGalleryStore.getState().timeScale,
+      )
     const pointer = pointerRef.current
     if (ringGroupRef.current) {
       ringGroupRef.current.rotation.y =
@@ -749,7 +754,9 @@ function ArtifactRig({
   }, [colors, shaderUniforms])
 
   useFrame((state) => {
-    const timeScale = useGalleryStore.getState().timeScale
+    const timeScale = getEffectiveGalleryTimeScale(
+      useGalleryStore.getState().timeScale,
+    )
     const time = state.clock.elapsedTime * timeScale
     const pointer = pointerRef.current
     const current = exhibitRef.current

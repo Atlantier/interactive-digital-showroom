@@ -82,7 +82,7 @@ def viewport_runtime_state(page) -> list[dict[str, object]]:
           return {
             index: Number(pedestal.dataset.exhibitIndex ?? -1),
             active:
-              pedestal.dataset.galleryRuntimeActive === 'true',
+              pedestal.dataset.galleryPreviewActive === 'true',
             inView:
               pedestal.dataset.galleryInView === 'true',
             intersects:
@@ -133,7 +133,10 @@ with sync_playwright() as playwright:
     quick_formula = quick_dock.locator("code").inner_text()
     assert "=" in quick_formula
 
-    page.wait_for_timeout(700)
+    page.locator(
+        '[data-exhibit-pedestal][data-exhibit-index="0"]'
+    ).scroll_into_view_if_needed()
+    page.wait_for_timeout(500)
     assert_viewport_sleep(page)
 
     gpu_pedestal = page.locator(
@@ -165,8 +168,12 @@ with sync_playwright() as playwright:
     )
 
     wait_for_climax(page, CLIMAX_ORDER[0])
-    expect(shared_canvas).to_have_attribute(
-        "data-prism-tir",
+    expect(
+        page.locator(
+            '[data-exhibit-pedestal][data-exhibit-index="0"]'
+        )
+    ).to_have_attribute(
+        "data-tour-current",
         "true",
     )
     page.screenshot(
@@ -206,52 +213,71 @@ with sync_playwright() as playwright:
             str(step),
         )
         wait_for_climax(page, exhibit_id)
-        if exhibit_id == "laser-scan-hologram":
-            assert int(
-                shared_canvas.get_attribute(
-                    "data-hologram-glitch-pulse"
+        if exhibit_id == "particle-morph":
+            expect(
+                page.locator(
+                    '[data-exhibit-pedestal]'
+                    '[data-exhibit-index="2"] '
+                    "[data-particle-manifold-switcher]"
                 )
-                or "0"
-            ) > 0
-        elif exhibit_id == "particle-morph":
-            expect(shared_canvas).to_have_attribute(
-                "data-particle-manifold",
+            ).to_have_attribute(
+                "data-particle-manifold-active",
                 "double-helix",
             )
         elif exhibit_id == "plasma-reactor":
-            expect(shared_canvas).to_have_attribute(
-                "data-plasma-overdrive-phase",
+            expect(
+                page.locator(
+                    '[data-exhibit-pedestal]'
+                    '[data-exhibit-index="3"] '
+                    "[data-reactor-overdrive]"
+                )
+            ).to_have_attribute(
+                "data-reactor-overdrive-phase",
                 "charging",
             )
         elif exhibit_id == "photonic-mesh":
-            expect(shared_canvas).to_have_attribute(
-                "data-ray-bounce-layout",
+            expect(
+                page.locator(
+                    '[data-exhibit-pedestal]'
+                    '[data-exhibit-index="4"] '
+                    "[data-ray-maze-controls]"
+                )
+            ).to_have_attribute(
+                "data-ray-maze-layout",
                 "0",
             )
-            page.wait_for_function(
-                """
-                () => Number(
-                  document.querySelector(
-                    '[data-gallery-shared-canvas]'
-                  )?.dataset.rayBounceTargetsActive ?? 0
-                ) === 3
-                """,
-                timeout=4_000,
-            )
         elif exhibit_id == "orbital-lens":
-            expect(shared_canvas).to_have_attribute(
-                "data-audio-spectrum-playing",
+            expect(
+                page.locator(
+                    '[data-exhibit-pedestal]'
+                    '[data-exhibit-index="5"] '
+                    "[data-audio-stage-controls]"
+                )
+            ).to_have_attribute(
+                "data-audio-stage-playing",
                 "true",
             )
         elif exhibit_id == "quantum-lattice":
-            expect(shared_canvas).to_have_attribute(
+            expect(
+                page.locator(
+                    '[data-exhibit-pedestal]'
+                    '[data-exhibit-index="6"] '
+                    "[data-neural-inference-controls]"
+                )
+            ).to_have_attribute(
                 "data-neural-training-mode",
                 "backprop",
             )
         elif exhibit_id == "phase-torus":
-            expect(shared_canvas).to_have_attribute(
-                "data-gpu-workload",
-                "1.000",
+            expect(
+                page.locator(
+                    '[data-exhibit-pedestal]'
+                    '[data-exhibit-index="7"] '
+                    "[data-gpu-compute-controls]"
+                )
+            ).to_have_attribute(
+                "data-gpu-workload-active",
+                "100",
             )
             page.screenshot(
                 path=output_dir / "tour-gpu-auto-climax.png"

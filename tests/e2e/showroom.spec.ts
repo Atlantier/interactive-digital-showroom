@@ -455,6 +455,19 @@ test.describe('reduced motion', () => {
     const errors = trackRuntimeErrors(page)
     await gotoShowroom(page)
 
+    const sceneCanvas = page.locator('[data-scene-canvas]')
+    await expect(sceneCanvas).toHaveAttribute(
+      'data-reduced-motion',
+      'true',
+    )
+    await expect(sceneCanvas).toHaveAttribute(
+      'data-postprocessing',
+      'bloom-vignette',
+    )
+    await expect(sceneCanvas).toHaveAttribute(
+      'data-shader-pass-count',
+      '2',
+    )
     await expect(
       page.locator('[data-localized-text-root]'),
     ).toHaveAttribute(
@@ -490,6 +503,65 @@ test.describe('reduced motion', () => {
     })
     expect(motion.duration).toBeLessThan(0.1)
     expect(motion.iterations).toBe('1')
+
+    const gallery = page.locator('[data-gallery-section]')
+    await expect(gallery).toHaveAttribute(
+      'data-gallery-motion-mode',
+      'reduced',
+    )
+    await expect(gallery).toHaveAttribute(
+      'data-gallery-effective-timescale-value',
+      '0.12',
+    )
+
+    const tourToggle = page.locator('[data-gallery-tour-toggle]')
+    await tourToggle.click()
+    await expect(gallery).toHaveAttribute(
+      'data-gallery-tour-active',
+      'true',
+    )
+    await expect(gallery).toHaveAttribute(
+      'data-gallery-tour-paused',
+      'true',
+    )
+    await tourToggle.click()
+    await expect(gallery).toHaveAttribute(
+      'data-gallery-tour-paused',
+      'false',
+    )
+    await tourToggle.click()
+    await expect(gallery).toHaveAttribute(
+      'data-gallery-tour-paused',
+      'true',
+    )
+
+    const trigger = page.locator(
+      '[data-enter-darkroom="prism-caustics"]',
+    )
+    await trigger.scrollIntoViewIfNeeded()
+    await trigger.click()
+    await expect(
+      page.locator('[data-darkroom-inspector]'),
+    ).toBeVisible()
+    const sharedCanvas = page.locator(
+      '[data-gallery-shared-canvas]',
+    )
+    await expect(sharedCanvas).toHaveAttribute(
+      'data-gallery-view-count',
+      '1',
+      { timeout: 15_000 },
+    )
+    await expect(sharedCanvas).toHaveAttribute(
+      'data-reduced-motion',
+      'true',
+    )
+    await expect(sharedCanvas).toHaveAttribute(
+      'data-gallery-effective-timescale-value',
+      '0.12',
+    )
+    await expect(
+      page.locator('[data-darkroom-control]').first(),
+    ).toBeVisible()
 
     await errors.assertClean()
   })

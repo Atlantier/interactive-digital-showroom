@@ -13,6 +13,7 @@ import {
   type ExhibitMeta,
   type HologramModel,
 } from '../../../store/useGalleryStore'
+import { getEffectiveGalleryTimeScale } from '../../../utils/motionPreferences'
 import type { GalleryPointerState } from '../OpticalExhibitScene'
 
 const MAX_SPARKS_HIGH = 180
@@ -630,7 +631,9 @@ function VoidMarkerCloud({
     if (!pointsRef.current) return
     const time =
       state.clock.elapsedTime *
-      useGalleryStore.getState().timeScale
+      getEffectiveGalleryTimeScale(
+        useGalleryStore.getState().timeScale,
+      )
     const pointer = pointerRef.current
     pointsRef.current.rotation.y =
       time * 0.045 + pointer.u * 0.08
@@ -794,7 +797,9 @@ export function LaserScanHologramExhibit({
   }, [gl, glitchPulse, model, sparkCapacity])
 
   useFrame((state, delta) => {
-    const timeScale = useGalleryStore.getState().timeScale
+    const timeScale = getEffectiveGalleryTimeScale(
+      useGalleryStore.getState().timeScale,
+    )
     const time = state.clock.elapsedTime * timeScale
     const pointer = pointerRef.current
     const manualScan = pointer.active || pointer.dragging

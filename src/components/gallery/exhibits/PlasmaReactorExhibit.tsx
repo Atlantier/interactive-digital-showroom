@@ -13,6 +13,7 @@ import {
   useGalleryStore,
   type ExhibitMeta,
 } from '../../../store/useGalleryStore'
+import { getEffectiveGalleryTimeScale } from '../../../utils/motionPreferences'
 import { soundEngine } from '../../../utils/soundEngine'
 import type { GalleryPointerState } from '../OpticalExhibitScene'
 
@@ -1182,7 +1183,9 @@ export function PlasmaReactorExhibit({
   }, [arcCount, gl, magneticField, temperature])
 
   useFrame((state, delta) => {
-    const timeScale = useGalleryStore.getState().timeScale
+    const timeScale = getEffectiveGalleryTimeScale(
+      useGalleryStore.getState().timeScale,
+    )
     const time = state.clock.elapsedTime * timeScale
     const clockTime = state.clock.elapsedTime
     const safeDelta = Math.min(delta, 0.05)
