@@ -33,7 +33,6 @@ export const PARTICLE_MANIFOLD_ORDER: readonly ParticleManifold[] = [
   'fibonacci-sphere',
   'wafer-city',
 ]
-
 export type GalleryControlKey =
   | 'wavelength'
   | 'slitGap'
