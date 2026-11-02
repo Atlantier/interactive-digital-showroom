@@ -135,6 +135,7 @@ stateDiagram-v2
 - 6. **声光律动频谱舞台（Audio Spectrum Stage）**：内置五声音阶琶音器与 `AnalyserNode`，以 256 根实例化光子柱、环形日冕频谱和 3D 瀑布地形响应音频，并提供八枚交互光琴键。
 - 7. **3D 神经网络脉冲与反向传播沙盘（Neural Pulse Transformer）**：五层 Transformer 拓扑、600 颗贝塞尔突触光子和多头注意力光束支持正向推理、反向梯度波与单神经元隔离检视。
 - 8. **GPU Tensor/RT Core 算力矩阵（GPU Compute Matrix）**：512 体素 GEMM 魔方、HBM/NVLink 流光总线、实时热力光谱、CUDA Warp 展开与 15 节点 BVH 光线遍历共同展示张量计算和光追加速管线。
+- GPU 算力矩阵的 tensor/heat GLSL 已迁入 `src/shaders/gpuComputeMatrix.ts`，张量网格、总线粒子、BVH 与扫描几何构建器集中到 `gpuComputeMatrixModel.ts`。
 - 光线弹射迷宫使用最大 10 层的 CPU 递归求解器，以实例化体积光柱、流动光子脉冲和星芒反馈实时重构整棵光路树；靶心锁定会换算实时接收功率并触发庆贺粒子，三套拓扑可在 0.9 秒内平滑重排。
 - 光线迷宫求解器已独立为 `src/utils/rayMazeSolver.ts`，不依赖 React 或 Three.js；直接命中、镜面反射、分束、色散与深度边界由 Vitest 独立覆盖。
 - 声光频谱舞台内置五声音阶 / 大七和弦琶音器与 `fftSize: 512` 分析链，可在 16 × 16 矩阵光柱、环形极坐标日冕和滚动的 3D 频谱瀑布地形间切换；暗房八度光琴键会实时合成和弦，并把对应色彩的径向冲击波送过整个舞台。

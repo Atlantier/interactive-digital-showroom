@@ -81,7 +81,23 @@ with sync_playwright() as playwright:
         '[data-exhibit-pedestal][data-exhibit-index="7"]'
     )
     pedestal.scroll_into_view_if_needed()
+    pedestal.locator(
+        '[data-enter-darkroom="phase-torus"]'
+    ).click()
+    modal = page.locator("[data-darkroom-inspector]")
+    expect(modal).to_be_visible()
+    expect(modal.get_by_role("heading", level=2)).to_contain_text(
+        "GPU Compute Matrix"
+    )
     shared_canvas = page.locator("[data-gallery-shared-canvas]")
+    page.wait_for_function(
+        """
+        () => document.querySelector(
+          '[data-gallery-shared-canvas]'
+        )?.dataset.gpuComputeMatrix === 'tensor-core-bvh'
+        """,
+        timeout=15_000,
+    )
 
     expect(shared_canvas).to_have_attribute(
         "data-gpu-compute-matrix",
@@ -108,7 +124,10 @@ with sync_playwright() as playwright:
         "tensor",
     )
 
-    stage_controls = pedestal.locator("[data-gpu-compute-controls]")
+    stage_controls = page.locator(
+        "[data-darkroom-gpu-compute-controls] "
+        "[data-gpu-compute-controls]"
+    )
     expect(stage_controls).to_be_visible()
     expect(
         stage_controls.locator("[data-gpu-compute-mode]")
@@ -225,12 +244,6 @@ with sync_playwright() as playwright:
         path=output_dir / "stage-gpu-bvh-traversal.png"
     )
 
-    pedestal.locator('[data-enter-darkroom="phase-torus"]').click()
-    modal = page.locator("[data-darkroom-inspector]")
-    expect(modal).to_be_visible()
-    expect(modal.get_by_role("heading", level=2)).to_contain_text(
-        "GPU Compute Matrix"
-    )
     expect(
         page.locator("[data-darkroom-viewport]")
     ).to_have_attribute(

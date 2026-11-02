@@ -12,7 +12,6 @@ import {
   GPU_COMPUTE_MODES,
   GPU_WARP_SIZE,
   NV_LINK_PARTICLE_COUNT,
-  TENSOR_GRID_SIZE,
   TENSOR_VOXEL_COUNT,
 } from '../../../data/gpuCompute'
 import { getVfxPreset } from '../../../data/vfxPresets'
@@ -23,12 +22,29 @@ import {
 } from '../../../store/useGalleryStore'
 import { getEffectiveGalleryTimeScale } from '../../../utils/motionPreferences'
 import type { GalleryPointerState } from '../OpticalExhibitScene'
+import {
+  TENSOR_POINT_VERTEX_SHADER,
+  TENSOR_POINT_FRAGMENT_SHADER,
+  GPU_HEAT_VERTEX_SHADER,
+  GPU_HEAT_FRAGMENT_SHADER,
+} from '../../../shaders/gpuComputeMatrix'
+import {
+  BVH_GREEN,
+  TENSOR_CENTER_Y,
+  TENSOR_EXTENT,
+  TENSOR_SCAN_PLANE_SIZE,
+  createBvhNodes,
+  createBusParticles,
+  createCircuitTraceGeometry,
+  createScanGridGeometry,
+  createTensorGrid,
+  createWarpBeams,
+  deterministic,
+  sampleBusRoute,
+  type WarpState,
+} from './gpuComputeMatrixModel'
 
 const TAU = Math.PI * 2
-const TENSOR_CENTER_Y = 0.5
-const TENSOR_EXTENT = 0.68
-const TENSOR_SCAN_PLANE_SIZE = 1.7
-const TENSOR_STEP = (TENSOR_EXTENT * 2) / (TENSOR_GRID_SIZE - 1)
 const BUS_GROUP_COUNT = 3
 const BUS_GROUP_SIZE = NV_LINK_PARTICLE_COUNT / BUS_GROUP_COUNT
 const BVH_NODE_COUNT = 15
@@ -36,426 +52,10 @@ const EMERALD = new THREE.Color('#36ff9f')
 const CYBER_BLUE = new THREE.Color('#2f8dff')
 const RESULT_GOLD = new THREE.Color('#ffd76d')
 const RESULT_WHITE = new THREE.Color('#f1ffff')
-const BVH_BLUE = new THREE.Color('#315cff')
-const BVH_GREEN = new THREE.Color('#6cff82')
 const HEAT_AMBER = new THREE.Color('#ff9d2e')
 const ZERO_Y = new THREE.Vector3(0, 1, 0)
 const WARP_ANCHOR_INDEX = 292
-const TENSOR_POINT_VERTEX_SHADER = `
-  uniform float uDpr;
-  uniform float uTime;
-  uniform float uWorkload;
-  attribute float aActivation;
-  attribute float aSeed;
-  varying vec3 vColor;
 
-  void main() {
-    vec3 matrixBlue = vec3(0.08, 0.48, 1.0);
-    vec3 matrixEmerald = vec3(0.08, 1.0, 0.46);
-    vec3 supernovaWhite = vec3(1.0);
-    vec3 accumulatorGold = vec3(1.0, 0.72, 0.2);
-    vec3 thermalAmber = vec3(1.0, 0.34, 0.045);
-    float xMix = clamp(position.x / 1.36 + 0.5, 0.0, 1.0);
-    vec3 baseColor = mix(matrixBlue, matrixEmerald, xMix);
-    vec3 flashColor = mix(
-      accumulatorGold,
-      supernovaWhite,
-      aActivation * 0.62
-    );
-    vColor = mix(baseColor, flashColor, aActivation * 0.92);
-
-    vec4 viewPosition = modelViewMatrix * vec4(position, 1.0);
-    float shimmer = 0.5 + 0.5 * sin(
-      uTime * 3.4 + aSeed * 31.4159
-    );
-    float thermalMix = smoothstep(0.36, 1.0, uWorkload) *
-      (0.1 + shimmer * 0.1 + aActivation * 0.22);
-    vColor = mix(vColor, thermalAmber, thermalMix);
-    float pointSize =
-      0.072 +
-      aActivation * 0.145 +
-      shimmer * 0.012;
-    gl_PointSize =
-      pointSize *
-      (0.82 + uWorkload * 0.24) *
-      (340.0 / max(0.1, -viewPosition.z)) *
-      uDpr;
-    gl_Position = projectionMatrix * viewPosition;
-  }
-`
-const TENSOR_POINT_FRAGMENT_SHADER = `
-  uniform float uOpacity;
-  varying vec3 vColor;
-
-  void main() {
-    vec2 centered = gl_PointCoord - vec2(0.5);
-    float radius = length(centered) * 2.0;
-    if (radius > 1.0) discard;
-    float halo = 1.0 - smoothstep(0.08, 1.0, radius);
-    float core = 1.0 - smoothstep(0.0, 0.34, radius);
-    vec3 color = vColor * (0.72 + halo * 0.8) + core * 0.72;
-    gl_FragColor = vec4(
-      color,
-      (halo * 0.82 + core * 0.18) * uOpacity
-    );
-  }
-`
-const GPU_HEAT_VERTEX_SHADER = `
-  varying vec2 vHeatUv;
-  varying vec3 vHeatPosition;
-
-  void main() {
-    vHeatUv = uv;
-    vHeatPosition = position;
-    gl_Position =
-      projectionMatrix *
-      modelViewMatrix *
-      vec4(position, 1.0);
-  }
-`
-const GPU_HEAT_FRAGMENT_SHADER = `
-  uniform float uTime;
-  uniform float uWorkload;
-  uniform float uSurface;
-  varying vec2 vHeatUv;
-  varying vec3 vHeatPosition;
-
-  float hash(vec2 point) {
-    return fract(
-      sin(dot(point, vec2(127.1, 311.7))) *
-      43758.5453123
-    );
-  }
-
-  float valueNoise(vec2 point) {
-    vec2 cell = floor(point);
-    vec2 local = fract(point);
-    vec2 curve = local * local * (3.0 - 2.0 * local);
-    return mix(
-      mix(
-        hash(cell),
-        hash(cell + vec2(1.0, 0.0)),
-        curve.x
-      ),
-      mix(
-        hash(cell + vec2(0.0, 1.0)),
-        hash(cell + vec2(1.0, 1.0)),
-        curve.x
-      ),
-      curve.y
-    );
-  }
-
-  void main() {
-    float flow = valueNoise(
-      vHeatUv * vec2(18.0, 13.0) +
-      vec2(uTime * 0.17, -uTime * 0.11)
-    );
-    float detail = valueNoise(
-      vHeatUv * vec2(48.0, 34.0) -
-      vec2(uTime * 0.28, uTime * 0.19)
-    );
-    float gridX = pow(
-      0.5 + 0.5 * sin(
-        (vHeatUv.x * 34.0 + vHeatUv.y * 5.0 - uTime * 1.6) *
-        6.28318
-      ),
-      18.0
-    );
-    float gridY = pow(
-      0.5 + 0.5 * sin(
-        (vHeatUv.y * 28.0 - vHeatUv.x * 3.0 + uTime * 1.2) *
-        6.28318
-      ),
-      20.0
-    );
-    float scan = pow(
-      0.5 +
-      0.5 *
-        sin(
-          (vHeatUv.x - uTime * 0.42) * 18.0 *
-          6.28318
-        ),
-      24.0
-    );
-    vec2 center = vHeatUv - vec2(0.5);
-    float radial = 1.0 - smoothstep(0.08, 0.62, length(center));
-    float verticalHeat = uSurface > 0.5
-      ? smoothstep(-0.72, 0.72, vHeatPosition.y) * 0.22
-      : 0.0;
-    float density = clamp(
-      radial * (0.32 + flow * 0.72) +
-      detail * 0.28 +
-      (gridX + gridY) * 0.17 +
-      scan * 0.22 +
-      verticalHeat,
-      0.0,
-      1.0
-    );
-    float loadMask = smoothstep(0.08, 1.0, uWorkload);
-    float hotMix = smoothstep(
-      0.16,
-      0.96,
-      density * (0.34 + loadMask * 0.92)
-    );
-    vec3 cold = vec3(0.025, 0.64, 1.0);
-    vec3 ember = vec3(1.0, 0.22, 0.035);
-    vec3 amber = vec3(1.0, 0.74, 0.18);
-    vec3 color = mix(cold, ember, hotMix);
-    color = mix(color, amber, smoothstep(0.72, 1.0, hotMix));
-    float surfaceScale = uSurface > 0.5 ? 0.66 : 1.0;
-    float alpha =
-      (0.008 + density * 0.115 + scan * 0.035) *
-      (0.2 + loadMask * 0.68) *
-      surfaceScale;
-    gl_FragColor = vec4(color, alpha);
-  }
-`
-
-interface TensorGrid {
-  positions: Float32Array
-  activation: Float32Array
-  seeds: Float32Array
-}
-
-interface BusParticles {
-  offsets: Float32Array
-  speeds: Float32Array
-  seeds: Float32Array
-}
-
-interface WarpBeamDefinition {
-  offset: THREE.Vector3
-  direction: THREE.Vector3
-  delay: number
-  length: number
-}
-
-interface WarpState {
-  active: boolean
-  elapsed: number
-  origin: THREE.Vector3
-  progress: number
-  voxelIndex: number
-}
-
-interface BvhNode {
-  center: THREE.Vector3
-  size: THREE.Vector3
-  depth: number
-  parent: number
-  bounds: THREE.Box3
-  edgesGeometry: THREE.EdgesGeometry
-  color: THREE.Color
-}
-
-function createWarpBeams(): WarpBeamDefinition[] {
-  const beams: WarpBeamDefinition[] = []
-  for (let row = 0; row < 4; row += 1) {
-    for (let column = 0; column < 8; column += 1) {
-      const x = (column - 3.5) * 0.05
-      const z = (row - 1.5) * 0.048
-      beams.push({
-        offset: new THREE.Vector3(x, 0, z),
-        direction: new THREE.Vector3(
-          x * 1.7,
-          1,
-          z * 1.7,
-        ).normalize(),
-        delay: column * 0.018 + row * 0.035,
-        length: 0.76 + row * 0.045 + column * 0.006,
-      })
-    }
-  }
-  return beams
-}
-
-function deterministic(index: number) {
-  return (
-    Math.abs(
-      (Math.sin(index * 17.173 + 31.417) * 43_758.5453) %
-        1,
-    ) || 0.27
-  )
-}
-
-function createTensorGrid(): TensorGrid {
-  const positions = new Float32Array(TENSOR_VOXEL_COUNT * 3)
-  const activation = new Float32Array(TENSOR_VOXEL_COUNT)
-  const seeds = new Float32Array(TENSOR_VOXEL_COUNT)
-  let index = 0
-  for (let y = 0; y < TENSOR_GRID_SIZE; y += 1) {
-    for (let z = 0; z < TENSOR_GRID_SIZE; z += 1) {
-      for (let x = 0; x < TENSOR_GRID_SIZE; x += 1) {
-        positions[index * 3] =
-          (x - (TENSOR_GRID_SIZE - 1) / 2) * TENSOR_STEP
-        positions[index * 3 + 1] =
-          TENSOR_CENTER_Y +
-          (y - (TENSOR_GRID_SIZE - 1) / 2) * TENSOR_STEP
-        positions[index * 3 + 2] =
-          (z - (TENSOR_GRID_SIZE - 1) / 2) * TENSOR_STEP
-        seeds[index] = deterministic(index + 7)
-        index += 1
-      }
-    }
-  }
-  return { positions, activation, seeds }
-}
-
-function createBusParticles(): BusParticles {
-  const offsets = new Float32Array(NV_LINK_PARTICLE_COUNT)
-  const speeds = new Float32Array(NV_LINK_PARTICLE_COUNT)
-  const seeds = new Float32Array(NV_LINK_PARTICLE_COUNT)
-  for (let index = 0; index < NV_LINK_PARTICLE_COUNT; index += 1) {
-    offsets[index] = deterministic(index * 3 + 1)
-    speeds[index] = 0.055 + deterministic(index * 7 + 4) * 0.13
-    seeds[index] = deterministic(index * 11 + 5)
-  }
-  return { offsets, speeds, seeds }
-}
-
-function sampleBusRoute(
-  groupIndex: number,
-  progress: number,
-  target: THREE.Vector3,
-) {
-  const inner = groupIndex === 1
-  const width = inner ? 1.08 : groupIndex === 2 ? 0.86 : 1.32
-  const depth = inner ? 0.78 : groupIndex === 2 ? 0.42 : 0.94
-  const y = -0.275 + groupIndex * 0.012
-  const perimeter = (width + depth) * 4
-  let distance = ((progress % 1) + 1) % 1 * perimeter
-  if (distance < width * 2) {
-    target.set(-width + distance, y, -depth)
-    return
-  }
-  distance -= width * 2
-  if (distance < depth * 2) {
-    target.set(width, y, -depth + distance)
-    return
-  }
-  distance -= depth * 2
-  if (distance < width * 2) {
-    target.set(width - distance, y, depth)
-    return
-  }
-  distance -= width * 2
-  target.set(-width, y, depth - distance)
-}
-
-function createCircuitTraceGeometry() {
-  const positions: number[] = []
-  const width = 2.78
-  const depth = 2.04
-  const y = -0.292
-  for (let line = 0; line <= 18; line += 1) {
-    const x = -width / 2 + (line / 18) * width
-    positions.push(x, y, -depth / 2, x, y, depth / 2)
-  }
-  for (let line = 0; line <= 12; line += 1) {
-    const z = -depth / 2 + (line / 12) * depth
-    positions.push(-width / 2, y, z, width / 2, y, z)
-  }
-  for (let branch = 0; branch < 24; branch += 1) {
-    const x = -1.2 + deterministic(branch * 5) * 2.4
-    const z = -0.82 + deterministic(branch * 9 + 2) * 1.64
-    const length = 0.1 + deterministic(branch * 13 + 4) * 0.35
-    if (branch % 2 === 0) {
-      positions.push(x - length, y - 0.002, z, x + length, y - 0.002, z)
-    } else {
-      positions.push(x, y - 0.002, z - length, x, y - 0.002, z + length)
-    }
-  }
-  const geometry = new THREE.BufferGeometry()
-  geometry.setAttribute(
-    'position',
-    new THREE.Float32BufferAttribute(positions, 3),
-  )
-  return geometry
-}
-
-function createScanGridGeometry() {
-  const positions: number[] = []
-  const half = TENSOR_SCAN_PLANE_SIZE / 2
-  for (let line = 0; line <= TENSOR_GRID_SIZE; line += 1) {
-    const offset =
-      -half + (line / TENSOR_GRID_SIZE) * TENSOR_SCAN_PLANE_SIZE
-    positions.push(
-      -half,
-      offset,
-      0,
-      half,
-      offset,
-      0,
-      offset,
-      -half,
-      0,
-      offset,
-      half,
-      0,
-    )
-  }
-  const geometry = new THREE.BufferGeometry()
-  geometry.setAttribute(
-    'position',
-    new THREE.Float32BufferAttribute(positions, 3),
-  )
-  return geometry
-}
-
-function createBvhNodes(): BvhNode[] {
-  const definitions: Array<{
-    center: readonly [number, number, number]
-    size: readonly [number, number, number]
-    depth: number
-    parent: number
-  }> = [
-    { center: [0, 0.56, 0], size: [2.3, 1.5, 1.72], depth: 0, parent: -1 },
-    { center: [-0.56, 0.56, 0], size: [1.05, 1.42, 1.62], depth: 1, parent: 0 },
-    { center: [0.56, 0.56, 0], size: [1.05, 1.42, 1.62], depth: 1, parent: 0 },
-    { center: [-0.88, 0.56, 0], size: [0.44, 1.3, 1.5], depth: 2, parent: 1 },
-    { center: [-0.31, 0.56, 0], size: [0.44, 1.3, 1.5], depth: 2, parent: 1 },
-    { center: [0.31, 0.56, 0], size: [0.44, 1.3, 1.5], depth: 2, parent: 2 },
-    { center: [0.88, 0.56, 0], size: [0.44, 1.3, 1.5], depth: 2, parent: 2 },
-    { center: [-1.03, 0.82, -0.34], size: [0.24, 0.5, 0.52], depth: 3, parent: 3 },
-    { center: [-0.73, 0.3, 0.32], size: [0.24, 0.5, 0.52], depth: 3, parent: 3 },
-    { center: [-0.43, 0.8, -0.34], size: [0.24, 0.5, 0.52], depth: 3, parent: 4 },
-    { center: [-0.16, 0.28, 0.34], size: [0.24, 0.5, 0.52], depth: 3, parent: 4 },
-    { center: [0.16, 0.8, -0.34], size: [0.24, 0.5, 0.52], depth: 3, parent: 5 },
-    { center: [0.43, 0.28, 0.34], size: [0.24, 0.5, 0.52], depth: 3, parent: 5 },
-    { center: [0.73, 0.82, -0.34], size: [0.24, 0.5, 0.52], depth: 3, parent: 6 },
-    { center: [1.03, 0.3, 0.32], size: [0.24, 0.5, 0.52], depth: 3, parent: 6 },
-  ]
-  return definitions.map((definition) => {
-    const center = new THREE.Vector3(...definition.center)
-    const size = new THREE.Vector3(...definition.size)
-    const halfSize = size.clone().multiplyScalar(0.5)
-    const bounds = new THREE.Box3(
-      center.clone().sub(halfSize),
-      center.clone().add(halfSize),
-    )
-    const boxGeometry = new THREE.BoxGeometry(
-      size.x,
-      size.y,
-      size.z,
-    )
-    const edgesGeometry = new THREE.EdgesGeometry(boxGeometry)
-    boxGeometry.dispose()
-    const color = BVH_BLUE.clone().lerp(
-      BVH_GREEN,
-      definition.depth * 0.12,
-    )
-    return {
-      center,
-      size,
-      depth: definition.depth,
-      parent: definition.parent,
-      bounds,
-      edgesGeometry,
-      color,
-    }
-  })
-}
 
 export function GpuComputeMatrixExhibit({
   exhibit,
