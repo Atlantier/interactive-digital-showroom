@@ -24,7 +24,10 @@ import {
 } from 'react'
 import { createPortal } from 'react-dom'
 import { useBackgroundInert } from '../../hooks/useBackgroundInert'
-import { useFocusTrap } from '../../hooks/useFocusTrap'
+import {
+  trapFocusTabKey,
+  useFocusTrap,
+} from '../../hooks/useFocusTrap'
 import { useInViewAnimation } from '../../hooks/useInViewAnimation'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { useModalLayer } from '../../hooks/useModalLayer'
@@ -551,6 +554,12 @@ export function DarkroomInspectorModal() {
         onPointerDown={(event) => {
           if (event.target === event.currentTarget) close()
         }}
+        onKeyDown={(event) => {
+          trapFocusTabKey(
+            event.currentTarget,
+            event.nativeEvent,
+          )
+        }}
       >
         <div
           aria-hidden="true"
@@ -568,6 +577,7 @@ export function DarkroomInspectorModal() {
           <button
             ref={cleanExitButtonRef}
             type="button"
+            autoFocus
             data-darkroom-clean-exit
             aria-label={t.gallery.darkroom.cinemaCleanExit}
             title={t.gallery.darkroom.cinemaCleanExit}
@@ -685,6 +695,7 @@ export function DarkroomInspectorModal() {
               <button
                 ref={closeButtonRef}
                 type="button"
+                autoFocus
                 aria-label={t.gallery.darkroom.close}
                 title={t.gallery.darkroom.close}
                 onClick={close}

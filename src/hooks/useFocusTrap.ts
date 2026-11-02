@@ -39,6 +39,39 @@ interface FocusTrapOptions {
   initialFocusRef?: RefObject<HTMLElement | null>
 }
 
+export function trapFocusTabKey(
+  container: HTMLElement | null,
+  event: KeyboardEvent,
+) {
+  if (event.key !== 'Tab' || !container) return
+
+  const focusable = getFocusableElements(container)
+  if (focusable.length === 0) {
+    event.preventDefault()
+    container.focus({ preventScroll: true })
+    return
+  }
+
+  const first = focusable[0]
+  const last = focusable[focusable.length - 1]
+  const current = document.activeElement
+
+  if (!(current instanceof Node) || !container.contains(current)) {
+    event.preventDefault()
+    const target = event.shiftKey ? last : first
+    target.focus()
+    return
+  }
+
+  if (event.shiftKey && current === first) {
+    event.preventDefault()
+    last.focus()
+  } else if (!event.shiftKey && current === last) {
+    event.preventDefault()
+    first.focus()
+  }
+}
+
 export function useFocusTrap(
   containerRef: RefObject<HTMLElement | null>,
   active: boolean,
@@ -93,35 +126,7 @@ export function useFocusTrap(
     if (!active || !enabled) return
 
     const handleTab = (event: KeyboardEvent) => {
-      if (event.key !== 'Tab') return
-
-      const container = containerRef.current
-      if (!container) return
-
-      const focusable = getFocusableElements(container)
-      if (focusable.length === 0) {
-        event.preventDefault()
-        container.focus({ preventScroll: true })
-        return
-      }
-
-      const first = focusable[0]
-      const last = focusable[focusable.length - 1]
-      const current = document.activeElement
-
-      if (!(current instanceof Node) || !container.contains(current)) {
-        event.preventDefault()
-        ;(event.shiftKey ? last : first).focus()
-        return
-      }
-
-      if (event.shiftKey && current === first) {
-        event.preventDefault()
-        last.focus()
-      } else if (!event.shiftKey && current === last) {
-        event.preventDefault()
-        first.focus()
-      }
+      trapFocusTabKey(containerRef.current, event)
     }
 
     document.addEventListener('keydown', handleTab, true)
