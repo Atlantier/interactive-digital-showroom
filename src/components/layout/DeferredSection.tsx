@@ -81,10 +81,12 @@ export function DeferredSection({
       }
     }
     window.addEventListener('hashchange', handleHashChange)
+    window.addEventListener('popstate', handleHashChange)
 
     return () => {
       observer.disconnect()
       window.removeEventListener('hashchange', handleHashChange)
+      window.removeEventListener('popstate', handleHashChange)
     }
   }, [activate, ready, rootMargin, sectionId])
 

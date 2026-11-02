@@ -48,6 +48,7 @@ import {
 import { cn } from '../../lib/cn'
 import { useAppStore } from '../../store/useAppStore'
 import { useGalleryStore } from '../../store/useGalleryStore'
+import { navigateToSection } from '../../utils/sectionNavigation'
 import { useSmoothScroll } from '../layout/SmoothScroll'
 
 type CommandGroup =
@@ -185,7 +186,6 @@ export function CommandPalette() {
   const accentTheme = useAppStore((state) => state.accentTheme)
   const vfxPreset = useAppStore((state) => state.vfxPreset)
   const gravityMode = useAppStore((state) => state.gravityMode)
-  const setActiveSection = useAppStore((state) => state.setActiveSection)
   const setAccentTheme = useAppStore((state) => state.setAccentTheme)
   const setVfxPreset = useAppStore((state) => state.setVfxPreset)
   const setGravityMode = useAppStore((state) => state.setGravityMode)
@@ -225,22 +225,11 @@ export function CommandPalette() {
     )
   }, [])
 
-  const navigateToSection = useCallback(
+  const navigateToSectionCommand = useCallback(
     (id: SectionId) => {
-      setActiveSection(id)
-      window.requestAnimationFrame(() => {
-        if (lenis) {
-          lenis.start()
-          lenis.scrollTo(`#${id}`, { offset: -76, duration: 1.15 })
-          return
-        }
-        document.getElementById(id)?.scrollIntoView({
-          behavior: reducedMotion ? 'auto' : 'smooth',
-          block: 'start',
-        })
-      })
+      navigateToSection(id, { lenis })
     },
-    [lenis, reducedMotion, setActiveSection],
+    [lenis],
   )
 
   const commands = useMemo<PaletteCommand[]>(() => {
@@ -259,7 +248,7 @@ export function CommandPalette() {
       ],
       icon: Hash,
       active: activeSection === section.id,
-      run: () => navigateToSection(section.id),
+      run: () => navigateToSectionCommand(section.id),
     }))
 
     const gravityCommands = GRAVITY_MODES.map((mode) => ({
@@ -341,7 +330,7 @@ export function CommandPalette() {
           if (opticalTourActive) {
             toggleOpticalTourPaused()
           } else {
-            startOpticalTour()
+            startOpticalTour(undefined, Boolean(reducedMotion))
           }
         },
       },
@@ -372,7 +361,7 @@ export function CommandPalette() {
     accentTheme,
     activeSection,
     gravityMode,
-    navigateToSection,
+    navigateToSectionCommand,
     opticalTourActive,
     setAccentTheme,
     setVfxPreset,

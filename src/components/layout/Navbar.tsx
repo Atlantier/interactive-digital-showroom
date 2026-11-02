@@ -21,6 +21,7 @@ import {
 } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
 import { useAppStore } from '../../store/useAppStore'
+import { navigateToSection } from '../../utils/sectionNavigation'
 import { LanguageSwitcher } from '../ui/LanguageSwitcher'
 import { ScrollProgressRing } from './ScrollProgressRing'
 import { SoundSpectrum } from './SoundSpectrum'
@@ -347,14 +348,20 @@ function FpsReadout() {
 
 function BrandMark({
   Icon,
+  onNavigate,
 }: {
   Icon: LucideIcon
+  onNavigate: (
+    event: MouseEvent<HTMLAnchorElement>,
+    id: SectionId,
+  ) => void
 }) {
   const { t } = useI18n()
 
   return (
     <a
       href="#home"
+      onClick={(event) => onNavigate(event, 'home')}
       className="group flex items-center gap-3"
     >
       <span className="relative grid size-8 place-items-center border border-white/15 bg-white/[0.025] transition-colors group-hover:border-signal/40">
@@ -380,7 +387,6 @@ function BrandMark({
 export function Navbar() {
   const { t } = useI18n()
   const activeSection = useAppStore((state) => state.activeSection)
-  const setActiveSection = useAppStore((state) => state.setActiveSection)
   const toggleTelemetry = useAppStore((state) => state.toggleTelemetry)
   const lenis = useSmoothScroll()
   const playSound = useInterfaceSound()
@@ -405,18 +411,8 @@ export function Navbar() {
   ) => {
     event.preventDefault()
     setMenuOpen(false)
-    setActiveSection(id)
     playSound('navigate')
-
-    if (lenis) {
-      lenis.scrollTo(`#${id}`, { offset: -76, duration: 1.15 })
-      return
-    }
-
-    document.getElementById(id)?.scrollIntoView({
-      behavior: reducedMotion ? 'auto' : 'smooth',
-      block: 'start',
-    })
+    navigateToSection(id, { lenis })
   }
 
   return (
@@ -427,7 +423,7 @@ export function Navbar() {
         style={{ transform: 'scaleX(0)' }}
       />
       <div className="mx-auto flex h-[72px] max-w-[1600px] items-center justify-between px-4 max-[359px]:px-3 sm:px-6 md:px-8">
-        <BrandMark Icon={Aperture} />
+        <BrandMark Icon={Aperture} onNavigate={handleNavigate} />
 
         <nav
           aria-label={t.nav.primaryNavigation}

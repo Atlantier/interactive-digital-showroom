@@ -559,7 +559,10 @@ interface GalleryState {
   ) => void
   setIsTourActive: (active: boolean) => void
   toggleTour: () => void
-  startOpticalTour: (mode?: OpticalTourMode) => void
+  startOpticalTour: (
+    mode?: OpticalTourMode,
+    initiallyPaused?: boolean,
+  ) => void
   stopOpticalTour: () => void
   setOpticalTourPaused: (paused: boolean) => void
   toggleOpticalTourPaused: () => void
@@ -682,7 +685,7 @@ export const useGalleryStore = create<GalleryState>((set) => ({
             opticalTourClimaxExhibitId: null,
           },
     ),
-  startOpticalTour: (requestedMode) =>
+  startOpticalTour: (requestedMode, initiallyPaused = false) =>
     set((state) => {
       const opticalTourMode =
         requestedMode ??
@@ -690,7 +693,7 @@ export const useGalleryStore = create<GalleryState>((set) => ({
       return {
         isTourActive: true,
         opticalTourIndex: 0,
-        opticalTourPaused: false,
+        opticalTourPaused: initiallyPaused,
         opticalTourMode,
         opticalTourClimaxExhibitId: null,
         activeExhibitId:

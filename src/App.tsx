@@ -18,6 +18,7 @@ import { Navbar } from './components/layout/Navbar'
 import { CommandPalette } from './components/command/CommandPalette'
 import { PerformanceQualityNotice } from './components/layout/PerformanceQualityNotice'
 import { PerformanceTelemetryHud } from './components/layout/PerformanceTelemetryHud'
+import { SectionHistoryController } from './components/layout/SectionHistoryController'
 import { VfxPresetSweep } from './components/layout/VfxPresetSweep'
 import { DeferredSection } from './components/layout/DeferredSection'
 import { OpticalTourDirector } from './components/gallery/OpticalTourDirector'
@@ -35,6 +36,7 @@ import { usePerformanceTelemetry } from './hooks/usePerformanceTelemetry'
 import { useI18n } from './i18n/useI18n'
 import { useAppStore } from './store/useAppStore'
 import { useGalleryStore } from './store/useGalleryStore'
+import { navigateToSection } from './utils/sectionNavigation'
 import { soundEngine } from './utils/soundEngine'
 
 const BentoGrid = lazy(() =>
@@ -96,21 +98,11 @@ function ScrollLink({
 }) {
   const lenis = useSmoothScroll()
   const playSound = useInterfaceSound()
-  const reducedMotion = useReducedMotion()
 
   const handleClick = (event: MouseEvent<HTMLAnchorElement>) => {
     event.preventDefault()
     playSound('navigate')
-
-    if (lenis) {
-      lenis.scrollTo(`#${target}`, { offset: -76, duration: 1.15 })
-      return
-    }
-
-    document.getElementById(target)?.scrollIntoView({
-      behavior: reducedMotion ? 'auto' : 'smooth',
-      block: 'start',
-    })
+    navigateToSection(target, { lenis })
   }
 
   return (
@@ -442,6 +434,7 @@ function App() {
   return (
     <LocalizedTextRoot>
       <SmoothScroll>
+        <SectionHistoryController />
         <SceneCanvas visibilityRef={heroRef} />
         <OpticalTourDirector />
         <div className="film-grain pointer-events-none fixed inset-0 z-[5]" />
