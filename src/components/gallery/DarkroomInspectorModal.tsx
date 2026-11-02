@@ -585,7 +585,7 @@ export function DarkroomInspectorModal() {
             'relative grid h-svh',
             cinemaCleanView
               ? 'grid-cols-1 grid-rows-1'
-              : 'grid-rows-[auto_minmax(280px,48svh)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_370px] lg:grid-rows-[72px_minmax(0,1fr)]',
+              : 'grid-rows-[auto_minmax(280px,48svh)_minmax(0,1fr)] pb-[calc(76px+env(safe-area-inset-bottom))] lg:grid-cols-[minmax(0,1fr)_370px] lg:grid-rows-[72px_minmax(0,1fr)] sm:pb-[calc(92px+env(safe-area-inset-bottom))]',
           )}
         >
           {!cinemaCleanView ? (
