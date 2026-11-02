@@ -291,8 +291,20 @@ http://127.0.0.1:5173
 ## 工程质量门禁
 
 ```bash
-# Root + app + Vite config TypeScript checks
+# TypeScript: app, Vite/Vitest/Playwright config and tests
 npm run typecheck
+
+# Vitest unit tests
+npm run test
+
+# Playwright functional tests (system Chrome on local Windows/macOS)
+npm run test:e2e
+
+# axe-core accessibility gate
+npm run test:a11y
+
+# Full local gate: TypeScript + unit + Chromium E2E + axe
+npm run check
 
 # Production bundle only
 npm run build:only
@@ -302,6 +314,20 @@ npm run build
 
 # Local production preview
 npm run preview
+```
+
+Playwright 默认在本地使用系统 Chrome，不硬编码浏览器路径；CI 使用仓库安装的 Chromium。Linux 或无 Chrome 环境可运行：
+
+```bash
+npx playwright install chromium
+PLAYWRIGHT_CHANNEL=bundled npm run test:e2e
+```
+
+WebKit / Firefox 定时 smoke：
+
+```bash
+npx playwright install webkit firefox
+npm run test:e2e:browsers
 ```
 
 浏览器回归脚本使用 Playwright：
@@ -337,9 +363,11 @@ python scripts/i18n-check.py artifacts/i18n
 
 1. `actions/setup-node` 使用 `package-lock.json` 缓存 npm 依赖。
 2. `npm ci` 安装锁定版本。
-3. `npm run typecheck` 执行完整 TypeScript 检查。
-4. `npm run build:only` 生成生产构建。
+3. 安装 Playwright Chromium 并运行 `npm run check`，覆盖 TypeScript、Vitest、Chromium E2E 与 axe。
+4. `npm run build` 再次执行完整检查并生成生产构建。
 5. `upload-pages-artifact` 与 `deploy-pages` 发布 `dist/`。
+
+PR 和非 `main` 分支由 [`.github/workflows/ci.yml`](.github/workflows/ci.yml) 执行同一 Chromium 门禁；每周末额外运行 WebKit 与 Firefox smoke。
 
 首次部署前，在仓库 **Settings → Pages → Build and deployment** 中将 Source 设为 **GitHub Actions**。Vite 使用相对 `base: './'`，兼容用户主页与项目子路径部署。
 

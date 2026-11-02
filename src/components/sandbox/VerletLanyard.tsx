@@ -2013,6 +2013,13 @@ export function VerletLanyard() {
           {BADGE_SPECS.map((spec, index) => {
             const Icon = spec.icon
             const badgeCopy = t.sandbox.verlet.badges[spec.id]
+            const dragLabel = formatTranslation(
+              t.sandbox.verlet.dragBadge,
+              { badge: badgeCopy.title },
+            )
+            const accessibleLabel =
+              `${badgeCopy.eyebrow}${badgeCopy.title}` +
+              `${badgeCopy.subtitle}: ${dragLabel}`
             return (
               <button
                 key={spec.id}
@@ -2023,14 +2030,8 @@ export function VerletLanyard() {
                 data-verlet-badge={spec.id}
                 data-dragging="false"
                 data-detached="false"
-                aria-label={formatTranslation(
-                  t.sandbox.verlet.dragBadge,
-                  { badge: badgeCopy.title },
-                )}
-                title={formatTranslation(
-                  t.sandbox.verlet.dragBadge,
-                  { badge: badgeCopy.title },
-                )}
+                aria-label={accessibleLabel}
+                title={dragLabel}
                 onPointerDown={(event) =>
                   handleBadgePointerDown(index, event)
                 }

@@ -38,6 +38,11 @@ export function AudioStagePlayButton({
   }, [tempo])
 
   const label = playing ? copy.pause : copy.play
+  const statusLabel = playing
+    ? soundEnabled
+      ? copy.live
+      : copy.muted
+    : copy.idle
 
   return (
     <div
@@ -52,9 +57,9 @@ export function AudioStagePlayButton({
       <button
         type="button"
         data-audio-stage-play
-        aria-label={label}
+        aria-label={`${label}${statusLabel}`}
         aria-pressed={playing}
-        title={label}
+        title={`${label} ${statusLabel}`}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
           event.stopPropagation()
@@ -93,11 +98,7 @@ export function AudioStagePlayButton({
           <span className="truncate">{label}</span>
         </span>
         <span className="shrink-0 text-[11px] text-[var(--text-tertiary)]">
-          {playing
-            ? soundEnabled
-              ? copy.live
-              : copy.muted
-            : copy.idle}
+          {statusLabel}
         </span>
       </button>
       {variant === 'panel' ? (

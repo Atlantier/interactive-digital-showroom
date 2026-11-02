@@ -37,6 +37,17 @@ export function ReactorOverdriveButton({
       : cooldown
         ? copy.recovering
         : copy.overclock
+  const phaseStatus = charging
+    ? copy.chargeTimeShort
+    : shockwave
+      ? copy.surgeShort
+      : cooldown
+        ? copy.recoverShort
+        : copy.speedShort
+  const accessibleLabel =
+    variant === 'panel'
+      ? `${phaseLabel} ${phaseStatus}. ${copy.injectFuel}`
+      : `${phaseLabel}. ${copy.injectFuel}`
 
   useEffect(() => {
     if (reactorOverdriveStartedAt === null) {
@@ -83,10 +94,10 @@ export function ReactorOverdriveButton({
       data-reactor-overdrive-variant={variant}
       data-reactor-overdrive-active={busy ? 'true' : 'false'}
       data-reactor-overdrive-phase={phase}
-      aria-label={busy ? phaseLabel : copy.injectFuel}
+      aria-label={accessibleLabel}
       aria-pressed={busy}
       aria-disabled={busy}
-      title={busy ? phaseLabel : copy.injectFuel}
+      title={accessibleLabel}
       onPointerDown={(event) => event.stopPropagation()}
       onClick={(event) => {
         event.stopPropagation()
@@ -132,13 +143,7 @@ export function ReactorOverdriveButton({
       </span>
       {variant === 'panel' ? (
         <span className="relative font-mono text-[11px] text-[var(--text-tertiary)]">
-          {charging
-            ? copy.chargeTimeShort
-            : shockwave
-              ? copy.surgeShort
-              : cooldown
-                ? copy.recoverShort
-                : copy.speedShort}
+          {phaseStatus}
         </span>
       ) : null}
       <span className="sr-only" role="status" aria-live="polite">

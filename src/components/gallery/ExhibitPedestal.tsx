@@ -331,10 +331,12 @@ export function ExhibitPedestal({
         <button
           type="button"
           data-enter-darkroom={exhibit.id}
-          aria-label={formatTranslation(
+          aria-label={`${t.gallery.pedestal.enter}${
+            t.gallery.pedestal.enterCompact
+          }: ${formatTranslation(
             t.gallery.pedestal.enterAria,
             { exhibit: exhibitCopy.name },
-          )}
+          )}`}
           onClick={openDarkroom}
           className="mt-3 flex h-10 w-full items-center justify-between border border-white/10 bg-white/[0.018] px-3 font-mono text-[11px] text-[var(--text-secondary)] transition-colors hover:border-[var(--vfx-secondary)]/40 hover:bg-[var(--vfx-secondary)]/[0.055] hover:text-frost"
         >

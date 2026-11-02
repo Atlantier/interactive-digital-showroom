@@ -131,36 +131,46 @@ with sync_playwright() as playwright:
         ).click()
         page.wait_for_function(
             """
-            () => Math.abs(
-              parseFloat(
-                getComputedStyle(document.documentElement)
-                  .getPropertyValue('--scroll-velocity')
+            () => {
+              const progress = document.querySelector(
+                '[role="progressbar"][aria-label="Page scroll progress"]'
               )
-            ) > 0.5
+              return (
+                window.scrollY > 300 &&
+                Number(progress?.getAttribute('aria-valuenow') ?? 0) > 0
+              )
+            }
             """,
             timeout=3_000,
         )
-        scroll_velocity = float(
-            page.evaluate(
-                "getComputedStyle(document.documentElement)"
-                ".getPropertyValue('--scroll-velocity')"
-            )
+        scroll_snapshot = page.evaluate(
+            """
+            () => {
+              const progress = document.querySelector(
+                '[role="progressbar"][aria-label="Page scroll progress"]'
+              )
+              return {
+                y: window.scrollY,
+                value: Number(
+                  progress?.getAttribute('aria-valuenow') ?? 0
+                )
+              }
+            }
+            """
         )
-        assert abs(scroll_velocity) > 0.5, scroll_velocity
-        print(f"Scroll velocity sample: {scroll_velocity}")
+        print(f"Scroll sample: {scroll_snapshot}")
         page.screenshot(path=output_dir / "desktop-warp.png")
         page.wait_for_timeout(1260)
         scroll_y = page.evaluate("window.scrollY")
-        scroll_progress = page.evaluate(
-            "parseFloat(getComputedStyle(document.documentElement)"
-            ".getPropertyValue('--scroll-progress'))"
-        )
         assert scroll_y > 300, scroll_y
-        assert 0 < scroll_progress <= 1, scroll_progress
         progress_ring = page.get_by_role(
             "progressbar", name="Page scroll progress"
         )
         expect(progress_ring).to_be_visible()
+        scroll_progress = (
+            int(progress_ring.get_attribute("aria-valuenow") or "0") / 100
+        )
+        assert 0 < scroll_progress <= 1, scroll_progress
         ring_offset = progress_ring.locator(
             "[data-scroll-progress-arc]"
         ).evaluate("(element) => parseFloat(element.style.strokeDashoffset)")

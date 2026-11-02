@@ -19,6 +19,7 @@ export function RayBounceMazeControls({
   const playSound = useInterfaceSound()
   const copy = t.gallery.rayMazeInteraction
   const layoutName = copy.layouts[layoutIndex] ?? copy.layouts[0]
+  const layoutCount = `${String(layoutIndex + 1).padStart(2, '0')} / 03`
 
   return (
     <div
@@ -33,8 +34,8 @@ export function RayBounceMazeControls({
       <button
         type="button"
         data-ray-maze-shuffle
-        aria-label={copy.shuffleLayout}
-        title={copy.shuffleLayout}
+        aria-label={`${copy.shuffleLayout}${layoutCount}`}
+        title={`${copy.shuffleLayout} ${layoutCount}`}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
           event.stopPropagation()
@@ -57,7 +58,7 @@ export function RayBounceMazeControls({
           <span className="truncate">{copy.shuffleLayout}</span>
         </span>
         <span className="shrink-0 text-[11px] text-[var(--text-tertiary)]">
-          {String(layoutIndex + 1).padStart(2, '0')} / 03
+          {layoutCount}
         </span>
       </button>
       {variant === 'panel' ? (

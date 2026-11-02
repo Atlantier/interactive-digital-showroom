@@ -45,7 +45,7 @@ export function LanguageSwitcher() {
             key={option.id}
             type="button"
             data-language-option={option.id}
-            aria-label={option.ariaLabel}
+            aria-label={`${option.label}: ${option.ariaLabel}`}
             aria-pressed={active}
             title={option.ariaLabel}
             onClick={() => selectLocale(option.id)}

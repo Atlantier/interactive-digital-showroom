@@ -61,7 +61,11 @@ export function PrismShapeSelector({
             key={option}
             type="button"
             data-prism-shape-option={option}
-            aria-label={label}
+            aria-label={
+              variant === 'panel'
+                ? `${copy.short[option]} ${label}`
+                : label
+            }
             aria-pressed={active}
             title={label}
             onClick={(event) => {

@@ -162,7 +162,11 @@ export function NeuralInferenceControls({
                   key={candidate}
                   type="button"
                   data-neural-training-mode-option={candidate}
-                  aria-label={label}
+                  aria-label={`${label} ${
+                    candidate === 'inference'
+                      ? copy.forwardShort
+                      : copy.backpropShort
+                  }`}
                   aria-pressed={active}
                   title={label}
                   onPointerDown={(event) =>
@@ -199,8 +203,8 @@ export function NeuralInferenceControls({
       <button
         type="button"
         data-neural-trigger-inference
-        aria-label={actionLabel}
-        title={actionLabel}
+        aria-label={`${actionLabel}${token}`}
+        title={`${actionLabel} ${token}`}
         onPointerDown={(event) => event.stopPropagation()}
         onClick={(event) => {
           event.stopPropagation()

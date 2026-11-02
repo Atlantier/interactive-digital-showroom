@@ -355,7 +355,6 @@ function BrandMark({
   return (
     <a
       href="#home"
-      aria-label={t.nav.brandHome}
       className="group flex items-center gap-3"
     >
       <span className="relative grid size-8 place-items-center border border-white/15 bg-white/[0.025] transition-colors group-hover:border-signal/40">

@@ -24,7 +24,7 @@ export function PerformanceQualityNotice() {
   return (
     <AnimatePresence>
       {visible && !tourActive && !cinemaCleanView ? (
-        <motion.aside
+        <motion.div
           data-performance-quality-notice
           role="status"
           aria-live="polite"
@@ -38,13 +38,13 @@ export function PerformanceQualityNotice() {
             <Gauge size={14} strokeWidth={1.6} />
           </span>
           <div className="min-w-0">
-            <p className="text-[9px] tracking-[0.15em] text-amber">
+            <p className="text-[11px] tracking-[0.15em] text-amber">
               {t.qualityNotice.eyebrow}
             </p>
             <p className="mt-1.5 text-[11px] leading-5 text-frost/85">
               {t.qualityNotice.message}
             </p>
-            <p className="mt-1 text-[8px] leading-4 text-mist/40">
+            <p className="mt-1 text-[11px] leading-4 text-[var(--text-secondary)]">
               {t.qualityNotice.details}
             </p>
           </div>
@@ -57,7 +57,7 @@ export function PerformanceQualityNotice() {
           >
             <X size={12} strokeWidth={1.7} />
           </button>
-        </motion.aside>
+        </motion.div>
       ) : null}
     </AnimatePresence>
   )

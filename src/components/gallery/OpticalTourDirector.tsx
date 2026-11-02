@@ -514,7 +514,10 @@ export function OpticalTourDirector() {
                     type="button"
                     data-gallery-quick-item={index}
                     data-gallery-quick-exhibit={exhibit.id}
-                    aria-label={t.gallery.exhibits[exhibit.id].name}
+                    aria-label={`${String(index + 1).padStart(
+                      2,
+                      '0',
+                    )} ${t.gallery.exhibits[exhibit.id].name}`}
                     aria-current={active ? 'true' : undefined}
                     title={`${String(index + 1).padStart(2, '0')} ${t.gallery.exhibits[exhibit.id].name}`}
                     onClick={() => jumpToExhibit(index)}
