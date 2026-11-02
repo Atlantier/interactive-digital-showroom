@@ -50,10 +50,10 @@ export function LanguageSwitcher() {
             title={option.ariaLabel}
             onClick={() => selectLocale(option.id)}
             className={cn(
-              'relative grid h-7 min-w-8 place-items-center rounded-full px-2 font-mono text-[9px] transition-colors duration-300 sm:min-w-9',
+              'relative grid h-7 min-w-8 place-items-center rounded-full px-2 font-mono text-[11px] transition-colors duration-300 sm:min-w-9',
               active
                 ? 'text-frost'
-                : 'text-mist/48 hover:text-frost/85',
+                : 'text-[var(--text-secondary)] hover:text-frost',
             )}
           >
             {active ? (

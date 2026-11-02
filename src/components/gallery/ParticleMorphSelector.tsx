@@ -95,7 +95,7 @@ export function ParticleMorphSelector({
                 ? variant === 'quick'
                   ? 'border-[var(--vfx-secondary)]/45 bg-[var(--vfx-secondary)]/[0.12] text-[var(--vfx-secondary)]'
                   : 'border-signal/48 bg-signal/[0.1] text-signal'
-                : 'border-white/10 bg-black/28 text-mist/48 hover:border-white/24 hover:text-frost',
+                : 'border-white/10 bg-black/28 text-[var(--text-secondary)] hover:border-white/24 hover:text-frost',
             )}
           >
             <Icon
@@ -103,7 +103,7 @@ export function ParticleMorphSelector({
               strokeWidth={variant === 'quick' ? 1.7 : 1.55}
             />
             {variant === 'panel' ? (
-              <span className="w-full truncate text-center font-mono text-[5px]">
+              <span className="w-full truncate text-center font-mono text-[11px]">
                 {copy.short[option]}
               </span>
             ) : null}

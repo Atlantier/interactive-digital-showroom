@@ -165,7 +165,7 @@ function CardHeader({
 }) {
   return (
     <div className="min-w-0">
-      <div className="mb-3 flex items-center gap-2 font-mono text-[9px] text-signal/80">
+      <div className="mb-3 flex items-center gap-2 font-mono text-[11px] text-signal">
         <Icon size={13} strokeWidth={1.7} />
         <span data-localized-motion className="min-w-0 truncate">
           {detail}
@@ -223,7 +223,7 @@ function TokenThroughputCard({ active }: { active: boolean }) {
   const areaPath = `${linePath} L 480 150 L 0 150 Z`
 
   return (
-    <SpotlightCard className="min-h-[430px] max-[359px]:h-[440px] md:col-span-2 md:min-h-0 xl:col-span-2 xl:row-span-2">
+    <SpotlightCard className="h-[430px] max-[359px]:h-[440px] md:col-span-2 md:h-auto md:min-h-0 xl:col-span-2 xl:row-span-2">
       <div className="flex h-full flex-col p-5 sm:p-6">
         <CardHeader
           icon={Activity}
@@ -239,13 +239,13 @@ function TokenThroughputCard({ active }: { active: boolean }) {
             >
               {current.toLocaleString('en-US')}
             </p>
-            <p className="mt-2 font-mono text-[10px] text-mist/60">
+            <p className="mt-2 font-mono text-[11px] text-[var(--text-secondary)]">
               {t.bento.tokenThroughput.tokensPerSecond}
             </p>
           </div>
           <span
             className={cn(
-              'mb-1 font-mono text-[10px]',
+              'mb-1 font-mono text-[11px]',
               delta >= 0 ? 'text-signal' : 'text-amber',
             )}
           >
@@ -286,7 +286,7 @@ function TokenThroughputCard({ active }: { active: boolean }) {
               vectorEffect="non-scaling-stroke"
             />
           </svg>
-          <div className="absolute bottom-2 left-0 flex w-full justify-between font-mono text-[8px] text-mist/35">
+          <div className="absolute bottom-2 left-0 flex w-full justify-between font-mono text-[11px] text-[var(--text-secondary)]">
             <span>{t.bento.tokenThroughput.timelinePast}</span>
             <span>{t.bento.tokenThroughput.timelineMid}</span>
             <span>{t.bento.tokenThroughput.timelineNow}</span>
@@ -299,8 +299,8 @@ function TokenThroughputCard({ active }: { active: boolean }) {
               key={label}
               className="border-l border-white/10 pl-3 font-mono"
             >
-              <p className="text-[8px] text-mist/45">{label}</p>
-              <p className="mt-1 text-[11px] text-frost">{value}</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">{label}</p>
+              <p className="mt-1 text-[12px] text-frost">{value}</p>
             </div>
           ))}
         </div>
@@ -332,10 +332,10 @@ function TopologyCard() {
               aria-pressed={mode === item}
               onClick={() => setMode(item)}
               className={cn(
-                'h-7 rounded-[3px] font-mono text-[9px] transition-colors',
+                'h-9 rounded-[3px] font-mono text-[11px] transition-colors',
                 mode === item
                   ? 'bg-signal/10 text-signal'
-                  : 'text-mist/55 hover:text-frost',
+                  : 'text-[var(--text-secondary)] hover:text-frost',
               )}
             >
               {t.bento.topology.modes[item].label}
@@ -398,7 +398,7 @@ function TopologyCard() {
               </g>
             ))}
           </svg>
-          <div className="absolute bottom-0 right-0 flex items-center gap-2 font-mono text-[8px] text-mist/45">
+          <div className="absolute bottom-0 right-0 flex items-center gap-2 font-mono text-[11px] text-[var(--text-secondary)]">
             <span className="size-1 bg-signal" />
             {topologyCopy.detail}
           </div>
@@ -531,7 +531,7 @@ function TerminalCard() {
             }
             aria-pressed={!running}
             onClick={toggleAnimation}
-            className="grid size-7 shrink-0 place-items-center rounded-sm border border-white/10 text-mist/60 transition-colors hover:border-white/20 hover:text-frost"
+            className="grid size-7 shrink-0 place-items-center rounded-sm border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-white/20 hover:text-frost"
           >
             {running && !bootComplete ? (
               <Pause size={12} strokeWidth={1.8} />
@@ -541,12 +541,12 @@ function TerminalCard() {
           </button>
         </div>
 
-        <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm border border-white/[0.07] bg-black/40 font-mono text-[9px]">
+        <div className="mt-4 flex min-h-0 flex-1 flex-col overflow-hidden rounded-sm border border-white/[0.07] bg-black/40 font-mono text-[11px]">
           <div className="flex items-center gap-1.5 border-b border-white/[0.06] px-3 py-2">
             <span className="size-1.5 rounded-full bg-[#ff6b6b]/70" />
             <span className="size-1.5 rounded-full bg-amber/70" />
             <span className="size-1.5 rounded-full bg-signal/70" />
-            <span className="ml-auto text-[8px] text-mist/35">
+            <span className="ml-auto text-[11px] text-[var(--text-secondary)]">
               {terminalCopy.fileName}
             </span>
           </div>
@@ -556,7 +556,7 @@ function TerminalCard() {
             className="terminal-scrollbar min-h-0 flex-1 overflow-y-auto px-3 py-2 leading-4"
           >
             {!bootCleared && (
-              <div className="space-y-0.5 text-mist/70">
+              <div className="space-y-0.5 text-[var(--text-secondary)]">
                 {terminalLines.map((line, index) => {
                   if (!reducedMotion && index > lineIndex) return null
 
@@ -611,15 +611,15 @@ function TerminalCard() {
                           >
                             {response.art.trim()}
                           </pre>
-                          <p className="mt-1 text-[8px] text-frost/80">
+                          <p className="mt-1 text-[12px] text-[var(--text-primary)]">
                             {response.description}
                           </p>
-                          <p className="mt-1 truncate text-[7px] text-mist/50">
+                          <p className="mt-1 truncate text-[11px] text-[var(--text-secondary)]">
                             {response.notes.join(' / ')}
                           </p>
                         </>
                       ) : (
-                        <p className="mt-1 text-[8px] text-red-300/80">
+                        <p className="mt-1 text-[11px] text-red-300">
                           {terminalCopy.unknownCommand}
                         </p>
                       )}
@@ -644,7 +644,7 @@ function TerminalCard() {
               autoCapitalize="off"
               autoCorrect="off"
               spellCheck={false}
-              className="min-w-0 flex-1 bg-transparent text-[8px] text-frost outline-none placeholder:text-mist/30"
+              className="min-w-0 flex-1 bg-transparent text-[11px] text-frost outline-none placeholder:text-[var(--text-tertiary)]"
             />
           </form>
         </div>
@@ -695,8 +695,8 @@ function TelemetryCard({ active }: { active: boolean }) {
         <div className="mt-4 grid grid-cols-3 gap-2 border-t border-white/[0.07] pt-3 font-mono">
           {t.bento.telemetry.metrics.map(({ label, value }) => (
             <div key={label}>
-              <p className="text-[8px] text-mist/40">{label}</p>
-              <p className="mt-1 text-[10px] text-frost">{value}</p>
+              <p className="text-[11px] text-[var(--text-secondary)]">{label}</p>
+              <p className="mt-1 text-[12px] text-frost">{value}</p>
             </div>
           ))}
         </div>
@@ -743,7 +743,7 @@ function ArchiveCard({ active }: { active: boolean }) {
           {t.bento.archive.tags.map((tag) => (
             <span
               key={tag}
-              className="border border-white/[0.08] px-2 py-1 font-mono text-[8px] text-mist/55"
+              className="border border-white/[0.08] px-2 py-1 font-mono text-[11px] text-[var(--text-secondary)]"
             >
               {tag}
             </span>

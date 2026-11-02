@@ -51,11 +51,11 @@ export function AudioStageLightPads() {
       className="mt-5 border border-[var(--vfx-secondary)]/16 bg-[linear-gradient(180deg,rgba(8,18,22,0.78),rgba(3,7,10,0.76))] p-2.5"
     >
       <div className="mb-2.5 flex items-start justify-between gap-3 px-0.5">
-        <span className="flex items-center gap-1.5 font-mono text-[7px] text-[var(--vfx-secondary)]/62">
+        <span className="flex items-center gap-1.5 font-mono text-[11px] text-[var(--vfx-secondary)]">
           <Music2 size={9} strokeWidth={1.7} />
           {copy.lightPadsLabel}
         </span>
-        <span className="max-w-[178px] text-right font-mono text-[6px] leading-3 text-mist/28">
+        <span className="max-w-[220px] text-right font-mono text-[11px] leading-4 text-[var(--text-tertiary)]">
           {copy.lightPadsHint}
         </span>
       </div>
@@ -98,10 +98,10 @@ export function AudioStageLightPads() {
                 )
               }}
               className={cn(
-                'group/pad relative flex h-12 min-w-0 flex-col items-center justify-center overflow-hidden border font-mono transition-[transform,border-color,color,background-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:border-[var(--vfx-tertiary)] focus-visible:outline-none',
+                'group/pad relative flex h-14 min-w-0 flex-col items-center justify-center overflow-hidden border font-mono transition-[transform,border-color,color,background-color] duration-200 ease-[cubic-bezier(0.22,1,0.36,1)] focus-visible:border-[var(--vfx-tertiary)] focus-visible:outline-none',
                 active
                   ? '-translate-y-0.5 border-[var(--pad-color)] text-frost'
-                  : 'border-white/[0.07] text-mist/48 hover:-translate-y-0.5 hover:border-[var(--pad-color)]/70 hover:text-frost',
+                  : 'border-white/[0.07] text-[var(--text-secondary)] hover:-translate-y-0.5 hover:border-[var(--pad-color)]/70 hover:text-frost',
               )}
               style={
                 {
@@ -123,10 +123,13 @@ export function AudioStageLightPads() {
                   boxShadow: `0 0 8px ${color}`,
                 }}
               />
-              <span className="mt-1 text-[8px] tracking-[0.08em]">
+              <span className="mt-1 text-[11px] tracking-[0.08em]">
                 {note}
               </span>
-              <span className="mt-0.5 text-[5px] opacity-38">
+              <span
+                aria-hidden="true"
+                className="mt-0.5 text-[9px] text-[var(--text-tertiary)]"
+              >
                 {String(index + 1).padStart(2, '0')}
               </span>
             </button>

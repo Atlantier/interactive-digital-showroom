@@ -1655,7 +1655,7 @@ export function VerletLanyard() {
       <div className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:py-28">
         <div className="grid h-[325px] gap-8 border-b border-white/[0.08] pb-10 max-[359px]:h-[372px] md:h-[391px] md:grid-cols-[1.15fr_0.85fr] md:items-end md:pb-12 lg:h-[306px] min-[1600px]:h-[232px]">
           <div>
-            <p className="mb-5 font-mono text-[10px] tracking-[0.16em] text-signal">
+            <p className="mb-5 font-mono text-[11px] tracking-[0.16em] text-signal">
               {t.sandbox.verlet.eyebrow}
             </p>
             <h2
@@ -1671,7 +1671,7 @@ export function VerletLanyard() {
             <p className="text-sm leading-6 text-mist sm:text-base sm:leading-7">
               {t.sandbox.verlet.description}
             </p>
-            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[9px] text-mist/45">
+            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11px] text-[var(--text-secondary)]">
               {t.sandbox.verlet.techTags.map((tag) => (
                 <span key={tag}>{tag}</span>
               ))}
@@ -1730,7 +1730,7 @@ export function VerletLanyard() {
           />
 
           <div className="pointer-events-none absolute inset-x-3 top-3 z-40 flex items-start justify-between gap-3 sm:inset-x-5 sm:top-4">
-            <div className="flex min-w-[160px] items-center gap-2 rounded border border-white/[0.08] bg-black/20 px-2.5 py-2 font-mono text-[8px] text-mist/55 backdrop-blur-md sm:min-w-[240px]">
+            <div className="flex min-w-[160px] items-center gap-2 rounded border border-white/[0.08] bg-black/20 px-2.5 py-2 font-mono text-[11px] text-[var(--text-secondary)] backdrop-blur-md sm:min-w-[240px]">
               <Wind
                 size={12}
                 strokeWidth={1.5}
@@ -1740,12 +1740,12 @@ export function VerletLanyard() {
                 ref={statusRef}
                 data-sandbox-status
                 data-localized-motion
-                className="truncate text-frost/80"
+                className="truncate text-[var(--text-primary)]"
               >
                 {t.sandbox.verlet.status.nominal}
               </span>
               <span className="h-3 w-px bg-white/10" />
-              <span className="hidden text-signal/65 md:inline">
+              <span className="hidden text-signal md:inline">
                 {t.gravityModes[gravityMode].subtitle}
               </span>
               <span
@@ -1765,7 +1765,7 @@ export function VerletLanyard() {
                 }
                 rebuildRef.current()
               }}
-              className="pointer-events-auto inline-flex h-9 min-w-[82px] shrink-0 items-center justify-center gap-2 rounded border border-signal/30 bg-signal/[0.07] px-3 font-mono text-[9px] text-frost transition-colors hover:border-signal/55 hover:bg-signal/[0.12] sm:min-w-[142px]"
+              className="pointer-events-auto inline-flex h-10 min-w-[96px] shrink-0 items-center justify-center gap-2 rounded border border-signal/30 bg-signal/[0.07] px-3 font-mono text-[11px] text-frost transition-colors hover:border-signal/55 hover:bg-signal/[0.12] sm:min-w-[156px]"
             >
               <RefreshCw size={12} strokeWidth={1.7} />
               <span className="hidden sm:inline">
@@ -2062,16 +2062,16 @@ export function VerletLanyard() {
                       strokeWidth={1.4}
                     />
                   </span>
-                  <span className="font-mono text-[5px] text-mist/35 sm:text-[7px]">
+                  <span className="font-mono text-[11px] text-[var(--text-secondary)]">
                     {badgeCopy.eyebrow}
                   </span>
                 </span>
 
                 <span className="mt-auto min-w-0">
-                  <span className="block text-[9px] font-medium leading-[1.05] text-frost sm:text-[13px]">
+                  <span className="block text-[11px] font-medium leading-[1.2] text-frost sm:text-[13px]">
                     {badgeCopy.title}
                   </span>
-                  <span className="mt-1 hidden font-mono text-[6px] text-mist/45 sm:block">
+                  <span className="mt-1 hidden font-mono text-[11px] text-[var(--text-secondary)] sm:block">
                     {badgeCopy.subtitle}
                   </span>
                 </span>
@@ -2091,23 +2091,23 @@ export function VerletLanyard() {
             className="sandbox-rupture-flash pointer-events-none absolute z-50 size-0"
           />
 
-          <div className="pointer-events-none absolute bottom-2 left-3 z-40 flex items-center gap-4 font-mono text-[8px] text-mist/38 sm:left-5">
+          <div className="pointer-events-none absolute bottom-2 left-3 z-40 flex items-center gap-4 font-mono text-[11px] text-[var(--text-secondary)] sm:left-5">
             <span className="flex items-center gap-1.5">
               <Gauge size={10} strokeWidth={1.5} />
               {t.sandbox.verlet.telemetry.strain}
-              <span ref={strainRef} data-sandbox-strain className="text-frost/65">
+              <span ref={strainRef} data-sandbox-strain className="text-[var(--text-primary)]">
                 0.00x
               </span>
             </span>
             <span className="hidden items-center gap-1.5 sm:flex">
               <Link2Off size={10} strokeWidth={1.5} />
               {t.sandbox.verlet.telemetry.contacts}
-              <span ref={contactRef} className="text-frost/65">
+              <span ref={contactRef} className="text-[var(--text-primary)]">
                 0
               </span>
             </span>
           </div>
-          <span className="pointer-events-none absolute bottom-2 right-3 z-40 font-mono text-[8px] text-mist/30 sm:right-5">
+          <span className="pointer-events-none absolute bottom-2 right-3 z-40 font-mono text-[11px] text-[var(--text-secondary)] sm:right-5">
             {t.sandbox.verlet.telemetry.solver}
           </span>
         </div>

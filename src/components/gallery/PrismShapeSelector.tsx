@@ -75,7 +75,7 @@ export function PrismShapeSelector({
               variant === 'stage' ? 'size-7' : 'h-9 px-2',
               active
                 ? 'border-[var(--vfx-secondary)]/48 bg-[var(--vfx-secondary)]/[0.1] text-[var(--vfx-secondary)]'
-                : 'border-white/10 bg-black/28 text-mist/48 hover:border-white/24 hover:text-frost',
+                : 'border-white/10 bg-black/28 text-[var(--text-secondary)] hover:border-white/24 hover:text-frost',
             )}
           >
             <Icon
@@ -83,7 +83,7 @@ export function PrismShapeSelector({
               strokeWidth={1.55}
             />
             {variant === 'panel' ? (
-              <span className="truncate font-mono text-[6px]">
+              <span className="truncate font-mono text-[11px]">
                 {copy.short[option]}
               </span>
             ) : null}

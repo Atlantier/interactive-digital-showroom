@@ -48,9 +48,9 @@ export function AudioStageModeSelector({
       )}
     >
       {variant === 'panel' ? (
-        <div className="mb-2 flex items-center justify-between gap-3 px-1 font-mono text-[7px]">
-          <span className="text-mist/34">{copy.modeLabel}</span>
-          <span className="text-[var(--vfx-secondary)]/68">
+        <div className="mb-2 flex items-center justify-between gap-3 px-1 font-mono text-[11px]">
+          <span className="text-[var(--text-secondary)]">{copy.modeLabel}</span>
+          <span className="text-[var(--vfx-secondary)]">
             {copy.modes[mode].label}
           </span>
         </div>
@@ -83,11 +83,11 @@ export function AudioStageModeSelector({
               className={cn(
                 'group/mode transition-[transform,color,background-color,border-color] duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
                 variant === 'stage'
-                  ? 'flex h-7 items-center justify-center gap-1 px-1.5 font-mono text-[6px]'
+                  ? 'flex h-9 items-center justify-center gap-1 px-1.5 font-mono text-[11px]'
                   : 'flex min-h-12 flex-col items-start justify-between px-2 py-2 text-left',
                 active
                   ? 'bg-[var(--vfx-secondary)]/[0.12] text-frost'
-                  : 'bg-[#04090c]/88 text-mist/44 hover:bg-white/[0.04] hover:text-frost',
+                  : 'bg-[#04090c]/88 text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-frost',
               )}
             >
               <span className="flex items-center gap-1.5">
@@ -101,10 +101,10 @@ export function AudioStageModeSelector({
               </span>
               {variant === 'panel' ? (
                 <span className="mt-2 block w-full">
-                  <span className="block truncate text-[8px]">
+                  <span className="block truncate text-[11px]">
                     {modeCopy.label}
                   </span>
-                  <span className="mt-0.5 block truncate font-mono text-[6px] opacity-45">
+                  <span className="mt-0.5 block truncate font-mono text-[11px] text-[var(--text-tertiary)]">
                     {modeCopy.short}
                   </span>
                 </span>
@@ -114,7 +114,7 @@ export function AudioStageModeSelector({
         })}
       </div>
       {variant === 'panel' ? (
-        <p className="mt-2 px-1 font-mono text-[7px] leading-3 text-mist/30">
+        <p className="mt-2 px-1 font-mono text-[11px] leading-4 text-[var(--text-secondary)]">
           {copy.modeHint}
         </p>
       ) : null}

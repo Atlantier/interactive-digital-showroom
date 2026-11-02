@@ -364,11 +364,11 @@ export function OpticalTourDirector() {
             className="fixed left-1/2 top-[74px] z-[145] w-[min(880px,calc(100vw-24px))] -translate-x-1/2 overflow-hidden border border-[var(--vfx-secondary)]/28 bg-[#03080c]/98 shadow-[0_24px_72px_rgba(0,0,0,0.62)]"
           >
             <div className="flex items-center justify-between gap-3 border-b border-white/[0.07] px-3 py-2 sm:px-4">
-              <span className="flex items-center gap-2 font-mono text-[7px] text-[var(--vfx-secondary)]/72">
+              <span className="flex items-center gap-2 font-mono text-[11px] text-[var(--vfx-secondary)]">
                 <Clapperboard size={10} strokeWidth={1.7} />
                 {directorCopy.live}
               </span>
-              <span className="font-mono text-[7px] text-mist/32">
+              <span className="font-mono text-[11px] text-[var(--text-secondary)]">
                 {formatTranslation(directorCopy.chapter, {
                   current: String(opticalTourIndex + 1).padStart(
                     2,
@@ -384,7 +384,7 @@ export function OpticalTourDirector() {
             <div className="grid gap-2 px-3 py-2.5 sm:grid-cols-[minmax(0,1fr)_auto] sm:items-center sm:px-4">
               <div className="min-w-0">
                 <div className="flex items-baseline gap-3">
-                  <span className="font-mono text-[8px] text-[var(--vfx-tertiary)]/72">
+                  <span className="font-mono text-[11px] text-[var(--vfx-tertiary)]">
                     E-
                     {String(opticalTourIndex + 1).padStart(2, '0')}
                   </span>
@@ -395,7 +395,7 @@ export function OpticalTourDirector() {
                     {t.gallery.exhibits[currentExhibit.id].name}
                   </p>
                 </div>
-                <div className="mt-1.5 flex items-center gap-2 font-mono text-[6px] text-mist/30">
+                <div className="mt-1.5 flex items-center gap-2 font-mono text-[11px] text-[var(--text-secondary)]">
                   <span>{directorCopy.autoClimax}</span>
                   <span className="size-1 bg-[#ffd36a] shadow-[0_0_8px_#ffd36a]" />
                   <span className="truncate">
@@ -404,7 +404,7 @@ export function OpticalTourDirector() {
                 </div>
               </div>
               <div className="flex items-center gap-1.5">
-                <span className="mr-1 hidden min-w-14 text-right font-mono text-[7px] text-mist/36 sm:inline">
+                <span className="mr-1 hidden min-w-16 text-right font-mono text-[11px] text-[var(--text-secondary)] sm:inline">
                   <span ref={clockRef}>0.0 / 6.0</span>
                 </span>
                 <button
@@ -421,7 +421,7 @@ export function OpticalTourDirector() {
                       : directorCopy.pause
                   }
                   onClick={toggleTourPaused}
-                  className="grid size-8 place-items-center border border-white/10 text-mist/62 transition-colors hover:border-[var(--vfx-secondary)]/45 hover:text-frost"
+                  className="grid size-8 place-items-center border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-[var(--vfx-secondary)]/45 hover:text-frost"
                 >
                   {opticalTourPaused ? (
                     <Play size={12} strokeWidth={1.7} />
@@ -435,7 +435,7 @@ export function OpticalTourDirector() {
                   aria-label={directorCopy.skip}
                   title={directorCopy.skip}
                   onClick={skipExhibit}
-                  className="grid size-8 place-items-center border border-white/10 text-mist/62 transition-colors hover:border-[var(--vfx-secondary)]/45 hover:text-frost"
+                  className="grid size-8 place-items-center border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-[var(--vfx-secondary)]/45 hover:text-frost"
                 >
                   <ArrowRight size={13} strokeWidth={1.7} />
                 </button>
@@ -445,7 +445,7 @@ export function OpticalTourDirector() {
                   aria-label={directorCopy.exit}
                   title={directorCopy.exit}
                   onClick={exitTour}
-                  className="grid size-8 place-items-center border border-white/10 text-mist/42 transition-colors hover:border-[#ff8f66]/40 hover:text-[#ffb490]"
+                  className="grid size-8 place-items-center border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-[#ff8f66]/40 hover:text-[#ffb490]"
                 >
                   <X size={13} strokeWidth={1.7} />
                 </button>
@@ -487,19 +487,19 @@ export function OpticalTourDirector() {
                   strokeWidth={1.7}
                   className="shrink-0 text-[var(--vfx-secondary)]"
                 />
-                <span className="truncate text-[10px] text-frost/82">
+                <span className="truncate text-[12px] text-[var(--text-primary)]">
                   {t.gallery.exhibits[dockExhibit.id].name}
                 </span>
-                <span className="font-mono text-[6px] text-mist/26">
+                <span className="font-mono text-[11px] text-[var(--text-secondary)]">
                   {String(dockExhibitIndex + 1).padStart(2, '0')} /
                   {String(GALLERY_EXHIBITS.length).padStart(2, '0')}
                 </span>
               </div>
-              <div className="flex min-w-0 items-center gap-2 font-mono text-[6px] text-mist/32">
-                <span className="hidden shrink-0 text-mist/24 sm:inline">
+              <div className="flex min-w-0 items-center gap-2 font-mono text-[11px] text-[var(--text-secondary)]">
+                <span className="hidden shrink-0 text-[var(--text-tertiary)] sm:inline">
                   {directorCopy.coreFormula}
                 </span>
-                <code className="max-w-[46vw] truncate text-[var(--vfx-secondary)]/60">
+                <code className="max-w-[46vw] truncate text-[var(--vfx-secondary)]">
                   {dockExhibit.formula}
                 </code>
               </div>
@@ -527,14 +527,17 @@ export function OpticalTourDirector() {
                       'group/dock relative grid h-8 w-8 shrink-0 place-items-center rounded-[8px] border transition-all duration-300 ease-[cubic-bezier(0.22,1,0.36,1)] sm:h-9 sm:w-9',
                       active
                         ? '-translate-y-1 scale-105 border-[var(--dock-color)]/45 bg-[var(--dock-color)]/[0.1] text-[var(--dock-color)] shadow-[0_8px_24px_color-mix(in_srgb,var(--dock-color)_22%,transparent)]'
-                        : 'border-white/[0.08] bg-white/[0.03] text-mist/48 hover:-translate-y-0.5 hover:border-white/20 hover:text-frost',
+                        : 'border-white/[0.08] bg-white/[0.03] text-[var(--text-secondary)] hover:-translate-y-0.5 hover:border-white/20 hover:text-frost',
                     )}
                   >
                     <Icon
                       size={14}
                       strokeWidth={active ? 1.85 : 1.55}
                     />
-                    <span className="absolute -bottom-0.5 right-0.5 font-mono text-[5px] opacity-45">
+                    <span
+                      aria-hidden="true"
+                      className="absolute -bottom-0.5 right-0.5 font-mono text-[9px] text-[var(--text-tertiary)]"
+                    >
                       {String(index + 1).padStart(2, '0')}
                     </span>
                   </button>

@@ -109,7 +109,9 @@ function Hero({
             <span className="text-white/15">/</span>
             <span>{t.hero.showroom}</span>
             <span className="text-white/15">/</span>
-            <span className="text-mist/65">{t.hero.observing}</span>
+            <span className="text-[var(--text-secondary)]">
+              {t.hero.observing}
+            </span>
           </div>
 
           <h1 className="h-[197px] max-w-[800px] text-[50px] font-medium leading-[0.98] text-frost max-[359px]:h-[245px] sm:h-[213px] sm:text-7xl md:h-[377px] md:text-8xl lg:h-[284px] xl:h-[320px] xl:text-[108px]">
@@ -133,7 +135,7 @@ function Hero({
           >
             <ScrollLink
               target="works"
-              className="group inline-flex h-11 items-center gap-8 border border-signal/45 bg-signal/[0.06] px-5 text-[10px] text-frost transition-colors hover:border-signal hover:bg-signal/[0.11]"
+              className="group inline-flex h-11 items-center gap-8 border border-signal/45 bg-signal/[0.06] px-5 text-[11px] text-frost transition-colors hover:border-signal hover:bg-signal/[0.11]"
             >
               {t.hero.primaryCta}
               <ArrowDown
@@ -143,7 +145,7 @@ function Hero({
             </ScrollLink>
             <ScrollLink
               target="archive"
-              className="group inline-flex items-center gap-2 text-[10px] text-mist transition-colors hover:text-frost"
+              className="group inline-flex items-center gap-2 text-[11px] text-[var(--text-secondary)] transition-colors hover:text-frost"
             >
               {t.hero.secondaryCta}
               <ArrowUpRight
@@ -154,7 +156,7 @@ function Hero({
           </div>
         </motion.div>
 
-        <div className="pointer-events-none absolute bottom-16 right-12 hidden w-60 border-t border-white/10 pt-3 font-mono text-[10px] text-mist/65 xl:block">
+        <div className="pointer-events-none absolute bottom-16 right-12 hidden w-60 border-t border-white/10 pt-3 font-mono text-[11px] text-[var(--text-secondary)] xl:block">
           <div className="mb-2 flex items-center justify-between">
             <span>{t.hero.objectLabel}</span>
             <span className="text-frost">{t.hero.objectValue}</span>
@@ -165,7 +167,7 @@ function Hero({
           </div>
         </div>
 
-        <div className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 font-mono text-[9px] text-mist/50 sm:flex">
+        <div className="absolute bottom-5 left-1/2 hidden -translate-x-1/2 flex-col items-center gap-2 font-mono text-[11px] text-[var(--text-secondary)] sm:flex">
           <span>{t.hero.scrollCue}</span>
           <span className="h-8 w-px overflow-hidden bg-white/10">
             <span className="scroll-cue block h-3 w-px bg-signal" />
@@ -236,7 +238,7 @@ function Archive() {
               key={capability.index}
               className="grid grid-cols-[36px_1fr] gap-4 border-t border-white/10 py-6 sm:grid-cols-[52px_1fr] sm:gap-6"
             >
-              <span className="font-mono text-[10px] text-amber/70">
+              <span className="font-mono text-[11px] text-amber">
                 {capability.index}
               </span>
               <div>
@@ -249,7 +251,7 @@ function Archive() {
               </div>
             </div>
           ))}
-          <div className="mt-4 flex items-center gap-3 font-mono text-[10px] text-mist/55">
+          <div className="mt-4 flex items-center gap-3 font-mono text-[11px] text-[var(--text-secondary)]">
             <span className="size-1 bg-signal" />
             {t.capabilities.expanding}
           </div>
@@ -296,7 +298,7 @@ function Contact() {
           </a>
         </div>
 
-        <footer className="mt-24 flex flex-col gap-5 border-t border-white/[0.08] pt-5 font-mono text-[10px] text-mist/45 sm:flex-row sm:items-center sm:justify-between">
+        <footer className="mt-24 flex flex-col gap-5 border-t border-white/[0.08] pt-5 font-mono text-[11px] text-[var(--text-secondary)] sm:flex-row sm:items-center sm:justify-between">
           <span>{t.footer.showroomName}</span>
           <div className="flex flex-wrap items-center gap-x-5 gap-y-2">
             <span>{t.footer.framework}</span>

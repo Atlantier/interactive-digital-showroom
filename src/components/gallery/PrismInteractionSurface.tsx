@@ -256,7 +256,7 @@ export function PrismInteractionSurface({
         <span
           data-localized-motion
           className={cn(
-            'pointer-events-none absolute left-[8%] top-[23%] whitespace-nowrap border border-[var(--vfx-secondary)]/24 bg-black/52 px-1.5 py-1 font-mono text-[6px] text-[var(--vfx-secondary)]/76 backdrop-blur-sm transition-opacity duration-150',
+            'pointer-events-none absolute left-[8%] top-[23%] whitespace-nowrap border border-[var(--vfx-secondary)]/24 bg-black/52 px-1.5 py-1 font-mono text-[11px] text-[var(--vfx-secondary)] backdrop-blur-sm transition-opacity duration-150',
             compact
               ? 'opacity-0 group-focus-visible:opacity-100'
               : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
@@ -300,7 +300,7 @@ export function PrismInteractionSurface({
         <span
           data-localized-motion
           className={cn(
-            'pointer-events-none absolute bottom-[4%] left-1/2 -translate-x-1/2 whitespace-nowrap border border-white/10 bg-black/52 px-1.5 py-1 font-mono text-[6px] text-mist/58 backdrop-blur-sm transition-opacity duration-150',
+            'pointer-events-none absolute bottom-[4%] left-1/2 -translate-x-1/2 whitespace-nowrap border border-white/10 bg-black/52 px-1.5 py-1 font-mono text-[11px] text-[var(--text-secondary)] backdrop-blur-sm transition-opacity duration-150',
             compact
               ? 'opacity-0 group-focus-visible:opacity-100'
               : 'opacity-0 group-hover:opacity-100 group-focus-visible:opacity-100',
@@ -313,11 +313,11 @@ export function PrismInteractionSurface({
       <div
         data-prism-tir-indicator
         className={cn(
-          'pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap border px-2 py-1 font-mono text-[6px] transition-colors duration-150',
+          'pointer-events-none absolute left-1/2 -translate-x-1/2 whitespace-nowrap border px-2 py-1 font-mono text-[11px] transition-colors duration-150',
           compact ? 'top-2' : 'bottom-10',
           totalInternalReflection
             ? 'border-amber/52 bg-amber/[0.09] text-amber shadow-[0_0_18px_rgba(255,196,92,0.18)]'
-            : 'border-white/[0.08] bg-black/34 text-mist/32',
+            : 'border-white/[0.08] bg-black/34 text-[var(--text-secondary)]',
         )}
       >
         {totalInternalReflection

@@ -156,7 +156,7 @@ export function ExhibitPedestal({
         previewActive ? 'true' : 'false'
       }
       className={cn(
-        'gallery-pedestal group relative flex h-[476px] min-w-0 flex-col overflow-hidden border border-white/[0.09] bg-[#05090d]/88 md:h-[496px]',
+        'gallery-pedestal group relative flex h-[500px] min-w-0 flex-col overflow-hidden border border-white/[0.09] bg-[#05090d]/88 md:h-[520px]',
         layoutClass,
         tourCurrent && 'gallery-pedestal-tour',
       )}
@@ -172,7 +172,7 @@ export function ExhibitPedestal({
 
       <header className="relative z-10 flex h-[104px] shrink-0 items-start justify-between gap-3 px-4 pb-2 pt-4 sm:px-5">
         <div className="min-w-0">
-          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[8px] text-mist/44">
+          <div className="flex flex-wrap items-center gap-x-2 gap-y-1 font-mono text-[11px] leading-4 text-[var(--text-secondary)]">
             <span className="text-[var(--vfx-secondary)]">
               E-{String(index + 1).padStart(2, '0')}
             </span>
@@ -184,7 +184,7 @@ export function ExhibitPedestal({
           <h3 className="mt-2 truncate text-lg text-frost sm:text-xl">
             {exhibitCopy.name}
           </h3>
-          <p className="mt-0.5 truncate font-mono text-[8px] text-mist/45">
+          <p className="mt-0.5 truncate font-mono text-[11px] text-[var(--text-tertiary)]">
             {exhibitCopy.designation}
           </p>
         </div>
@@ -239,14 +239,14 @@ export function ExhibitPedestal({
           aria-hidden="true"
           className="gallery-stage-grid pointer-events-none absolute inset-0"
         />
-        <div className="pointer-events-none absolute left-2.5 top-2.5 flex items-center gap-1.5 font-mono text-[7px] text-[var(--vfx-secondary)]/55">
+        <div className="pointer-events-none absolute left-2.5 top-2.5 flex items-center gap-1.5 bg-black/55 px-1.5 py-0.5 font-mono text-[11px] text-[var(--vfx-secondary)]">
           <Crosshair size={8} strokeWidth={1.5} />
           {t.gallery.pedestal.previewField}
         </div>
-        <div className="pointer-events-none absolute bottom-2 left-2.5 font-mono text-[7px] text-mist/30">
+        <div className="pointer-events-none absolute bottom-2 left-2.5 bg-black/55 px-1.5 py-0.5 font-mono text-[11px] text-[var(--text-secondary)]">
           {t.gallery.pedestal.previewHint}
         </div>
-        <div className="pointer-events-none absolute bottom-2 right-2.5 font-mono text-[7px] text-mist/30">
+        <div className="pointer-events-none absolute bottom-2 right-2.5 bg-black/55 px-1.5 py-0.5 font-mono text-[11px] text-[var(--text-secondary)]">
           {t.gallery.pedestal.wavelengthLive}
         </div>
         {exhibit.id === 'prism-caustics' ? (
@@ -284,7 +284,7 @@ export function ExhibitPedestal({
       </div>
 
       <div className="relative z-10 mt-auto px-4 pb-4 pt-3 sm:px-5">
-        <p className="line-clamp-2 min-h-9 text-[11px] leading-[1.55] text-mist/66">
+        <p className="line-clamp-2 min-h-10 text-sm leading-5 text-[var(--text-secondary)]">
           {exhibitCopy.summary}
         </p>
 
@@ -293,7 +293,7 @@ export function ExhibitPedestal({
             data-particle-quick-controls
             className="mt-3 flex min-h-[41px] items-center justify-between gap-3 border-y border-white/[0.06] py-1.5"
           >
-            <span className="min-w-0 font-mono text-[7px] leading-3 text-mist/38">
+            <span className="min-w-0 font-mono text-[11px] leading-4 text-[var(--text-secondary)]">
               {t.gallery.particleManifolds.label}
             </span>
             <ParticleMorphSelector variant="quick" />
@@ -308,9 +308,9 @@ export function ExhibitPedestal({
               )
               return (
                 <div key={parameter.key} className="min-w-0">
-                  <div className="flex items-center justify-between gap-1 font-mono text-[7px] text-mist/38">
+                  <div className="flex items-center justify-between gap-1 font-mono text-[11px] text-[var(--text-secondary)]">
                     <span className="truncate">{parameter.symbol}</span>
-                    <span className="text-frost/65">
+                    <span className="text-[var(--text-primary)]">
                       {parameter.value.toFixed(
                         parameter.step < 1 ? 2 : 0,
                       )}
@@ -336,10 +336,10 @@ export function ExhibitPedestal({
             { exhibit: exhibitCopy.name },
           )}
           onClick={openDarkroom}
-          className="mt-3 flex h-9 w-full items-center justify-between border border-white/10 bg-white/[0.018] px-3 font-mono text-[8px] text-mist/60 transition-colors hover:border-[var(--vfx-secondary)]/40 hover:bg-[var(--vfx-secondary)]/[0.055] hover:text-frost"
+          className="mt-3 flex h-10 w-full items-center justify-between border border-white/10 bg-white/[0.018] px-3 font-mono text-[11px] text-[var(--text-secondary)] transition-colors hover:border-[var(--vfx-secondary)]/40 hover:bg-[var(--vfx-secondary)]/[0.055] hover:text-frost"
         >
           <span>{t.gallery.pedestal.enter}</span>
-          <span className="flex items-center gap-2 text-[var(--vfx-secondary)]/70">
+          <span className="flex items-center gap-2 text-[var(--vfx-secondary)]">
             {t.gallery.pedestal.enterCompact}
             <ArrowUpRight size={11} strokeWidth={1.6} />
           </span>

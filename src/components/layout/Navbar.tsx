@@ -179,13 +179,15 @@ function VfxPresetSwitcher({
               <span className="min-w-0">
                 <span
                   className={cn(
-                    'block truncate text-[10px]',
-                    active ? 'text-frost' : 'text-mist/70',
+                    'block truncate text-[11px]',
+                    active
+                      ? 'text-frost'
+                      : 'text-[var(--text-secondary)]',
                   )}
                 >
                   {presetCopy.label}
                 </span>
-                <span className="mt-0.5 block truncate font-mono text-[7px] text-mist/34">
+                <span className="mt-0.5 block truncate font-mono text-[11px] text-[var(--text-tertiary)]">
                   {presetCopy.subtitle}
                 </span>
               </span>
@@ -229,7 +231,7 @@ function CommandPaletteToggle() {
       )}
     >
       <Search size={15} strokeWidth={1.7} />
-      <span className="hidden font-mono text-[9px] md:inline">
+      <span className="hidden font-mono text-[11px] text-[var(--text-secondary)] md:inline">
         {t.common.keyboard.command}
       </span>
     </button>
@@ -367,7 +369,7 @@ function BrandMark({
         <span className="block font-mono text-[12px] font-medium text-frost">
           {t.common.brand}
         </span>
-        <span className="mt-1.5 hidden text-[10px] text-mist/65 sm:block">
+        <span className="mt-1.5 hidden text-[11px] text-[var(--text-secondary)] sm:block">
           {t.nav.brandSubtitle}
         </span>
       </span>
@@ -504,7 +506,7 @@ export function Navbar() {
                   )}
                 >
                   <span>{t.nav.sections[section.id]}</span>
-                  <span className="font-mono text-[10px] text-mist/50">
+                  <span className="font-mono text-[11px] text-[var(--text-secondary)]">
                     0{index + 1}
                   </span>
                 </a>
@@ -516,7 +518,7 @@ export function Navbar() {
                 toggleTelemetry()
                 setMenuOpen(false)
               }}
-              className="mt-4 hidden h-10 w-full items-center justify-between border border-white/[0.08] bg-white/[0.025] px-3 font-mono text-[10px] text-mist/60 max-[359px]:flex"
+              className="mt-4 hidden h-10 w-full items-center justify-between border border-white/[0.08] bg-white/[0.025] px-3 font-mono text-[11px] text-[var(--text-secondary)] max-[359px]:flex"
             >
               <span className="flex items-center gap-2">
                 <Gauge size={12} strokeWidth={1.6} />
@@ -526,10 +528,10 @@ export function Navbar() {
             </button>
             <div className="mt-4 border-t border-white/[0.07] pt-4">
               <div className="mb-2 flex items-center justify-between">
-                <span className="font-mono text-[8px] text-mist/45">
+                <span className="font-mono text-[11px] text-[var(--text-secondary)]">
                   {t.nav.overdrive.label}
                 </span>
-                <span className="font-mono text-[8px] text-mist/30">
+                <span className="font-mono text-[11px] text-[var(--text-tertiary)]">
                   {t.nav.overdrive.title}
                 </span>
               </div>

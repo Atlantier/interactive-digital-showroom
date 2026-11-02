@@ -20,6 +20,10 @@
   --locale-heading-tracking: -0.03em;
   --locale-body-tracking: -0.004em;
   --locale-body-leading: 1.58;
+  --text-primary: #e6f5f7;
+  --text-secondary: #b7c6ce;
+  --text-tertiary: #93a6b0;
+  --text-disabled: #71828c;
   --color-signal: #10b981;
   --theme-accent-rgb: 16 185 129;
   --vfx-primary: #10b981;

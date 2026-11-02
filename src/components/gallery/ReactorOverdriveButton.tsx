@@ -98,8 +98,8 @@ export function ReactorOverdriveButton({
       className={cn(
         'group/overdrive relative overflow-hidden border font-mono transition-colors',
         variant === 'stage'
-          ? 'pointer-events-auto flex h-7 items-center gap-1.5 border-[var(--vfx-secondary)]/28 bg-black/45 px-2 text-[6px] text-[var(--vfx-secondary)]/82 backdrop-blur-md hover:border-[var(--vfx-secondary)]/62 hover:text-frost'
-          : 'flex min-h-10 w-full items-center justify-between gap-3 border-[var(--vfx-secondary)]/32 bg-[var(--vfx-secondary)]/[0.045] px-3 text-[8px] text-[var(--vfx-secondary)]/82 hover:border-[var(--vfx-secondary)]/62 hover:bg-[var(--vfx-secondary)]/[0.085] hover:text-frost',
+          ? 'pointer-events-auto flex h-9 items-center gap-1.5 border-[var(--vfx-secondary)]/28 bg-black/45 px-2 text-[11px] text-[var(--vfx-secondary)] backdrop-blur-md hover:border-[var(--vfx-secondary)]/62 hover:text-frost'
+          : 'flex min-h-10 w-full items-center justify-between gap-3 border-[var(--vfx-secondary)]/32 bg-[var(--vfx-secondary)]/[0.045] px-3 text-[11px] text-[var(--vfx-secondary)] hover:border-[var(--vfx-secondary)]/62 hover:bg-[var(--vfx-secondary)]/[0.085] hover:text-frost',
         charging &&
           'border-[var(--vfx-tertiary)]/72 bg-[var(--vfx-tertiary)]/[0.11] text-[var(--vfx-tertiary)]',
         shockwave &&
@@ -131,7 +131,7 @@ export function ReactorOverdriveButton({
         <span>{phaseLabel}</span>
       </span>
       {variant === 'panel' ? (
-        <span className="relative font-mono text-[7px] opacity-58">
+        <span className="relative font-mono text-[11px] text-[var(--text-tertiary)]">
           {charging
             ? copy.chargeTimeShort
             : shockwave

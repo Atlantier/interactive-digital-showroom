@@ -569,17 +569,17 @@ export function DarkroomInspectorModal() {
             'relative grid h-svh',
             cinemaCleanView
               ? 'grid-cols-1 grid-rows-1'
-              : 'grid-rows-[64px_minmax(280px,48svh)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_370px] lg:grid-rows-[72px_minmax(0,1fr)]',
+              : 'grid-rows-[auto_minmax(280px,48svh)_minmax(0,1fr)] lg:grid-cols-[minmax(0,1fr)_370px] lg:grid-rows-[72px_minmax(0,1fr)]',
           )}
         >
           {!cinemaCleanView ? (
-            <header className="col-span-full flex min-w-0 items-center justify-between gap-4 border-b border-white/[0.08] bg-black/28 px-4 sm:px-6">
+            <header className="col-span-full flex min-w-0 flex-col items-stretch gap-2 border-b border-white/[0.08] bg-black/28 px-4 py-2 sm:flex-row sm:items-center sm:justify-between sm:gap-4 sm:px-6">
             <div className="flex min-w-0 items-center gap-3">
               <span className="grid size-8 shrink-0 place-items-center border border-[var(--vfx-secondary)]/28 bg-[var(--vfx-secondary)]/[0.055] text-[var(--vfx-secondary)]">
                 <ScanEye size={15} strokeWidth={1.55} />
               </span>
               <div className="min-w-0">
-                <div className="flex items-center gap-2 font-mono text-[7px] text-[var(--vfx-secondary)]/62">
+                <div className="flex items-center gap-2 font-mono text-[11px] text-[var(--vfx-secondary)]">
                   <span>{t.gallery.darkroom.eyebrow}</span>
                   <span className="h-2 w-px bg-white/12" />
                   <span>
@@ -589,23 +589,23 @@ export function DarkroomInspectorModal() {
                 </div>
                 <h2
                   id="darkroom-title"
-                  className="mt-1 truncate text-base text-frost sm:text-lg"
+                  className="mt-1 text-base leading-tight text-frost sm:text-lg"
                 >
                   {exhibitCopy.name}
-                  <span className="ml-2 font-mono text-[9px] font-normal text-mist/38">
+                  <span className="ml-2 hidden font-mono text-[11px] font-normal text-[var(--text-tertiary)] sm:inline">
                     {exhibitCopy.designation}
                   </span>
                 </h2>
               </div>
             </div>
 
-            <div className="flex shrink-0 items-center gap-1.5">
+            <div className="flex shrink-0 items-center justify-end gap-1.5">
               <button
                 type="button"
                 aria-label={t.gallery.darkroom.previous}
                 title={t.gallery.darkroom.previous}
                 onClick={() => navigateExhibit(-1)}
-                className="grid size-8 place-items-center border border-white/10 text-mist/55 transition-colors hover:border-white/25 hover:text-frost"
+                className="grid size-8 place-items-center border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-white/25 hover:text-frost"
               >
                 <ArrowLeft size={13} strokeWidth={1.6} />
               </button>
@@ -614,7 +614,7 @@ export function DarkroomInspectorModal() {
                 aria-label={t.gallery.darkroom.next}
                 title={t.gallery.darkroom.next}
                 onClick={() => navigateExhibit(1)}
-                className="grid size-8 place-items-center border border-white/10 text-mist/55 transition-colors hover:border-white/25 hover:text-frost"
+                className="grid size-8 place-items-center border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-white/25 hover:text-frost"
               >
                 <ArrowRight size={13} strokeWidth={1.6} />
               </button>
@@ -640,7 +640,7 @@ export function DarkroomInspectorModal() {
                 className={
                   isTourActive
                     ? 'grid size-8 place-items-center border border-[var(--vfx-secondary)]/45 bg-[var(--vfx-secondary)]/10 text-[var(--vfx-secondary)]'
-                    : 'grid size-8 place-items-center border border-white/10 text-mist/55 transition-colors hover:border-white/25 hover:text-frost'
+                    : 'grid size-8 place-items-center border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-white/25 hover:text-frost'
                 }
               >
                 <Sparkles size={13} strokeWidth={1.6} />
@@ -654,7 +654,7 @@ export function DarkroomInspectorModal() {
                   toggleCinemaCleanView()
                   playSound('toggle')
                 }}
-                className="grid size-8 place-items-center border border-white/10 text-mist/55 transition-colors hover:border-[var(--vfx-secondary)]/45 hover:text-[var(--vfx-secondary)]"
+                className="grid size-8 place-items-center border border-white/10 text-[var(--text-secondary)] transition-colors hover:border-[var(--vfx-secondary)]/45 hover:text-[var(--vfx-secondary)]"
               >
                 <Eye size={13} strokeWidth={1.6} />
               </button>
@@ -664,7 +664,7 @@ export function DarkroomInspectorModal() {
                 aria-label={t.gallery.darkroom.close}
                 title={t.gallery.darkroom.close}
                 onClick={close}
-                className="ml-1 grid size-9 place-items-center border border-white/12 text-mist/65 transition-colors hover:border-white/30 hover:text-frost"
+                className="ml-1 grid size-9 place-items-center border border-white/12 text-[var(--text-secondary)] transition-colors hover:border-white/30 hover:text-frost"
               >
                 <X size={15} strokeWidth={1.6} />
               </button>
@@ -751,7 +751,7 @@ export function DarkroomInspectorModal() {
                       pointerRef={pointerRef}
                     />
                   ) : null}
-                  <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 font-mono text-[7px] text-[var(--vfx-secondary)]/58">
+                  <div className="pointer-events-none absolute left-4 top-4 flex items-center gap-2 bg-black/55 px-2 py-1 font-mono text-[11px] text-[var(--vfx-secondary)]">
                 <Crosshair size={9} strokeWidth={1.5} />
                 {activeExhibit.id === 'particle-morph'
                   ? t.gallery.particleInteraction.darkroomHint
@@ -766,11 +766,11 @@ export function DarkroomInspectorModal() {
                   : t.gallery.darkroom.navigationHint}
                   </div>
                   {activeExhibit.id === 'laser-scan-hologram' ? (
-                    <div className="pointer-events-none absolute left-4 top-9 font-mono text-[7px] text-signal/42">
+                    <div className="pointer-events-none absolute left-4 top-14 bg-black/55 px-2 py-1 font-mono text-[11px] text-signal">
                       {t.gallery.hologramInteraction.hint}
                     </div>
                   ) : null}
-                  <div className="pointer-events-none absolute bottom-4 left-4 font-mono text-[7px] text-mist/30">
+                  <div className="pointer-events-none absolute bottom-4 left-4 bg-black/55 px-2 py-1 font-mono text-[11px] text-[var(--text-secondary)]">
                     {t.common.symbols.deltaTime}{' '}
                     {timeScale.toFixed(2)}
                     {t.common.symbols.multiplier} /{' '}
@@ -781,7 +781,7 @@ export function DarkroomInspectorModal() {
                     aria-label={t.gallery.darkroom.resetCamera}
                     title={t.gallery.darkroom.resetCamera}
                     onClick={resetView}
-                    className="absolute right-4 top-4 grid size-8 place-items-center border border-white/10 bg-black/28 text-mist/55 backdrop-blur-md transition-colors hover:border-white/25 hover:text-frost"
+                    className="absolute right-4 top-4 grid size-8 place-items-center border border-white/10 bg-black/28 text-[var(--text-secondary)] backdrop-blur-md transition-colors hover:border-white/25 hover:text-frost"
                   >
                     <Maximize2 size={12} strokeWidth={1.6} />
                   </button>
@@ -798,7 +798,7 @@ export function DarkroomInspectorModal() {
             <div className="terminal-scrollbar min-h-0 flex-1 overflow-y-auto px-4 py-5 sm:px-5">
               <div className="flex items-start justify-between gap-3 border-b border-white/[0.08] pb-4">
               <div>
-                <p className="font-mono text-[8px] text-[var(--vfx-secondary)]/62">
+                <p className="font-mono text-[11px] text-[var(--vfx-secondary)]">
                   {t.gallery.darkroom.parameterMatrix}
                 </p>
                 <h3 className="mt-2 text-lg text-frost">
@@ -810,7 +810,7 @@ export function DarkroomInspectorModal() {
                 aria-label={t.gallery.darkroom.resetParameters}
                 title={t.gallery.darkroom.resetParameters}
                 onClick={resetParameters}
-                className="flex h-8 items-center gap-2 border border-white/10 px-2.5 font-mono text-[8px] text-mist/55 transition-colors hover:border-white/25 hover:text-frost"
+                className="flex h-9 items-center gap-2 border border-white/10 px-2.5 font-mono text-[11px] text-[var(--text-secondary)] transition-colors hover:border-white/25 hover:text-frost"
               >
                 <RotateCcw size={11} strokeWidth={1.6} />
                 {t.gallery.darkroom.reset}
@@ -819,7 +819,7 @@ export function DarkroomInspectorModal() {
 
             <div className="mt-4 grid grid-cols-2 gap-px overflow-hidden border border-white/[0.065] bg-white/[0.065]">
               <div className="bg-[#050a0e] px-3 py-3">
-                <p className="flex items-center gap-1.5 font-mono text-[7px] text-mist/38">
+                <p className="flex items-center gap-1.5 font-mono text-[11px] text-[var(--text-secondary)]">
                   <CircleGauge size={8} /> {t.gallery.darkroom.render}
                 </p>
                 <p className="mt-1.5 flex items-end gap-1">
@@ -830,13 +830,13 @@ export function DarkroomInspectorModal() {
                   >
                     --
                   </span>
-                  <span className="pb-0.5 font-mono text-[7px] text-mist/35">
+                  <span className="pb-0.5 font-mono text-[11px] text-[var(--text-tertiary)]">
                     {t.common.units.fps}
                   </span>
                 </p>
               </div>
               <div className="bg-[#050a0e] px-3 py-3">
-                <p className="font-mono text-[7px] text-mist/38">
+                <p className="font-mono text-[11px] text-[var(--text-secondary)]">
                   {t.gallery.darkroom.photonFlux}
                 </p>
                 <p
@@ -846,7 +846,7 @@ export function DarkroomInspectorModal() {
                 >
                   0.00e+0
                 </p>
-                <span className="mt-1 block font-mono text-[6px] text-mist/26">
+                <span className="mt-1 block font-mono text-[11px] text-[var(--text-tertiary)]">
                   {t.gallery.darkroom.photonsPerSecond}
                 </span>
               </div>
@@ -857,7 +857,7 @@ export function DarkroomInspectorModal() {
                 data-darkroom-prism-shape
                 className="mt-4 border border-white/[0.065] bg-white/[0.018] p-2.5"
               >
-                <span className="mb-2 block font-mono text-[7px] text-mist/38">
+                <span className="mb-2 block font-mono text-[11px] text-[var(--text-secondary)]">
                   {t.gallery.prismShapes.label}
                 </span>
                 <PrismShapeSelector variant="panel" />
@@ -869,7 +869,7 @@ export function DarkroomInspectorModal() {
                 data-darkroom-hologram-model
                 className="mt-4 border border-white/[0.065] bg-white/[0.018] p-2.5"
               >
-                <span className="mb-2 block font-mono text-[7px] text-mist/38">
+                <span className="mb-2 block font-mono text-[11px] text-[var(--text-secondary)]">
                   {t.gallery.hologramModels.label}
                 </span>
                 <HologramModelSelector variant="panel" />
@@ -881,7 +881,7 @@ export function DarkroomInspectorModal() {
                 data-darkroom-particle-manifold
                 className="mt-4 border border-white/[0.065] bg-white/[0.018] p-2.5"
               >
-                <span className="mb-2 block font-mono text-[7px] text-mist/38">
+                <span className="mb-2 block font-mono text-[11px] text-[var(--text-secondary)]">
                   {t.gallery.particleManifolds.label}
                 </span>
                 <ParticleMorphSelector variant="panel" />
@@ -890,10 +890,10 @@ export function DarkroomInspectorModal() {
 
               <div className="mt-4" data-darkroom-presets>
                 <div className="mb-2 flex items-center justify-between">
-                  <span className="font-mono text-[7px] text-mist/38">
+                  <span className="font-mono text-[11px] text-[var(--text-secondary)]">
                     {t.gallery.darkroom.presets}
                   </span>
-                  <span className="font-mono text-[7px] text-[var(--vfx-secondary)]/54">
+                  <span className="font-mono text-[11px] text-[var(--vfx-secondary)]">
                     {presetLabel}
                   </span>
                 </div>
@@ -930,13 +930,13 @@ export function DarkroomInspectorModal() {
                         <span
                           className={
                             active
-                              ? 'block truncate text-[9px] text-frost'
-                              : 'block truncate text-[9px] text-mist/65'
+                              ? 'block truncate text-[11px] text-frost'
+                              : 'block truncate text-[11px] text-[var(--text-secondary)]'
                           }
                         >
                           {t.gallery.presets[preset.id].label}
                         </span>
-                        <span className="mt-1 block truncate font-mono text-[6px] text-mist/28">
+                        <span className="mt-1 block truncate font-mono text-[11px] text-[var(--text-tertiary)]">
                           {t.gallery.presets[preset.id].subtitle}
                         </span>
                       </button>
@@ -989,10 +989,10 @@ export function DarkroomInspectorModal() {
 
               <div className="mt-5">
               <div className="mb-3 flex items-center justify-between">
-                <span className="font-mono text-[8px] text-mist/42">
+                <span className="font-mono text-[11px] text-[var(--text-secondary)]">
                   {t.gallery.darkroom.exhibitParameters}
                 </span>
-                <span className="font-mono text-[7px] text-mist/28">
+                <span className="font-mono text-[11px] text-[var(--text-tertiary)]">
                   {formatTranslation(t.gallery.darkroom.channels, {
                     count: activeExhibit.controls.length,
                   })}
@@ -1019,16 +1019,16 @@ export function DarkroomInspectorModal() {
                     >
                       <span className="flex items-end justify-between gap-3">
                         <span>
-                          <span className="block text-[11px] text-frost/82">
+                          <span className="block text-[12px] text-[var(--text-primary)]">
                             {
                               t.gallery.controls[control.key]
                             }
                           </span>
-                          <span className="mt-0.5 block font-mono text-[7px] text-mist/34">
+                          <span className="mt-0.5 block font-mono text-[11px] text-[var(--text-tertiary)]">
                             {control.symbol}
                           </span>
                         </span>
-                        <span className="font-mono text-[9px] text-[var(--vfx-secondary)]/82">
+                        <span className="font-mono text-[12px] text-[var(--vfx-secondary)]">
                           {value.toFixed(control.step < 1 ? 2 : 0)}
                           {control.unit ? ` ${control.unit}` : ''}
                         </span>
@@ -1069,10 +1069,10 @@ export function DarkroomInspectorModal() {
             <div className="mt-5 border-t border-white/[0.08] pt-4">
               <label className="block">
                 <span className="flex items-center justify-between">
-                  <span className="font-mono text-[8px] text-mist/42">
+                  <span className="font-mono text-[11px] text-[var(--text-secondary)]">
                     {t.gallery.darkroom.globalTimeScale}
                   </span>
-                  <span className="font-mono text-[9px] text-[var(--vfx-tertiary)]/75">
+                  <span className="font-mono text-[12px] text-[var(--vfx-tertiary)]">
                     {t.common.symbols.deltaTime}{' '}
                     {timeScale.toFixed(2)}
                     {t.common.symbols.multiplier}
@@ -1102,22 +1102,22 @@ export function DarkroomInspectorModal() {
             </div>
 
             <div className="mt-5 border-y border-white/[0.065] py-3">
-              <p className="font-mono text-[7px] text-mist/30">
+              <p className="font-mono text-[11px] text-[var(--text-secondary)]">
                 {t.gallery.darkroom.governingEquation}
               </p>
-              <p className="mt-2 break-words font-mono text-[9px] leading-5 text-frost/72">
+              <p className="mt-2 break-words font-mono text-[12px] leading-5 text-[var(--text-primary)]">
                 {activeExhibit.formula}
               </p>
             </div>
 
               <div className="mt-4 flex flex-wrap gap-1.5">
-              <span className="border border-white/[0.08] px-2 py-1 font-mono text-[7px] text-mist/42">
+              <span className="border border-white/[0.08] px-2 py-1 font-mono text-[11px] text-[var(--text-secondary)]">
                 {exhibitCopy.opticalTag}
               </span>
-              <span className="border border-white/[0.08] px-2 py-1 font-mono text-[7px] text-mist/42">
+              <span className="border border-white/[0.08] px-2 py-1 font-mono text-[11px] text-[var(--text-secondary)]">
                 {exhibitCopy.algorithmTag}
               </span>
-                <span className="border border-[var(--vfx-secondary)]/16 bg-[var(--vfx-secondary)]/[0.035] px-2 py-1 font-mono text-[7px] text-[var(--vfx-secondary)]/62">
+                <span className="border border-[var(--vfx-secondary)]/16 bg-[var(--vfx-secondary)]/[0.035] px-2 py-1 font-mono text-[11px] text-[var(--vfx-secondary)]">
                   {t.gallery.darkroom.sharedWebgl}
                 </span>
               </div>
@@ -1133,7 +1133,7 @@ export function DarkroomInspectorModal() {
               className="shrink-0 border-t border-white/[0.09] bg-[#03070a]/96 px-4 py-3 sm:px-5"
             >
               <div className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-2 font-mono text-[7px] text-mist/42">
+                <span className="flex items-center gap-2 font-mono text-[11px] text-[var(--text-secondary)]">
                   <span
                     aria-hidden="true"
                     className="size-2 border border-white/35"
@@ -1147,7 +1147,7 @@ export function DarkroomInspectorModal() {
                 <output
                   htmlFor="darkroom-spectrum"
                   data-laser-wavelength-label
-                  className="font-mono text-[9px]"
+                  className="font-mono text-[12px]"
                   style={{ color: laserColor }}
                 >
                   {laserWavelength.toFixed(0)}{' '}
@@ -1183,7 +1183,7 @@ export function DarkroomInspectorModal() {
                   } as CSSProperties
                 }
               />
-              <div className="mt-1.5 flex items-center justify-between font-mono text-[6px] text-mist/26">
+              <div className="mt-1.5 flex items-center justify-between font-mono text-[11px] text-[var(--text-secondary)]">
                 <span>{t.gallery.darkroom.spectrumUltraviolet}</span>
                 <span>532</span>
                 <span>{t.gallery.darkroom.spectrumInfrared}</span>

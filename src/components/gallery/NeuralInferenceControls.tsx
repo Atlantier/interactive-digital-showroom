@@ -85,10 +85,10 @@ export function NeuralInferenceControls({
                       playSound('toggle')
                     }}
                     className={cn(
-                      'flex min-h-8 items-center gap-2 border px-2 font-mono text-[7px] transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                      'flex min-h-9 items-center gap-2 border px-2 font-mono text-[11px] transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]',
                       active
                         ? 'border-[var(--vfx-secondary)]/54 bg-[var(--vfx-secondary)]/[0.09] text-frost'
-                        : 'border-white/[0.07] bg-white/[0.018] text-mist/38 hover:border-white/20 hover:text-frost',
+                        : 'border-white/[0.07] bg-white/[0.018] text-[var(--text-secondary)] hover:border-white/20 hover:text-frost',
                     )}
                   >
                     {candidate === 'inference' ? (
@@ -108,11 +108,11 @@ export function NeuralInferenceControls({
               },
             )}
           </div>
-          <div className="mb-2 flex items-center justify-between gap-3 px-1 font-mono text-[7px]">
-            <span className="text-mist/34">
+          <div className="mb-2 flex items-center justify-between gap-3 px-1 font-mono text-[11px]">
+            <span className="text-[var(--text-secondary)]">
               {copy.tokenSelect}
             </span>
-            <span className="text-[var(--vfx-secondary)]/68">
+            <span className="text-[var(--vfx-secondary)]">
               {token}
             </span>
           </div>
@@ -136,10 +136,10 @@ export function NeuralInferenceControls({
                     playSound('toggle')
                   }}
                   className={cn(
-                    'flex h-7 min-w-0 items-center justify-center border font-mono text-[6px] transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]',
+                    'flex h-9 min-w-0 items-center justify-center border font-mono text-[11px] transition-colors duration-200 ease-[cubic-bezier(0.22,1,0.36,1)]',
                     active
                       ? 'border-[var(--vfx-secondary)]/62 bg-[var(--vfx-secondary)]/[0.1] text-frost'
-                      : 'border-white/[0.07] bg-white/[0.018] text-mist/38 hover:border-white/20 hover:text-frost',
+                      : 'border-white/[0.07] bg-white/[0.018] text-[var(--text-secondary)] hover:border-white/20 hover:text-frost',
                   )}
                 >
                   <span className="truncate px-0.5">{label}</span>
@@ -149,7 +149,7 @@ export function NeuralInferenceControls({
           </div>
         </>
       ) : (
-        <div className="mb-1 grid w-[102px] grid-cols-2 gap-px border border-[var(--vfx-secondary)]/24 bg-black/52 backdrop-blur-md">
+        <div className="mb-1 grid w-[140px] grid-cols-2 gap-px border border-[var(--vfx-secondary)]/24 bg-black/52 backdrop-blur-md">
           {(['inference', 'backprop'] as const).map(
             (candidate) => {
               const active = trainingMode === candidate
@@ -174,10 +174,10 @@ export function NeuralInferenceControls({
                     playSound('toggle')
                   }}
                   className={cn(
-                    'flex h-6 items-center justify-center gap-1 font-mono text-[5px] transition-colors',
+                    'flex h-9 items-center justify-center gap-1 font-mono text-[11px] transition-colors',
                     active
                       ? 'bg-[var(--vfx-secondary)]/[0.1] text-frost'
-                      : 'bg-[#04090c]/88 text-mist/40 hover:text-frost',
+                      : 'bg-[#04090c]/88 text-[var(--text-secondary)] hover:text-frost',
                   )}
                 >
                   {candidate === 'inference' ? (
@@ -210,8 +210,8 @@ export function NeuralInferenceControls({
         className={cn(
           'group/inference flex items-center justify-between gap-3 border font-mono transition-colors',
           variant === 'stage'
-            ? 'h-7 border-[var(--vfx-secondary)]/28 bg-black/48 px-2 text-[6px] text-[var(--vfx-secondary)]/82 backdrop-blur-md hover:border-[var(--vfx-secondary)]/62 hover:text-frost'
-            : 'min-h-10 w-full border-[var(--vfx-secondary)]/30 bg-[var(--vfx-secondary)]/[0.04] px-3 text-[8px] text-[var(--vfx-secondary)]/82 hover:border-[var(--vfx-secondary)]/62 hover:bg-[var(--vfx-secondary)]/[0.08] hover:text-frost',
+            ? 'h-9 border-[var(--vfx-secondary)]/28 bg-black/48 px-2 text-[11px] text-[var(--vfx-secondary)] backdrop-blur-md hover:border-[var(--vfx-secondary)]/62 hover:text-frost'
+            : 'min-h-10 w-full border-[var(--vfx-secondary)]/30 bg-[var(--vfx-secondary)]/[0.04] px-3 text-[11px] text-[var(--vfx-secondary)] hover:border-[var(--vfx-secondary)]/62 hover:bg-[var(--vfx-secondary)]/[0.08] hover:text-frost',
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
@@ -222,12 +222,12 @@ export function NeuralInferenceControls({
           />
           <span className="truncate">{actionLabel}</span>
         </span>
-        <span className="shrink-0 text-[7px] opacity-58">
+        <span className="shrink-0 text-[11px] text-[var(--text-tertiary)]">
           {token}
         </span>
       </button>
       {variant === 'panel' ? (
-        <p className="mt-2 px-1 font-mono text-[7px] leading-3 text-mist/30">
+        <p className="mt-2 px-1 font-mono text-[11px] leading-4 text-[var(--text-secondary)]">
           {trainingMode === 'backprop'
             ? copy.backpropHint
             : copy.forwardHint}

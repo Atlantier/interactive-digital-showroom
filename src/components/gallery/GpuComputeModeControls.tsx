@@ -82,13 +82,13 @@ export function GpuComputeModeControls({
       className={
         variant === 'panel'
           ? 'border border-[var(--vfx-secondary)]/18 bg-black/22 p-2'
-          : 'w-[174px] border border-[var(--vfx-secondary)]/28 bg-black/64 backdrop-blur-md'
+          : 'w-[196px] border border-[var(--vfx-secondary)]/28 bg-black/64 backdrop-blur-md'
       }
     >
       {variant === 'panel' ? (
-        <div className="mb-2 flex items-center justify-between gap-3 px-1 font-mono text-[7px]">
-          <span className="text-mist/34">{copy.modeLabel}</span>
-          <span className="text-[var(--vfx-secondary)]/68">
+        <div className="mb-2 flex items-center justify-between gap-3 px-1 font-mono text-[11px]">
+          <span className="text-[var(--text-secondary)]">{copy.modeLabel}</span>
+          <span className="text-[var(--vfx-secondary)]">
             {mode === 'tensor' ? copy.tensorShort : copy.bvhShort}
           </span>
         </div>
@@ -121,11 +121,11 @@ export function GpuComputeModeControls({
               className={cn(
                 'group/gpu-mode transition-colors duration-300 ease-[cubic-bezier(0.22,1,0.36,1)]',
                 variant === 'stage'
-                  ? 'flex h-7 items-center justify-center gap-1 font-mono text-[6px]'
+                  ? 'flex h-9 items-center justify-center gap-1 font-mono text-[11px]'
                   : 'flex min-h-12 items-start justify-between gap-2 px-2 py-2 text-left',
                 active
                   ? 'bg-[var(--vfx-secondary)]/[0.12] text-frost'
-                  : 'bg-[#04090c]/88 text-mist/42 hover:bg-white/[0.04] hover:text-frost',
+                  : 'bg-[#04090c]/88 text-[var(--text-secondary)] hover:bg-white/[0.04] hover:text-frost',
               )}
             >
               <span className="flex items-center gap-1.5">
@@ -143,7 +143,7 @@ export function GpuComputeModeControls({
                 <span
                   className={
                     variant === 'panel'
-                      ? 'truncate text-[8px]'
+                      ? 'truncate text-[11px]'
                       : undefined
                   }
                 >
@@ -155,7 +155,7 @@ export function GpuComputeModeControls({
                 </span>
               </span>
               {variant === 'panel' ? (
-                <span className="mt-2 block max-w-[110px] font-mono text-[6px] leading-3 opacity-38">
+                <span className="mt-2 block max-w-[110px] font-mono text-[11px] leading-4 text-[var(--text-tertiary)]">
                   {candidate === 'tensor'
                     ? 'D = A x B + C'
                     : 'RAY x BVH'}
@@ -178,9 +178,9 @@ export function GpuComputeModeControls({
       >
         <label
           htmlFor={`gpu-workload-${variant}`}
-          className="flex items-center justify-between gap-2 font-mono text-[7px]"
+          className="flex items-center justify-between gap-2 font-mono text-[11px]"
         >
-          <span className="flex items-center gap-1.5 text-mist/42">
+          <span className="flex items-center gap-1.5 text-[var(--text-secondary)]">
             <Gauge
               size={variant === 'stage' ? 9 : 11}
               strokeWidth={1.6}
@@ -221,7 +221,7 @@ export function GpuComputeModeControls({
         />
         <div
           data-gpu-live-telemetry
-          className="mt-2 flex items-center justify-between gap-2 font-mono text-[6px] text-mist/38"
+          className="mt-2 flex items-center justify-between gap-2 font-mono text-[11px] text-[var(--text-secondary)]"
         >
           <span>
             <span
@@ -248,15 +248,15 @@ export function GpuComputeModeControls({
 
       {variant === 'panel' ? (
         <div className="mt-2 flex items-start justify-between gap-3 px-1">
-          <p className="font-mono text-[7px] leading-3 text-mist/30">
+          <p className="font-mono text-[11px] leading-4 text-[var(--text-secondary)]">
             {mode === 'tensor' ? copy.tensorHint : copy.bvhHint}
           </p>
           <span
             className={cn(
-              'flex shrink-0 items-center gap-1 font-mono text-[6px]',
+              'flex shrink-0 items-center gap-1 font-mono text-[11px]',
               saturated
                 ? 'text-[#ffd36a]'
-                : 'text-[var(--vfx-secondary)]/58',
+                : 'text-[var(--vfx-secondary)]',
             )}
           >
             <Zap size={8} strokeWidth={1.7} />
@@ -268,10 +268,10 @@ export function GpuComputeModeControls({
       ) : null}
       <p
         className={cn(
-          'font-mono text-mist/28',
+          'font-mono text-[var(--text-tertiary)]',
           variant === 'panel'
-            ? 'mt-2 px-1 text-[7px] leading-3'
-            : 'hidden border-t border-white/[0.05] px-2 py-1.5 text-[5px] leading-2.5 sm:block',
+            ? 'mt-2 px-1 text-[11px] leading-4'
+            : 'hidden border-t border-white/[0.05] px-2 py-1.5 text-[11px] leading-4 sm:block',
         )}
       >
         {variant === 'panel' ? copy.workloadHint : copy.warpHint}

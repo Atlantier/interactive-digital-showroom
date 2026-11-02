@@ -70,8 +70,8 @@ export function AudioStagePlayButton({
         className={cn(
           'group/audio-stage flex items-center justify-between gap-3 border font-mono transition-colors',
           variant === 'stage'
-            ? 'h-7 border-[var(--vfx-secondary)]/28 bg-black/48 px-2 text-[6px] text-[var(--vfx-secondary)]/82 backdrop-blur-md hover:border-[var(--vfx-secondary)]/62 hover:text-frost'
-            : 'min-h-10 w-full border-[var(--vfx-secondary)]/30 bg-[var(--vfx-secondary)]/[0.04] px-3 text-[8px] text-[var(--vfx-secondary)]/82 hover:border-[var(--vfx-secondary)]/62 hover:bg-[var(--vfx-secondary)]/[0.08] hover:text-frost',
+            ? 'h-9 border-[var(--vfx-secondary)]/28 bg-black/48 px-2 text-[11px] text-[var(--vfx-secondary)] backdrop-blur-md hover:border-[var(--vfx-secondary)]/62 hover:text-frost'
+            : 'min-h-10 w-full border-[var(--vfx-secondary)]/30 bg-[var(--vfx-secondary)]/[0.04] px-3 text-[11px] text-[var(--vfx-secondary)] hover:border-[var(--vfx-secondary)]/62 hover:bg-[var(--vfx-secondary)]/[0.08] hover:text-frost',
           playing &&
             'border-[var(--vfx-tertiary)]/55 bg-[var(--vfx-tertiary)]/[0.08] text-[var(--vfx-tertiary)]',
         )}
@@ -92,7 +92,7 @@ export function AudioStagePlayButton({
           )}
           <span className="truncate">{label}</span>
         </span>
-        <span className="shrink-0 text-[7px] opacity-58">
+        <span className="shrink-0 text-[11px] text-[var(--text-tertiary)]">
           {playing
             ? soundEnabled
               ? copy.live
@@ -101,7 +101,7 @@ export function AudioStagePlayButton({
         </span>
       </button>
       {variant === 'panel' ? (
-        <p className="mt-2 px-1 font-mono text-[7px] leading-3 text-mist/30">
+        <p className="mt-2 px-1 font-mono text-[11px] leading-4 text-[var(--text-secondary)]">
           {playing && !soundEnabled
             ? copy.mutedVisualHint
             : copy.sequenceHint}

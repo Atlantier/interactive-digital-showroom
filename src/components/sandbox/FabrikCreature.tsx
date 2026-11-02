@@ -2301,7 +2301,7 @@ export function FabrikCreature() {
       <div className="mx-auto max-w-[1600px] px-5 py-20 sm:px-8 sm:py-24 md:px-12 lg:py-28">
         <div className="grid h-[386px] gap-8 border-b border-white/[0.08] pb-10 max-[359px]:h-[469px] sm:h-[423px] md:h-[453px] md:grid-cols-[1.1fr_0.9fr] md:items-end md:pb-12 lg:h-[391px] xl:h-[453px] min-[1360px]:h-[379px]">
           <div>
-            <p className="mb-5 font-mono text-[10px] tracking-[0.16em] text-signal">
+            <p className="mb-5 font-mono text-[11px] tracking-[0.16em] text-signal">
               {t.sandbox.fabrik.eyebrow}
             </p>
             <h2
@@ -2317,7 +2317,7 @@ export function FabrikCreature() {
             <p className="text-sm leading-6 text-mist sm:text-base sm:leading-7">
               {t.sandbox.fabrik.description}
             </p>
-            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[9px] text-mist/45">
+            <div className="mt-5 flex flex-wrap gap-x-6 gap-y-2 font-mono text-[11px] text-[var(--text-secondary)]">
               {t.sandbox.fabrik.techTags.map((tag) => (
                 <span key={tag}>{tag}</span>
               ))}
@@ -2366,13 +2366,13 @@ export function FabrikCreature() {
           />
 
           <div className="pointer-events-none absolute inset-x-3 top-3 z-30 flex flex-wrap items-start justify-between gap-3 sm:inset-x-5 sm:top-4">
-            <div className="flex min-w-[180px] items-center gap-2 rounded border border-white/[0.08] bg-black/25 px-2.5 py-2 font-mono text-[8px] text-mist/55 backdrop-blur-md sm:min-w-[220px]">
+            <div className="flex min-w-[180px] items-center gap-2 rounded border border-white/[0.08] bg-black/25 px-2.5 py-2 font-mono text-[11px] text-[var(--text-secondary)] backdrop-blur-md sm:min-w-[220px]">
               {mode === 'arm' ? (
                 <Cpu size={12} strokeWidth={1.5} className="text-signal" />
               ) : (
                 <Box size={12} strokeWidth={1.5} className="text-amber" />
               )}
-              <span data-localized-motion className="text-frost/80">
+              <span data-localized-motion className="text-[var(--text-primary)]">
                 {t.sandbox.fabrik.state[mode]}
               </span>
               <span className="hidden size-1 bg-signal sm:block" />
@@ -2392,10 +2392,10 @@ export function FabrikCreature() {
                     playActivate()
                     setMode('arm')
                   }}
-                  className={`inline-flex h-7 min-w-[64px] items-center justify-center gap-1.5 rounded-[3px] px-2.5 font-mono text-[8px] transition-colors ${
+                  className={`inline-flex h-9 min-w-[72px] items-center justify-center gap-1.5 rounded-[3px] px-2.5 font-mono text-[11px] transition-colors ${
                     mode === 'arm'
                       ? 'bg-signal/12 text-signal'
-                      : 'text-mist/55 hover:text-frost'
+                      : 'text-[var(--text-secondary)] hover:text-frost'
                   }`}
                 >
                   <Cpu size={11} strokeWidth={1.6} />
@@ -2409,10 +2409,10 @@ export function FabrikCreature() {
                     playActivate()
                     setMode('quadruped')
                   }}
-                  className={`inline-flex h-7 min-w-[64px] items-center justify-center gap-1.5 rounded-[3px] px-2.5 font-mono text-[8px] transition-colors ${
+                  className={`inline-flex h-9 min-w-[72px] items-center justify-center gap-1.5 rounded-[3px] px-2.5 font-mono text-[11px] transition-colors ${
                     mode === 'quadruped'
                       ? 'bg-amber/12 text-amber'
-                      : 'text-mist/55 hover:text-frost'
+                      : 'text-[var(--text-secondary)] hover:text-frost'
                   }`}
                 >
                   <Box size={11} strokeWidth={1.6} />
@@ -2420,7 +2420,7 @@ export function FabrikCreature() {
                 </button>
               </div>
 
-              <label className="flex h-9 min-w-[96px] cursor-pointer items-center justify-center gap-2 rounded border border-white/10 bg-black/30 px-2.5 font-mono text-[8px] text-mist/65 backdrop-blur-md transition-colors hover:text-frost sm:min-w-[128px]">
+              <label className="flex h-10 min-w-[108px] cursor-pointer items-center justify-center gap-2 rounded border border-white/10 bg-black/30 px-2.5 font-mono text-[11px] text-[var(--text-secondary)] backdrop-blur-md transition-colors hover:text-frost sm:min-w-[142px]">
                 <input
                   type="checkbox"
                   checked={showDebug}
@@ -2449,7 +2449,7 @@ export function FabrikCreature() {
                   playActivate()
                   rebuildRef.current()
                 }}
-                className="grid size-9 place-items-center rounded border border-white/10 bg-black/30 text-mist/60 backdrop-blur-md transition-colors hover:border-white/25 hover:text-frost"
+                className="grid size-9 place-items-center rounded border border-white/10 bg-black/30 text-[var(--text-secondary)] backdrop-blur-md transition-colors hover:border-white/25 hover:text-frost"
               >
                 <RefreshCw size={13} strokeWidth={1.6} />
               </button>
@@ -2473,11 +2473,11 @@ export function FabrikCreature() {
             className="vfx-environment-light fabrik-vfx-light"
           />
 
-          <div className="pointer-events-none absolute bottom-3 left-4 z-30 flex items-center gap-4 font-mono text-[8px] text-mist/38 sm:bottom-4 sm:left-5">
+          <div className="pointer-events-none absolute bottom-3 left-4 z-30 flex items-center gap-4 font-mono text-[11px] text-[var(--text-secondary)] sm:bottom-4 sm:left-5">
             <span className="flex items-center gap-1.5">
               <Gauge size={10} strokeWidth={1.5} />
               {t.sandbox.fabrik.telemetry.solver}
-              <span className="text-frost/65">
+              <span className="text-[var(--text-primary)]">
                 {t.sandbox.fabrik.telemetry.solverPasses}
               </span>
             </span>
@@ -2490,7 +2490,7 @@ export function FabrikCreature() {
               {t.sandbox.fabrik.action[mode]}
             </span>
           </div>
-          <span className="pointer-events-none absolute bottom-3 right-4 z-30 font-mono text-[8px] text-mist/30 sm:bottom-4 sm:right-5">
+          <span className="pointer-events-none absolute bottom-3 right-4 z-30 font-mono text-[11px] text-[var(--text-secondary)] sm:bottom-4 sm:right-5">
             {t.sandbox.fabrik.action.core}
           </span>
         </div>

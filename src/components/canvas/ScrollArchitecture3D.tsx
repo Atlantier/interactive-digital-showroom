@@ -1120,7 +1120,7 @@ function LayerFocusHud({
                 <Icon size={18} strokeWidth={1.5} />
               </span>
               <div className="min-w-0">
-                <p className="font-mono text-[9px] uppercase tracking-[0.2em] text-mist/45">
+                <p className="font-mono text-[11px] uppercase tracking-[0.2em] text-[var(--text-secondary)]">
                   {formatTranslation(t.architecture.layerLabel, {
                     index: meta.index,
                   })}
@@ -1142,12 +1142,12 @@ function LayerFocusHud({
 
           <div className="mt-5 border-t border-white/[0.08] pt-4">
             <p
-              className="font-mono text-[9px] uppercase tracking-[0.18em]"
+              className="font-mono text-[11px] uppercase tracking-[0.18em]"
               style={{ color: meta.accent }}
             >
               {details.eyebrow} / {details.subtitle}
             </p>
-            <p className="mt-3 text-xs leading-5 text-mist/75 sm:text-sm sm:leading-6">
+            <p className="mt-3 text-sm leading-6 text-[var(--text-secondary)]">
               {details.description}
             </p>
           </div>
@@ -1156,7 +1156,7 @@ function LayerFocusHud({
             {details.stack.map((item) => (
               <span
                 key={item}
-                className="rounded border border-white/[0.08] bg-white/[0.035] px-2 py-1 font-mono text-[8px] text-mist/65"
+                className="rounded border border-white/[0.08] bg-white/[0.035] px-2 py-1 font-mono text-[11px] text-[var(--text-secondary)]"
               >
                 {item}
               </span>
@@ -1169,7 +1169,7 @@ function LayerFocusHud({
                 key={label}
                 className="rounded border border-white/[0.08] bg-black/20 px-3 py-2.5"
               >
-                <p className="font-mono text-[8px] text-mist/40">{label}</p>
+                <p className="font-mono text-[11px] text-[var(--text-secondary)]">{label}</p>
                 <p className="mt-1 text-base text-frost">{value}</p>
               </div>
             ))}
@@ -1238,15 +1238,15 @@ function ArchitectureNarrativeOverlay({
         <div className="relative mx-auto flex h-full max-w-[1600px] flex-col px-5 pb-8 pt-24 sm:px-8 sm:pb-10 sm:pt-28 md:px-12">
           <div className="flex items-start justify-between gap-5">
             <div>
-              <p className="font-mono text-[10px] text-signal">
+              <p className="font-mono text-[11px] text-signal">
                 {t.architecture.headerTitle}
               </p>
-              <p className="mt-2 max-w-xs text-xs leading-5 text-mist/60">
+              <p className="mt-2 max-w-xs text-sm leading-6 text-[var(--text-secondary)]">
                 {t.architecture.headerDescription}
               </p>
             </div>
             <div className="hidden items-center gap-3 sm:flex">
-              <span className="font-mono text-[9px] text-mist/45">
+              <span className="font-mono text-[11px] text-[var(--text-secondary)]">
                 {t.architecture.expanding}
               </span>
               <div className="h-px w-24 overflow-hidden bg-white/10">
@@ -1306,7 +1306,7 @@ function ArchitectureNarrativeOverlay({
           </div>
 
           <div className="hidden items-end justify-between gap-8 border-t border-white/[0.08] pt-4 md:flex">
-            <div className="flex flex-wrap gap-x-8 gap-y-3 font-mono text-[9px] text-mist/55">
+            <div className="flex flex-wrap gap-x-8 gap-y-3 font-mono text-[11px] text-[var(--text-secondary)]">
               <span className="flex items-center gap-2">
                 <span className="size-1.5 bg-signal" />
                 {t.architecture.legend.spatial}
@@ -1320,7 +1320,7 @@ function ArchitectureNarrativeOverlay({
                 {t.architecture.legend.infrastructure}
               </span>
             </div>
-            <span className="font-mono text-[9px] text-mist/35">
+            <span className="font-mono text-[11px] text-[var(--text-secondary)]">
               {t.architecture.coreLabel}
             </span>
           </div>
@@ -1358,14 +1358,14 @@ function ArchitectureNarrativeOverlay({
             >
               <div className="flex items-start justify-between gap-4">
                 <div>
-                  <p className="font-mono text-[8px] text-mist/45">
+                  <p className="font-mono text-[11px] text-[var(--text-secondary)]">
                     {metric.label}
                   </p>
                   <p className="mt-1 text-xl text-frost">{metric.value}</p>
                 </div>
                 <span className="mt-1 size-1.5 bg-signal shadow-[0_0_8px_rgba(114,230,255,0.7)]" />
               </div>
-              <p className="mt-2 font-mono text-[8px] text-mist/35">
+              <p className="mt-2 font-mono text-[11px] text-[var(--text-secondary)]">
                 {metric.note}
               </p>
             </motion.div>

@@ -79,7 +79,7 @@ export function GallerySection() {
       <div className="relative mx-auto max-w-[1600px] px-5 py-20 sm:px-8 sm:py-28 md:px-12 lg:py-32">
         <div className="grid h-[597px] gap-12 border-b border-white/[0.085] pb-12 max-[359px]:h-[712px] sm:h-[641px] md:h-[680px] lg:h-[583px] lg:grid-cols-[minmax(0,1.25fr)_minmax(360px,0.75fr)] lg:items-end lg:gap-20 xl:h-[575px] min-[1600px]:h-[485px]">
           <div>
-            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[9px] text-mist/45">
+            <div className="flex flex-wrap items-center gap-x-3 gap-y-2 font-mono text-[11px] text-[var(--text-secondary)]">
               <span className="flex items-center gap-2 text-[var(--vfx-secondary)]">
                 <Waves size={12} strokeWidth={1.55} />
                 {t.gallery.eyebrow}
@@ -100,11 +100,11 @@ export function GallerySection() {
           <div className="gallery-control-console border border-white/[0.085] bg-[#030507]/72 p-4 sm:p-5">
             <div className="flex items-center justify-between gap-4 border-b border-white/[0.07] pb-3">
               <div>
-                <p className="flex items-center gap-2 font-mono text-[7px] text-[var(--vfx-secondary)]/62">
+                <p className="flex items-center gap-2 font-mono text-[11px] text-[var(--vfx-secondary)]">
                   <Orbit size={9} strokeWidth={1.55} />
                   {t.gallery.demonstration}
                 </p>
-                <p className="mt-1.5 text-sm text-frost/82">
+                <p className="mt-1.5 text-sm text-[var(--text-primary)]">
                   {isTourActive
                     ? formatTranslation(t.gallery.touring, {
                         exhibit:
@@ -128,8 +128,8 @@ export function GallerySection() {
                 }}
                 className={
                   isTourActive
-                    ? 'flex h-9 items-center gap-2 border border-[#ffd36a]/42 bg-[#ffd36a]/[0.07] px-3 font-mono text-[8px] text-[#ffe7a8]'
-                    : 'flex h-9 items-center gap-2 border border-[#ffd36a]/34 bg-[#ffd36a]/[0.05] px-3 font-mono text-[8px] text-[#ffe7a8] transition-colors hover:border-[#ffd36a]/70 hover:bg-[#ffd36a]/[0.1]'
+                    ? 'flex h-10 items-center gap-2 border border-[#ffd36a]/42 bg-[#ffd36a]/[0.07] px-3 font-mono text-[11px] text-[#ffe7a8]'
+                    : 'flex h-10 items-center gap-2 border border-[#ffd36a]/34 bg-[#ffd36a]/[0.05] px-3 font-mono text-[11px] text-[#ffe7a8] transition-colors hover:border-[#ffd36a]/70 hover:bg-[#ffd36a]/[0.1]'
                 }
               >
                 {!isTourActive ? (
@@ -154,11 +154,11 @@ export function GallerySection() {
 
             <label className="mt-4 block">
               <span className="flex items-center justify-between gap-3">
-                <span className="flex items-center gap-2 font-mono text-[8px] text-mist/42">
+                <span className="flex items-center gap-2 font-mono text-[11px] text-[var(--text-secondary)]">
                   <Clock3 size={9} strokeWidth={1.55} />
                   {t.gallery.timeScale}
                 </span>
-                <span className="font-mono text-[9px] text-[var(--vfx-tertiary)]/75">
+                <span className="font-mono text-[11px] text-[var(--vfx-tertiary)]">
                   {t.common.symbols.deltaTime}{' '}
                   {timeScale.toFixed(2)}
                   {t.common.symbols.multiplier}
@@ -184,7 +184,7 @@ export function GallerySection() {
               />
             </label>
 
-            <div className="mt-4 flex items-center justify-between border-t border-white/[0.065] pt-3 font-mono text-[7px] text-mist/28">
+            <div className="mt-4 flex items-center justify-between border-t border-white/[0.065] pt-3 font-mono text-[11px] text-[var(--text-secondary)]">
               <span className="flex items-center gap-1.5">
                 <SlidersHorizontal size={8} />
                 {t.gallery.sharedViews}
@@ -215,7 +215,7 @@ export function GallerySection() {
           ))}
         </div>
 
-        <div className="mt-8 flex h-[76px] flex-wrap items-center justify-between gap-4 border-t border-white/[0.07] pt-4 font-mono text-[8px] text-mist/30 sm:h-[38px]">
+        <div className="mt-8 flex h-[76px] flex-wrap items-center justify-between gap-4 border-t border-white/[0.07] pt-4 font-mono text-[11px] text-[var(--text-secondary)] sm:h-[38px]">
           <span>
             {t.gallery.footerPipeline}
           </span>

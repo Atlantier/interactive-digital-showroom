@@ -44,8 +44,8 @@ export function RayBounceMazeControls({
         className={cn(
           'group/shuffle flex items-center justify-between gap-3 border font-mono transition-colors',
           variant === 'stage'
-            ? 'h-7 border-[var(--vfx-secondary)]/28 bg-black/48 px-2 text-[6px] text-[var(--vfx-secondary)]/82 backdrop-blur-md hover:border-[var(--vfx-secondary)]/62 hover:text-frost'
-            : 'min-h-10 w-full border-[var(--vfx-secondary)]/30 bg-[var(--vfx-secondary)]/[0.04] px-3 text-[8px] text-[var(--vfx-secondary)]/82 hover:border-[var(--vfx-secondary)]/62 hover:bg-[var(--vfx-secondary)]/[0.08] hover:text-frost',
+            ? 'h-9 border-[var(--vfx-secondary)]/28 bg-black/48 px-2 text-[11px] text-[var(--vfx-secondary)] backdrop-blur-md hover:border-[var(--vfx-secondary)]/62 hover:text-frost'
+            : 'min-h-10 w-full border-[var(--vfx-secondary)]/30 bg-[var(--vfx-secondary)]/[0.04] px-3 text-[11px] text-[var(--vfx-secondary)] hover:border-[var(--vfx-secondary)]/62 hover:bg-[var(--vfx-secondary)]/[0.08] hover:text-frost',
         )}
       >
         <span className="flex min-w-0 items-center gap-2">
@@ -56,18 +56,18 @@ export function RayBounceMazeControls({
           />
           <span className="truncate">{copy.shuffleLayout}</span>
         </span>
-        <span className="shrink-0 text-[7px] opacity-58">
+        <span className="shrink-0 text-[11px] text-[var(--text-tertiary)]">
           {String(layoutIndex + 1).padStart(2, '0')} / 03
         </span>
       </button>
       {variant === 'panel' ? (
         <div
           data-ray-maze-layout-name
-          className="mt-2 flex items-center justify-between gap-3 px-1 font-mono text-[7px]"
+          className="mt-2 flex items-center justify-between gap-3 px-1 font-mono text-[11px]"
           aria-live="polite"
         >
-          <span className="text-mist/32">{copy.activeTopology}</span>
-          <span className="truncate text-[var(--vfx-secondary)]/72">
+          <span className="text-[var(--text-secondary)]">{copy.activeTopology}</span>
+          <span className="truncate text-[var(--vfx-secondary)]">
             {layoutName}
           </span>
         </div>
