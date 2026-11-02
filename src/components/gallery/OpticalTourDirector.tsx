@@ -34,12 +34,12 @@ import {
   useI18n,
 } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
+import { useGalleryUiStore } from '../../store/gallery/hooks'
 import { useAppStore } from '../../store/useAppStore'
 import {
   GALLERY_EXHIBITS,
   OPTICAL_TOUR_CLIMAX_MS,
   OPTICAL_TOUR_STEP_MS,
-  useGalleryStore,
   type GalleryExhibitId,
 } from '../../store/useGalleryStore'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
@@ -75,43 +75,43 @@ export function OpticalTourDirector() {
   const commandPaletteOpen = useAppStore(
     (state) => state.commandPaletteOpen,
   )
-  const activeExhibitId = useGalleryStore(
+  const activeExhibitId = useGalleryUiStore(
     (state) => state.activeExhibitId,
   )
-  const isTourActive = useGalleryStore(
+  const isTourActive = useGalleryUiStore(
     (state) => state.isTourActive,
   )
-  const opticalTourIndex = useGalleryStore(
+  const opticalTourIndex = useGalleryUiStore(
     (state) => state.opticalTourIndex,
   )
-  const opticalTourPaused = useGalleryStore(
+  const opticalTourPaused = useGalleryUiStore(
     (state) => state.opticalTourPaused,
   )
-  const opticalTourMode = useGalleryStore(
+  const opticalTourMode = useGalleryUiStore(
     (state) => state.opticalTourMode,
   )
-  const opticalTourClimaxExhibitId = useGalleryStore(
+  const opticalTourClimaxExhibitId = useGalleryUiStore(
     (state) => state.opticalTourClimaxExhibitId,
   )
-  const cinemaCleanView = useGalleryStore(
+  const cinemaCleanView = useGalleryUiStore(
     (state) => state.cinemaCleanView,
   )
-  const setActiveExhibitId = useGalleryStore(
+  const setActiveExhibitId = useGalleryUiStore(
     (state) => state.setActiveExhibitId,
   )
-  const setOpticalTourIndex = useGalleryStore(
+  const setOpticalTourIndex = useGalleryUiStore(
     (state) => state.setOpticalTourIndex,
   )
-  const advanceOpticalTour = useGalleryStore(
+  const advanceOpticalTour = useGalleryUiStore(
     (state) => state.advanceOpticalTour,
   )
-  const stopOpticalTour = useGalleryStore(
+  const stopOpticalTour = useGalleryUiStore(
     (state) => state.stopOpticalTour,
   )
-  const toggleOpticalTourPaused = useGalleryStore(
+  const toggleOpticalTourPaused = useGalleryUiStore(
     (state) => state.toggleOpticalTourPaused,
   )
-  const triggerOpticalTourClimax = useGalleryStore(
+  const triggerOpticalTourClimax = useGalleryUiStore(
     (state) => state.triggerOpticalTourClimax,
   )
   const [galleryInView, setGalleryInView] = useState(false)

@@ -10,10 +10,8 @@ import {
   formatTranslation,
   useI18n,
 } from '../../i18n/useI18n'
-import {
-  useGalleryStore,
-  type ExhibitMeta,
-} from '../../store/useGalleryStore'
+import { useExhibitParamsStore } from '../../store/gallery/hooks'
+import type { ExhibitMeta } from '../../store/useGalleryStore'
 import { cn } from '../../lib/cn'
 import type { GalleryPointerState } from './OpticalExhibitScene'
 
@@ -36,7 +34,7 @@ export function PrismInteractionSurface({
   compact?: boolean
 }) {
   const { t } = useI18n()
-  const updateExhibitParam = useGalleryStore(
+  const updateExhibitParam = useExhibitParamsStore(
     (state) => state.updateExhibitParam,
   )
   const incidence = exhibit.params.incidence ?? 18

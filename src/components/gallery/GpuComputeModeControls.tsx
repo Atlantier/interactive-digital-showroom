@@ -18,7 +18,7 @@ import {
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { useI18n } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
-import { useGalleryStore } from '../../store/useGalleryStore'
+import { useGpuStore } from '../../store/gallery/hooks'
 
 export function GpuComputeModeControls({
   variant = 'panel',
@@ -26,14 +26,14 @@ export function GpuComputeModeControls({
   variant?: 'stage' | 'panel'
 }) {
   const { t } = useI18n()
-  const mode = useGalleryStore((state) => state.gpuComputeMode)
-  const workload = useGalleryStore(
+  const mode = useGpuStore((state) => state.gpuComputeMode)
+  const workload = useGpuStore(
     (state) => state.gpuComputeWorkload,
   )
-  const setMode = useGalleryStore(
+  const setMode = useGpuStore(
     (state) => state.setGpuComputeMode,
   )
-  const setWorkload = useGalleryStore(
+  const setWorkload = useGpuStore(
     (state) => state.setGpuComputeWorkload,
   )
   const playSound = useInterfaceSound()

@@ -14,9 +14,10 @@ import {
 } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
 import {
-  GALLERY_EXHIBITS,
-  useGalleryStore,
-} from '../../store/useGalleryStore'
+  useExhibitParamsStore,
+  useGalleryUiStore,
+} from '../../store/gallery/hooks'
+import { GALLERY_EXHIBITS } from '../../store/useGalleryStore'
 import { HologramModelSelector } from './HologramModelSelector'
 import { ParticleMorphSelector } from './ParticleMorphSelector'
 import { PrismShapeSelector } from './PrismShapeSelector'
@@ -65,7 +66,7 @@ export function ExhibitPedestal({
   tourCurrent: boolean
 }) {
   const { t } = useI18n()
-  const exhibit = useGalleryStore(
+  const exhibit = useExhibitParamsStore(
     (state) =>
       state.exhibits.find(
         (candidate) => candidate.id === exhibitId,
@@ -76,22 +77,22 @@ export function ExhibitPedestal({
     rootMargin: '0px 0px -8% 0px',
     threshold: 0.04,
   })
-  const modalOpen = useGalleryStore(
+  const modalOpen = useGalleryUiStore(
     (state) => state.activeExhibitId !== null,
   )
-  const setActiveExhibitId = useGalleryStore(
+  const setActiveExhibitId = useGalleryUiStore(
     (state) => state.setActiveExhibitId,
   )
-  const stopOpticalTour = useGalleryStore(
+  const stopOpticalTour = useGalleryUiStore(
     (state) => state.stopOpticalTour,
   )
-  const triggerHologramGlitch = useGalleryStore(
+  const triggerHologramGlitch = useExhibitParamsStore(
     (state) => state.triggerHologramGlitch,
   )
-  const tourClimaxExhibitId = useGalleryStore(
+  const tourClimaxExhibitId = useGalleryUiStore(
     (state) => state.opticalTourClimaxExhibitId,
   )
-  const tourClimaxPulse = useGalleryStore(
+  const tourClimaxPulse = useGalleryUiStore(
     (state) => state.opticalTourClimaxPulse,
   )
   const playSound = useInterfaceSound()

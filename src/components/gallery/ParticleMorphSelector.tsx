@@ -9,10 +9,8 @@ import {
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { useI18n } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
-import {
-  useGalleryStore,
-  type ParticleManifold,
-} from '../../store/useGalleryStore'
+import { useExhibitParamsStore } from '../../store/gallery/hooks'
+import type { ParticleManifold } from '../../store/useGalleryStore'
 
 const MANIFOLD_ICONS: Record<ParticleManifold, LucideIcon> = {
   'mobius-ring': Orbit,
@@ -36,10 +34,10 @@ export function ParticleMorphSelector({
   variant?: 'stage' | 'panel' | 'quick'
 }) {
   const { t } = useI18n()
-  const manifold = useGalleryStore(
+  const manifold = useExhibitParamsStore(
     (state) => state.particleManifold,
   )
-  const setParticleManifold = useGalleryStore(
+  const setParticleManifold = useExhibitParamsStore(
     (state) => state.setParticleManifold,
   )
   const playSound = useInterfaceSound()

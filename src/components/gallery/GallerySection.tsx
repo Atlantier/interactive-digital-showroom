@@ -18,9 +18,10 @@ import {
   useI18n,
 } from '../../i18n/useI18n'
 import {
-  GALLERY_EXHIBITS,
-  useGalleryStore,
-} from '../../store/useGalleryStore'
+  useExhibitParamsStore,
+  useGalleryUiStore,
+} from '../../store/gallery/hooks'
+import { GALLERY_EXHIBITS } from '../../store/useGalleryStore'
 import { getEffectiveGalleryTimeScale } from '../../utils/motionPreferences'
 import { ExhibitPedestal } from './ExhibitPedestal'
 
@@ -32,25 +33,29 @@ export function GallerySection({
   const { t } = useI18n()
   const sectionRef = useRef<HTMLElement>(null)
   const reducedMotion = Boolean(useReducedMotion())
-  const isTourActive = useGalleryStore(
+  const isTourActive = useGalleryUiStore(
     (state) => state.isTourActive,
   )
-  const opticalTourIndex = useGalleryStore(
+  const opticalTourIndex = useGalleryUiStore(
     (state) => state.opticalTourIndex,
   )
-  const opticalTourPaused = useGalleryStore(
+  const opticalTourPaused = useGalleryUiStore(
     (state) => state.opticalTourPaused,
   )
-  const startOpticalTour = useGalleryStore(
+  const startOpticalTour = useGalleryUiStore(
     (state) => state.startOpticalTour,
   )
-  const toggleOpticalTourPaused = useGalleryStore(
+  const toggleOpticalTourPaused = useGalleryUiStore(
     (state) => state.toggleOpticalTourPaused,
   )
-  const timeScale = useGalleryStore((state) => state.timeScale)
+  const timeScale = useExhibitParamsStore(
+    (state) => state.timeScale,
+  )
   const effectiveTimeScale = getEffectiveGalleryTimeScale(timeScale)
-  const setTimeScale = useGalleryStore((state) => state.setTimeScale)
-  const modalOpen = useGalleryStore(
+  const setTimeScale = useExhibitParamsStore(
+    (state) => state.setTimeScale,
+  )
+  const modalOpen = useGalleryUiStore(
     (state) => state.activeExhibitId !== null,
   )
   const playSound = useInterfaceSound()

@@ -7,10 +7,8 @@ import {
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { useI18n } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
-import {
-  useGalleryStore,
-  type PrismShape,
-} from '../../store/useGalleryStore'
+import { useExhibitParamsStore } from '../../store/gallery/hooks'
+import type { PrismShape } from '../../store/useGalleryStore'
 
 const SHAPE_ICONS: Record<PrismShape, LucideIcon> = {
   octahedron: Diamond,
@@ -30,8 +28,10 @@ export function PrismShapeSelector({
   variant?: 'stage' | 'panel'
 }) {
   const { t } = useI18n()
-  const shape = useGalleryStore((state) => state.prismShape)
-  const setPrismShape = useGalleryStore(
+  const shape = useExhibitParamsStore(
+    (state) => state.prismShape,
+  )
+  const setPrismShape = useExhibitParamsStore(
     (state) => state.setPrismShape,
   )
   const playSound = useInterfaceSound()

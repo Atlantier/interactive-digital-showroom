@@ -16,7 +16,7 @@ import {
 } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
 import { useAppStore } from '../../store/useAppStore'
-import { useGalleryStore } from '../../store/useGalleryStore'
+import { useAudioStageStore } from '../../store/gallery/hooks'
 import { soundEngine } from '../../utils/soundEngine'
 
 export function AudioStageLightPads() {
@@ -24,7 +24,7 @@ export function AudioStageLightPads() {
   const soundEnabled = useAppStore(
     (state) => state.soundEnabled,
   )
-  const triggerPulse = useGalleryStore(
+  const triggerPulse = useAudioStageStore(
     (state) => state.triggerAudioStagePulse,
   )
   const [pressedPad, setPressedPad] = useState<number | null>(

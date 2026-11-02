@@ -8,7 +8,7 @@ import {
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { useI18n } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
-import { useGalleryStore } from '../../store/useGalleryStore'
+import { useExhibitParamsStore } from '../../store/gallery/hooks'
 
 export function ReactorOverdriveButton({
   variant = 'panel',
@@ -16,10 +16,10 @@ export function ReactorOverdriveButton({
   variant?: 'stage' | 'panel'
 }) {
   const { t } = useI18n()
-  const triggerReactorOverdrive = useGalleryStore(
+  const triggerReactorOverdrive = useExhibitParamsStore(
     (state) => state.triggerReactorOverdrive,
   )
-  const reactorOverdriveStartedAt = useGalleryStore(
+  const reactorOverdriveStartedAt = useExhibitParamsStore(
     (state) => state.reactorOverdriveStartedAt,
   )
   const playSound = useInterfaceSound()

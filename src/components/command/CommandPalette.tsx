@@ -46,8 +46,8 @@ import {
   type TranslationDictionary,
 } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
+import { useGalleryUiStore } from '../../store/gallery/hooks'
 import { useAppStore } from '../../store/useAppStore'
-import { useGalleryStore } from '../../store/useGalleryStore'
 import { navigateToSection } from '../../utils/sectionNavigation'
 import { useSmoothScroll } from '../layout/SmoothScroll'
 
@@ -189,13 +189,13 @@ export function CommandPalette() {
   const setAccentTheme = useAppStore((state) => state.setAccentTheme)
   const setVfxPreset = useAppStore((state) => state.setVfxPreset)
   const setGravityMode = useAppStore((state) => state.setGravityMode)
-  const opticalTourActive = useGalleryStore(
+  const opticalTourActive = useGalleryUiStore(
     (state) => state.isTourActive,
   )
-  const startOpticalTour = useGalleryStore(
+  const startOpticalTour = useGalleryUiStore(
     (state) => state.startOpticalTour,
   )
-  const toggleOpticalTourPaused = useGalleryStore(
+  const toggleOpticalTourPaused = useGalleryUiStore(
     (state) => state.toggleOpticalTourPaused,
   )
   const lenis = useSmoothScroll()

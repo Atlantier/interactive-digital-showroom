@@ -3,7 +3,10 @@ import { useEffect } from 'react'
 import { useI18n } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
 import { useAppStore } from '../../store/useAppStore'
-import { useGalleryStore } from '../../store/useGalleryStore'
+import {
+  useAudioStageStore,
+  useExhibitParamsStore,
+} from '../../store/gallery/hooks'
 import { soundEngine } from '../../utils/soundEngine'
 
 export function AudioStagePlayButton({
@@ -15,13 +18,13 @@ export function AudioStagePlayButton({
   const soundEnabled = useAppStore(
     (state) => state.soundEnabled,
   )
-  const playing = useGalleryStore(
+  const playing = useAudioStageStore(
     (state) => state.audioStagePlaying,
   )
-  const setPlaying = useGalleryStore(
+  const setPlaying = useAudioStageStore(
     (state) => state.setAudioStagePlaying,
   )
-  const tempo = useGalleryStore(
+  const tempo = useExhibitParamsStore(
     (state) =>
       state.exhibits.find(
         (exhibit) => exhibit.id === 'orbital-lens',

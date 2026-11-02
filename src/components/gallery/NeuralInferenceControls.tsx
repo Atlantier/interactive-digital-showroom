@@ -8,7 +8,7 @@ import {
   useI18n,
 } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
-import { useGalleryStore } from '../../store/useGalleryStore'
+import { useNeuralStore } from '../../store/gallery/hooks'
 
 export function NeuralInferenceControls({
   variant = 'panel',
@@ -16,22 +16,22 @@ export function NeuralInferenceControls({
   variant?: 'stage' | 'panel'
 }) {
   const { t } = useI18n()
-  const selectedToken = useGalleryStore(
+  const selectedToken = useNeuralStore(
     (state) => state.neuralSelectedToken,
   )
-  const inferencePulse = useGalleryStore(
+  const inferencePulse = useNeuralStore(
     (state) => state.neuralInferencePulse,
   )
-  const trainingMode = useGalleryStore(
+  const trainingMode = useNeuralStore(
     (state) => state.neuralTrainingMode,
   )
-  const selectNeuralToken = useGalleryStore(
+  const selectNeuralToken = useNeuralStore(
     (state) => state.selectNeuralToken,
   )
-  const triggerInference = useGalleryStore(
+  const triggerInference = useNeuralStore(
     (state) => state.triggerNeuralInference,
   )
-  const setTrainingMode = useGalleryStore(
+  const setTrainingMode = useNeuralStore(
     (state) => state.setNeuralTrainingMode,
   )
   const playSound = useInterfaceSound()

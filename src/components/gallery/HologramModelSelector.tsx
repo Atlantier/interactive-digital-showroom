@@ -7,10 +7,8 @@ import {
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { useI18n } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
-import {
-  useGalleryStore,
-  type HologramModel,
-} from '../../store/useGalleryStore'
+import { useExhibitParamsStore } from '../../store/gallery/hooks'
+import type { HologramModel } from '../../store/useGalleryStore'
 
 const MODEL_ICONS: Record<HologramModel, LucideIcon> = {
   'gyro-core': Orbit,
@@ -30,8 +28,10 @@ export function HologramModelSelector({
   variant?: 'stage' | 'panel'
 }) {
   const { t } = useI18n()
-  const model = useGalleryStore((state) => state.hologramModel)
-  const setHologramModel = useGalleryStore(
+  const model = useExhibitParamsStore(
+    (state) => state.hologramModel,
+  )
+  const setHologramModel = useExhibitParamsStore(
     (state) => state.setHologramModel,
   )
   const playSound = useInterfaceSound()

@@ -6,7 +6,7 @@ import {
   AUDIO_STAGE_MODES,
   type AudioStageMode,
 } from '../../data/audioStage'
-import { useGalleryStore } from '../../store/useGalleryStore'
+import { useAudioStageStore } from '../../store/gallery/hooks'
 
 function ModeGlyph({
   mode,
@@ -30,8 +30,8 @@ export function AudioStageModeSelector({
   variant?: 'stage' | 'panel'
 }) {
   const { t } = useI18n()
-  const mode = useGalleryStore((state) => state.audioStageMode)
-  const setMode = useGalleryStore(
+  const mode = useAudioStageStore((state) => state.audioStageMode)
+  const setMode = useAudioStageStore(
     (state) => state.setAudioStageMode,
   )
   const playSound = useInterfaceSound()

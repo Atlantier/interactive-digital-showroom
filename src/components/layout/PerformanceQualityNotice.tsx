@@ -2,14 +2,16 @@ import { AnimatePresence, motion, useReducedMotion } from 'framer-motion'
 import { Gauge, X } from 'lucide-react'
 import { useEffect } from 'react'
 import { useI18n } from '../../i18n/useI18n'
+import { useGalleryUiStore } from '../../store/gallery/hooks'
 import { useAppStore } from '../../store/useAppStore'
-import { useGalleryStore } from '../../store/useGalleryStore'
 
 export function PerformanceQualityNotice() {
   const { t } = useI18n()
   const visible = useAppStore((state) => state.qualityNoticeVisible)
-  const tourActive = useGalleryStore((state) => state.isTourActive)
-  const cinemaCleanView = useGalleryStore(
+  const tourActive = useGalleryUiStore(
+    (state) => state.isTourActive,
+  )
+  const cinemaCleanView = useGalleryUiStore(
     (state) => state.cinemaCleanView,
   )
   const dismiss = useAppStore((state) => state.dismissQualityNotice)

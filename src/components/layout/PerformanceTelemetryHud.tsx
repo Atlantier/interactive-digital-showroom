@@ -15,8 +15,8 @@ import {
   readMemoryHistoryWindow,
   readPerformanceTelemetry,
 } from '../../store/performanceTelemetry'
+import { useGalleryUiStore } from '../../store/gallery/hooks'
 import { useAppStore } from '../../store/useAppStore'
-import { useGalleryStore } from '../../store/useGalleryStore'
 import { getVfxPreset } from '../../data/vfxPresets'
 import { useI18n } from '../../i18n/useI18n'
 
@@ -40,7 +40,7 @@ export function PerformanceTelemetryHud() {
   const performanceTier = useAppStore((state) => state.performanceTier)
   const vfxPreset = useAppStore((state) => state.vfxPreset)
   const setTelemetryOpen = useAppStore((state) => state.setTelemetryOpen)
-  const activeExhibitId = useGalleryStore(
+  const activeExhibitId = useGalleryUiStore(
     (state) => state.activeExhibitId,
   )
   const reducedMotion = useReducedMotion()

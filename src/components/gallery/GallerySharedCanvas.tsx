@@ -3,18 +3,23 @@ import { Canvas } from '@react-three/fiber'
 import { useReducedMotion } from 'framer-motion'
 import { useEffect } from 'react'
 import * as THREE from 'three'
+import {
+  useExhibitParamsStore,
+  useGalleryUiStore,
+} from '../../store/gallery/hooks'
 import { useAppStore } from '../../store/useAppStore'
-import { useGalleryStore } from '../../store/useGalleryStore'
 import { getEffectiveGalleryTimeScale } from '../../utils/motionPreferences'
 
 const CARD_CAMERA_POSITION = new THREE.Vector3(0, 0.16, 4.15)
 
 export function GallerySharedCanvas() {
   const performanceTier = useAppStore((state) => state.performanceTier)
-  const activeExhibitId = useGalleryStore(
+  const activeExhibitId = useGalleryUiStore(
     (state) => state.activeExhibitId,
   )
-  const timeScale = useGalleryStore((state) => state.timeScale)
+  const timeScale = useExhibitParamsStore(
+    (state) => state.timeScale,
+  )
   const reducedMotion = Boolean(useReducedMotion())
   const effectiveTimeScale = getEffectiveGalleryTimeScale(timeScale)
   const stageMounted = activeExhibitId !== null

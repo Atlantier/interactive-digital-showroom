@@ -2,7 +2,7 @@ import { Shuffle } from 'lucide-react'
 import { useInterfaceSound } from '../../hooks/useInterfaceSound'
 import { useI18n } from '../../i18n/useI18n'
 import { cn } from '../../lib/cn'
-import { useGalleryStore } from '../../store/useGalleryStore'
+import { useExhibitParamsStore } from '../../store/gallery/hooks'
 
 export function RayBounceMazeControls({
   variant = 'panel',
@@ -10,10 +10,10 @@ export function RayBounceMazeControls({
   variant?: 'stage' | 'panel'
 }) {
   const { t } = useI18n()
-  const layoutIndex = useGalleryStore(
+  const layoutIndex = useExhibitParamsStore(
     (state) => state.rayMazeLayoutIndex,
   )
-  const shuffleLayout = useGalleryStore(
+  const shuffleLayout = useExhibitParamsStore(
     (state) => state.shuffleRayMazeLayout,
   )
   const playSound = useInterfaceSound()

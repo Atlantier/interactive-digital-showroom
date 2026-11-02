@@ -34,8 +34,8 @@ import { getVfxPreset } from './data/vfxPresets'
 import { useInterfaceSound } from './hooks/useInterfaceSound'
 import { usePerformanceTelemetry } from './hooks/usePerformanceTelemetry'
 import { useI18n } from './i18n/useI18n'
+import { useGalleryUiStore } from './store/gallery/hooks'
 import { useAppStore } from './store/useAppStore'
-import { useGalleryStore } from './store/useGalleryStore'
 import { navigateToSection } from './utils/sectionNavigation'
 import { soundEngine } from './utils/soundEngine'
 
@@ -361,7 +361,7 @@ function App() {
   const setActiveSection = useAppStore((state) => state.setActiveSection)
   const accentTheme = useAppStore((state) => state.accentTheme)
   const vfxPreset = useAppStore((state) => state.vfxPreset)
-  const activeExhibitId = useGalleryStore(
+  const activeExhibitId = useGalleryUiStore(
     (state) => state.activeExhibitId,
   )
 
