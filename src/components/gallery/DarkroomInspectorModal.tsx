@@ -248,7 +248,8 @@ export function DarkroomInspectorModal() {
   useEffect(() => {
     if (!open) return
 
-    const focusFrame = window.requestAnimationFrame(() => {
+    let focusFrame = 0
+    const focusActiveView = () => {
       if (cinemaCleanView) {
         cleanExitButtonRef.current?.focus({ preventScroll: true })
       } else if (
@@ -256,6 +257,10 @@ export function DarkroomInspectorModal() {
       ) {
         closeButtonRef.current?.focus({ preventScroll: true })
       }
+    }
+    focusFrame = window.requestAnimationFrame(() => {
+      focusActiveView()
+      focusFrame = window.requestAnimationFrame(focusActiveView)
     })
 
     return () => window.cancelAnimationFrame(focusFrame)
