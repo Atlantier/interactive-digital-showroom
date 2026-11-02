@@ -103,7 +103,7 @@ stateDiagram-v2
 - 鼠标射线平面斥力、欠阻尼弹簧回归与滚动速度驱动的 Warp Speed 拉伸。
 - 300vh Sticky 三层 AI 架构叙事、滚动拆解、相机轨迹与可点击 HUD。
 - Verlet 工牌、12 轮约束松弛、OBB 碰撞、可断裂挂绳与一键重铸。
-- FABRIK 六轴机械臂、12 节点柔性躯干和对角线 Trot 四足步态。
+- FABRIK 六轴机械臂、固定长度枪口激光、12 节点柔性躯干和对角线 Trot 四足步态。
 - 程序化合成音效、实时五频段频谱与 Web Audio 动态压缩。
 - `AnalyserNode` 音频包络驱动的星尘、极光、体积光与架构呼吸响应。
 - 8 座光学与计算架构展台在橱窗阶段使用合成层轻量循环预览，不创建 WebGL；进入暗房时仅按需挂载当前展品的一个 Canvas / View，关闭后立即卸载并释放上下文。
@@ -211,7 +211,7 @@ a = -k(p-p_0) - cv
 
 光学展馆橱窗阶段保持 `0 Canvas / 0 View`，只有浏览器视口内的轻量预览运行 CSS 动画；进入暗房后仅创建 `1 Canvas / 1 View`，关闭暗房时整个 Canvas 被卸载。物理沙盒与架构 Canvas 离开视口后立即停止 RAF 或切换为 `frameloop="demand"`。所有自定义 `BufferGeometry`、`TubeGeometry`、`ShaderMaterial`、`MeshBasicMaterial` 和 `InstancedMesh` 均在 `useEffect` 清理函数中显式释放。
 
-滚动使用原生 Wheel 响应，不再对主线程做惯性插值。滚动期间仅暂停装饰动画、隐藏全屏胶片混合层，并停用固定导航与导览坞的背景模糊；Bento 卡片离屏时停止流光和实时数据刷新。导航进度改为单个元素上的局部 transform 更新，避免每帧写入根级 CSS 变量引发全页样式重算。300vh 架构区的 WebGL Canvas 会在距离视口 `600px` 时才初始化。
+滚动使用原生 Wheel 响应，不再对主线程做惯性插值。滚动期间仅暂停装饰动画、隐藏全屏胶片混合层，并停用固定导航与导览坞的背景模糊；Bento 卡片离屏时停止流光和实时数据刷新，但不使用会触发滚动高度重算的 `content-visibility` 自动跳过。导航进度改为单个元素上的局部 transform 更新，避免每帧写入根级 CSS 变量引发全页样式重算。300vh 架构区的 WebGL Canvas 会在距离视口 `600px` 时才初始化。
 
 `Shift + D` 遥测浮层实时汇总各场景活跃粒子源、当前后期 Shader Pass 数量、物理求解耗时、JS Heap、当前 `vfxPreset`、正在检视的光学展台名称与活跃 WebGL 视口数。
 

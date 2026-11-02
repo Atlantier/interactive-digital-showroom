@@ -57,6 +57,7 @@ interface LaserState {
   startY: number
   endX: number
   endY: number
+  length: number
   life: number
 }
 
@@ -211,6 +212,11 @@ function createArmScene(size: CanvasSize, pointer: IKPoint): ArmScene {
     (ratio) => totalReach * ratio,
   )
   const base = createPoint(size.width * 0.44, size.height * 0.77)
+  const laserLength = clamp(
+    Math.min(size.width * 0.18, size.height * 0.28),
+    150,
+    240,
+  )
   const joints = [createPoint(base.x, base.y)]
   let direction = -Math.PI / 2
 
@@ -239,6 +245,7 @@ function createArmScene(size: CanvasSize, pointer: IKPoint): ArmScene {
       startY: 0,
       endX: 0,
       endY: 0,
+      length: laserLength,
       life: 0,
     },
     centroid: createPoint(joints[3].x, joints[3].y),
@@ -1278,6 +1285,16 @@ function drawArm(
     context.shadowBlur = 0
     context.stroke()
     context.restore()
+
+    drawCrosshair(
+      context,
+      {
+        x: scene.laser.endX,
+        y: scene.laser.endY,
+      },
+      palette.tertiary,
+      8 + alpha * 5,
+    )
   }
 
   if (debug) {
@@ -2007,6 +2024,12 @@ export function FabrikCreature() {
       stage.dataset.activeRipples = '0'
       stage.dataset.laserState =
         mode === 'arm' ? 'idle' : 'unavailable'
+      stage.dataset.laserLength =
+        scene.kind === 'arm' ? scene.laser.length.toFixed(1) : '0'
+      stage.dataset.laserStartX = '0'
+      stage.dataset.laserStartY = '0'
+      stage.dataset.laserEndX = '0'
+      stage.dataset.laserEndY = '0'
       stage.dataset.vfxActiveParticles = '0'
       stage.dataset.laserVfx = '0'
       stage.dataset.scorchCount = '0'
@@ -2021,26 +2044,35 @@ export function FabrikCreature() {
     const fireLaser = () => {
       if (scene.kind !== 'arm') return
       const endpoint = scene.joints[scene.joints.length - 1]
+      const previous =
+        scene.joints[scene.joints.length - 2] ?? endpoint
+      const beamAngle = Math.atan2(
+        endpoint.y - previous.y,
+        endpoint.x - previous.x,
+      )
       scene.laser.startX = endpoint.x
       scene.laser.startY = endpoint.y
-      scene.laser.endX = pointer.x
-      scene.laser.endY = pointer.y
+      scene.laser.endX =
+        endpoint.x + Math.cos(beamAngle) * scene.laser.length
+      scene.laser.endY =
+        endpoint.y + Math.sin(beamAngle) * scene.laser.length
       scene.laser.life = 1
       scene.recoil = 1
       stage.dataset.laserState = 'active'
-      const angle = Math.atan2(
-        pointer.y - endpoint.y,
-        pointer.x - endpoint.x,
-      )
+      stage.dataset.laserLength = scene.laser.length.toFixed(1)
+      stage.dataset.laserStartX = scene.laser.startX.toFixed(1)
+      stage.dataset.laserStartY = scene.laser.startY.toFixed(1)
+      stage.dataset.laserEndX = scene.laser.endX.toFixed(1)
+      stage.dataset.laserEndY = scene.laser.endY.toFixed(1)
       const scorch =
         scene.scorches[scene.scorchCursor]
       scorch.active = true
-      scorch.x = pointer.x
-      scorch.y = pointer.y
+      scorch.x = scene.laser.endX
+      scorch.y = scene.laser.endY
       scorch.age = 0
       scorch.duration = 3
       scorch.startedAt = performance.now() / 1_000
-      scorch.angle = angle
+      scorch.angle = beamAngle
       scorch.seed = Math.random() * 1_000
       scene.scorchCursor =
         (scene.scorchCursor + 1) % scene.scorches.length

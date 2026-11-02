@@ -266,9 +266,12 @@ html[data-scrolling="true"] .gallery-pedestal-tour::before {
   box-shadow:
     inset 0 1px 0 rgb(255 255 255 / 3%),
     0 18px 60px rgb(0 0 0 / 24%);
+  contain: layout paint style;
+}
+
+.bento-card:hover,
+.bento-card:focus-within {
   will-change: transform;
-  content-visibility: auto;
-  contain-intrinsic-size: auto 250px;
 }
 
 .bento-comet {

@@ -73,6 +73,9 @@ with sync_playwright() as playwright:
             "[data-architecture-sticky] canvas"
         )
     ).to_have_count(0)
+    bento_height_before = page.locator(
+        "[data-bento-grid]"
+    ).evaluate("(element) => element.getBoundingClientRect().height")
 
     page.evaluate(
         """
@@ -115,6 +118,13 @@ with sync_playwright() as playwright:
     expect(page.locator("[data-bento-grid]")).to_have_attribute(
         "data-bento-in-view",
         "false",
+    )
+    bento_height_after = page.locator(
+        "[data-bento-grid]"
+    ).evaluate("(element) => element.getBoundingClientRect().height")
+    assert abs(bento_height_after - bento_height_before) < 0.5, (
+        bento_height_before,
+        bento_height_after,
     )
 
     progress_before = page.locator(

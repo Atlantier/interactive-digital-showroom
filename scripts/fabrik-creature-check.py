@@ -154,7 +154,66 @@ with sync_playwright() as playwright:
         after_laser_sound["laserPulse"]
         > before_laser_sound["laserPulse"]
     )
+    first_laser = stage.evaluate(
+        """
+        (element) => ({
+          length: Number(element.dataset.laserLength),
+          startX: Number(element.dataset.laserStartX),
+          startY: Number(element.dataset.laserStartY),
+          endX: Number(element.dataset.laserEndX),
+          endY: Number(element.dataset.laserEndY),
+        })
+        """
+    )
+    first_beam_length = math.hypot(
+        first_laser["endX"] - first_laser["startX"],
+        first_laser["endY"] - first_laser["startY"],
+    )
+    assert first_laser["length"] >= 150, first_laser
+    assert abs(first_beam_length - first_laser["length"]) < 0.25, (
+        first_laser,
+        first_beam_length,
+    )
     page.screenshot(path=output_dir / "desktop-arm-laser.png")
+
+    second_site_x = canvas_box["x"] + canvas_box["width"] * 0.28
+    second_site_y = canvas_box["y"] + canvas_box["height"] * 0.18
+    page.mouse.move(second_site_x, second_site_y, steps=16)
+    page.wait_for_timeout(900)
+    page.mouse.click(second_site_x, second_site_y)
+    page.wait_for_timeout(70)
+    second_laser = stage.evaluate(
+        """
+        (element) => ({
+          length: Number(element.dataset.laserLength),
+          startX: Number(element.dataset.laserStartX),
+          startY: Number(element.dataset.laserStartY),
+          endX: Number(element.dataset.laserEndX),
+          endY: Number(element.dataset.laserEndY),
+        })
+        """
+    )
+    second_beam_length = math.hypot(
+        second_laser["endX"] - second_laser["startX"],
+        second_laser["endY"] - second_laser["startY"],
+    )
+    assert abs(
+        second_laser["length"] - first_laser["length"]
+    ) < 0.25, (first_laser, second_laser)
+    assert (
+        second_laser["startX"],
+        second_laser["startY"],
+    ) != (
+        first_laser["startX"],
+        first_laser["startY"],
+    ), (first_laser, second_laser)
+    assert abs(second_beam_length - second_laser["length"]) < 0.25, (
+        second_laser,
+        second_beam_length,
+    )
+    page.screenshot(
+        path=output_dir / "desktop-arm-laser-fixed-length.png"
+    )
 
     debug_toggle = page.get_by_role(
         "checkbox", name="Show IK Vectors"
