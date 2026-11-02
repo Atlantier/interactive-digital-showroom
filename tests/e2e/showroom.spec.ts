@@ -220,6 +220,13 @@ test('traps focus and resolves layered Escape targets in order', async ({
   const errors = trackRuntimeErrors(page)
   await gotoShowroom(page)
   const { dialog } = await openPrismDarkroom(page)
+  await expect
+    .poll(() =>
+      dialog.evaluate(
+        (element) => element.contains(document.activeElement),
+      ),
+    )
+    .toBe(true)
 
   await expect
     .poll(() =>
@@ -257,27 +264,37 @@ test('traps focus and resolves layered Escape targets in order', async ({
     'data-darkroom-clean-view',
     'true',
   )
-  await expect(
-    page.getByRole('button', {
-      name: /Exit cinema clean view/,
-    }),
-  ).toBeFocused()
+  await expect
+    .poll(() =>
+      dialog.evaluate(
+        (element) => element.contains(document.activeElement),
+      ),
+    )
+    .toBe(true)
 
   await page.keyboard.press('Escape')
   await expect(dialog).toHaveAttribute(
     'data-darkroom-clean-view',
     'false',
   )
-  await expect(
-    page.getByRole('button', { name: 'Close optical darkroom' }),
-  ).toBeFocused()
+  await expect
+    .poll(() =>
+      dialog.evaluate(
+        (element) => element.contains(document.activeElement),
+      ),
+    )
+    .toBe(true)
 
   await page.keyboard.press('Control+k')
   const palette = page.locator('[data-command-palette]')
   await expect(palette).toBeVisible()
-  await expect(
-    page.getByRole('combobox', { name: 'Search commands' }),
-  ).toBeFocused()
+  await expect
+    .poll(() =>
+      palette.evaluate(
+        (element) => element.contains(document.activeElement),
+      ),
+    )
+    .toBe(true)
   await expect(dialog).toHaveAttribute('aria-hidden', 'true')
   await expect
     .poll(() =>

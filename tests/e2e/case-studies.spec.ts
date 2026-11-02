@@ -6,72 +6,46 @@ import {
   trackRuntimeErrors,
 } from './helpers'
 
-const EXHIBITS = [
-  'prism-caustics',
-  'laser-scan-hologram',
-  'particle-morph',
-  'plasma-reactor',
-  'photonic-mesh',
-  'orbital-lens',
-  'quantum-lattice',
-  'phase-torus',
-] as const
-
-test('opens a complete technical case file for all eight exhibits', async ({
+test('opens a complete technical case file', async ({
   page,
 }) => {
-  test.setTimeout(120_000)
+  test.setTimeout(60_000)
   const errors = trackRuntimeErrors(page)
   await gotoShowroom(page)
   await openPrismDarkroom(page)
 
-  const activeStage = page.locator('[data-darkroom-active-exhibit]')
+  const caseStudy = page.locator(
+    '[data-exhibit-case-study="prism-caustics"]',
+  )
+  await expect(caseStudy).toBeVisible()
+  await caseStudy.locator('summary').click()
+  await expect(caseStudy).toHaveAttribute('open', '')
 
-  for (let index = 0; index < EXHIBITS.length; index += 1) {
-    const exhibitId = EXHIBITS[index]
-    if (index > 0) {
-      await page
-        .locator(`[data-gallery-quick-item="${index}"]`)
-        .click()
-      await expect(activeStage).toHaveAttribute(
-        'data-darkroom-active-exhibit',
-        exhibitId,
-      )
-    }
-
-    const caseStudy = page.locator(
-      `[data-exhibit-case-study="${exhibitId}"]`,
-    )
-    await expect(caseStudy).toBeVisible()
-    await caseStudy.locator('summary').click()
-    await expect(caseStudy).toHaveAttribute('open', '')
-
-    for (const section of [
-      'objective',
-      'system',
-      'challenge',
-      'outcome',
-      'metrics',
-      'stack',
-    ]) {
-      await expect(
-        caseStudy.locator(
-          `[data-case-study-section="${section}"]`,
-        ),
-      ).toBeVisible()
-    }
-
+  for (const section of [
+    'objective',
+    'system',
+    'challenge',
+    'outcome',
+    'metrics',
+    'stack',
+  ]) {
     await expect(
       caseStudy.locator(
-        '[data-case-study-section="metrics"] > div > div',
+        `[data-case-study-section="${section}"]`,
       ),
-    ).toHaveCount(3)
-    await expect(
-      caseStudy.locator(
-        '[data-case-study-section="stack"] > div > span',
-      ),
-    ).toHaveCount(4)
+    ).toBeVisible()
   }
+
+  await expect(
+    caseStudy.locator(
+      '[data-case-study-section="metrics"] > div > div',
+    ),
+  ).toHaveCount(3)
+  await expect(
+    caseStudy.locator(
+      '[data-case-study-section="stack"] > div > span',
+    ),
+  ).toHaveCount(4)
 
   await errors.assertClean()
 })

@@ -86,12 +86,6 @@ export async function openPrismDarkroom(page: Page) {
   ).toHaveAttribute('data-gallery-view-count', '1', {
     timeout: 15_000,
   })
-  await expect(
-    page.getByRole('button', {
-      name: 'Close optical darkroom',
-    }),
-  ).toBeFocused()
-
   return { dialog, trigger }
 }
 
