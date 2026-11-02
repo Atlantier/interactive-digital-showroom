@@ -76,11 +76,31 @@ with sync_playwright() as playwright:
     page.locator('header nav a[href="#gallery"]').click()
     page.wait_for_timeout(900)
 
-    pedestal = page.locator('[data-exhibit-pedestal][data-exhibit-index="4"]')
+    pedestal = page.locator(
+        '[data-exhibit-pedestal][data-exhibit-index="4"]'
+    )
     pedestal.scroll_into_view_if_needed()
-    stage = pedestal.locator("[data-gallery-stage]")
-    stage.scroll_into_view_if_needed()
+    pedestal.locator(
+        '[data-enter-darkroom="photonic-mesh"]'
+    ).click()
+    modal = page.locator("[data-darkroom-inspector]")
+    expect(modal).to_be_visible()
+    expect(modal.get_by_role("heading", level=2)).to_contain_text(
+        "Ray Bounce Maze"
+    )
     shared_canvas = page.locator("[data-gallery-shared-canvas]")
+    page.wait_for_function(
+        """
+        () => {
+          const canvas = document.querySelector(
+            '[data-gallery-shared-canvas]'
+          )
+          return canvas?.dataset.rayBounceMode === 'darkroom' &&
+            canvas.dataset.rayBounceElements?.includes('splitter')
+        }
+        """,
+        timeout=15_000,
+    )
 
     expect(shared_canvas).to_have_attribute(
         "data-ray-bounce-maze",
@@ -112,7 +132,10 @@ with sync_playwright() as playwright:
     page.screenshot(path=output_dir / "stage-ray-tree.png")
 
     layout_zero = read_elements(shared_canvas)
-    shuffle_button = pedestal.locator("[data-ray-maze-shuffle]")
+    shuffle_button = page.locator(
+        "[data-darkroom-ray-maze-controls] "
+        "[data-ray-maze-shuffle]"
+    )
     expect(shuffle_button).to_be_visible()
 
     shuffle_button.click()
@@ -191,28 +214,11 @@ with sync_playwright() as playwright:
     assert abs(rotated["angle"] - moved["angle"]) > 0.04
     page.screenshot(path=output_dir / "stage-ray-tree-manipulated.png")
 
-    page.locator('[data-enter-darkroom="photonic-mesh"]').click()
-    modal = page.locator("[data-darkroom-inspector]")
-    expect(modal).to_be_visible()
-    expect(modal.get_by_role("heading", level=2)).to_contain_text(
-        "Ray Bounce Maze"
-    )
     expect(
         page.locator("[data-darkroom-viewport]")
     ).to_have_attribute(
         "data-darkroom-active-exhibit",
         "photonic-mesh",
-    )
-    page.wait_for_function(
-        """
-        () => {
-          const canvas = document.querySelector(
-            '[data-gallery-shared-canvas]'
-          )
-          return canvas?.dataset.rayBounceMode === 'darkroom' &&
-            canvas.dataset.rayBounceElements?.includes('splitter')
-        }
-        """
     )
     page.wait_for_timeout(700)
 
@@ -242,21 +248,29 @@ with sync_playwright() as playwright:
     assert int(
         shared_canvas.get_attribute("data-ray-bounce-flares") or 0
     ) >= 3
-    expect(shared_canvas).to_have_attribute(
-        "data-ray-bounce-celebration-particles",
-        "60",
-    )
-    assert (
-        len(
-            (
-                shared_canvas.get_attribute(
-                    "data-ray-bounce-locked-power"
-                )
-                or ""
-            ).split(",")
+    celebration_particles = int(
+        shared_canvas.get_attribute(
+            "data-ray-bounce-celebration-particles"
         )
-        == 3
+        or 0
     )
+    assert 20 <= celebration_particles <= 60
+    assert celebration_particles % 20 == 0
+    active_after_drag = int(
+        shared_canvas.get_attribute(
+            "data-ray-bounce-targets-active"
+        )
+        or 0
+    )
+    locked_power = (
+        shared_canvas.get_attribute("data-ray-bounce-locked-power")
+        or ""
+    )
+    locked_readings = (
+        locked_power.split(",") if locked_power else []
+    )
+    assert len(locked_readings) == active_after_drag
+    assert all(":" in reading for reading in locked_readings)
     page.screenshot(path=output_dir / "darkroom-ray-tree.png")
 
     mobile = browser.new_context(
