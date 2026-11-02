@@ -103,7 +103,9 @@ export function useFocusTrap(
   useEffect(() => {
     if (!active || !enabled) return
 
-    const frame = window.requestAnimationFrame(() => {
+    let attempts = 0
+    let retryTimer = 0
+    const focusInitialTarget = () => {
       const container = containerRef.current
       if (!container) return
 
@@ -112,9 +114,20 @@ export function useFocusTrap(
         getFocusableElements(container)[0] ??
         container
       initialTarget.focus({ preventScroll: true })
-    })
+      if (
+        document.activeElement !== initialTarget &&
+        attempts < 20
+      ) {
+        attempts += 1
+        retryTimer = window.setTimeout(focusInitialTarget, 50)
+      }
+    }
+    const frame = window.requestAnimationFrame(focusInitialTarget)
 
-    return () => window.cancelAnimationFrame(frame)
+    return () => {
+      window.cancelAnimationFrame(frame)
+      window.clearTimeout(retryTimer)
+    }
   }, [
     active,
     containerRef,

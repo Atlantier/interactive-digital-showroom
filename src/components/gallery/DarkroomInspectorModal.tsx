@@ -249,16 +249,23 @@ export function DarkroomInspectorModal() {
   )
 
   useEffect(() => {
-    if (!open) return
+    if (!open || !isTopLayer) return
 
+    let attempts = 0
     let focusFrame = 0
+    let retryTimer = 0
     const focusActiveView = () => {
-      if (cinemaCleanView) {
-        cleanExitButtonRef.current?.focus({ preventScroll: true })
-      } else if (
-        !dialogRef.current?.contains(document.activeElement)
-      ) {
-        closeButtonRef.current?.focus({ preventScroll: true })
+      const target = cinemaCleanView
+        ? cleanExitButtonRef.current
+        : !dialogRef.current?.contains(document.activeElement)
+          ? closeButtonRef.current
+          : null
+      if (!target) return
+
+      target.focus({ preventScroll: true })
+      if (document.activeElement !== target && attempts < 20) {
+        attempts += 1
+        retryTimer = window.setTimeout(focusActiveView, 50)
       }
     }
     focusFrame = window.requestAnimationFrame(() => {
@@ -266,8 +273,11 @@ export function DarkroomInspectorModal() {
       focusFrame = window.requestAnimationFrame(focusActiveView)
     })
 
-    return () => window.cancelAnimationFrame(focusFrame)
-  }, [cinemaCleanView, open])
+    return () => {
+      window.cancelAnimationFrame(focusFrame)
+      window.clearTimeout(retryTimer)
+    }
+  }, [cinemaCleanView, isTopLayer, open])
 
   useEffect(() => {
     if (!open || !isTopLayer) return
