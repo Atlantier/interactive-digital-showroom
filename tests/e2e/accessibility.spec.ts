@@ -29,6 +29,13 @@ test.describe('@a11y accessibility gate', () => {
   }) => {
     await gotoShowroom(page)
     const { dialog } = await openPrismDarkroom(page)
+    const caseStudy = page.locator(
+      '[data-exhibit-case-study="prism-caustics"]',
+    )
+    await caseStudy.locator('summary').click()
+    await expect(
+      caseStudy.locator('[data-case-study-section="outcome"]'),
+    ).toBeVisible()
     await expectNoAccessibilityViolations(page)
 
     await page.keyboard.press('h')

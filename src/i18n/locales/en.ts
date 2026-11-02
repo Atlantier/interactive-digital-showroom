@@ -524,6 +524,20 @@ export const en = {
       enterAria: 'Enter the optical darkroom for {exhibit}',
       enterCompact: 'ENTER DARKROOM LAB',
     },
+    caseStudy: {
+      eyebrow: 'TECHNICAL CASE FILE',
+      title: 'Objective, system and verified result',
+      expand: 'Open technical archive',
+      collapse: 'Collapse technical archive',
+      objective: 'Objective',
+      system: 'System',
+      challenge: 'Engineering challenge',
+      outcome: 'Verified outcome',
+      stack: 'Technology stack',
+      metrics: 'Verified signals',
+      role: 'Role',
+      links: 'Case links',
+    },
     presets: {
       standard: {
         label: 'Standard',

@@ -503,6 +503,20 @@ export const zh: typeof en = {
       enterAria: '进入 {exhibit} 光学暗房',
       enterCompact: '进入暗房实验台',
     },
+    caseStudy: {
+      eyebrow: '技术案例档案',
+      title: '目标、系统与可验证结果',
+      expand: '展开技术档案',
+      collapse: '收起技术档案',
+      objective: '设计目标',
+      system: '系统方案',
+      challenge: '工程难点',
+      outcome: '可验证结果',
+      stack: '技术栈',
+      metrics: '验证指标',
+      role: '职责',
+      links: '案例链接',
+    },
     presets: {
       standard: {
         label: '标准态',

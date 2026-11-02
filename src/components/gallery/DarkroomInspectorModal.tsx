@@ -65,6 +65,7 @@ import { AudioStageModeSelector } from './AudioStageModeSelector'
 import { AudioStagePlayButton } from './AudioStagePlayButton'
 import { NeuralInferenceControls } from './NeuralInferenceControls'
 import { GpuComputeModeControls } from './GpuComputeModeControls'
+import { ExhibitCaseStudyPanel } from './ExhibitCaseStudyPanel'
 
 const TIME_SCALE_MIN = 0.05
 const TIME_SCALE_MAX = 2
@@ -896,6 +897,12 @@ export function DarkroomInspectorModal() {
                 </span>
               </div>
             </div>
+
+            <ExhibitCaseStudyPanel
+              key={activeExhibit.id}
+              exhibitId={activeExhibit.id}
+              index={exhibitIndex}
+            />
 
             {activeExhibit.id === 'prism-caustics' ? (
               <div
